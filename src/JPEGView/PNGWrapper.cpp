@@ -7,7 +7,7 @@
 #include <stdlib.h>
 
 // Uncomment to build without APNG support
-//#undef PNG_APNG_SUPPORTED
+#undef PNG_APNG_SUPPORTED
 
 /*
  * Modified from "load4apng.c"

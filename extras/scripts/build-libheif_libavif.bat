@@ -147,10 +147,18 @@ mkdir "%XBUILD_DIR%" 2>nul
 call "%~dp0vs-init.bat" %1
 
 pushd "%XBUILD_DIR%"
-cmake.exe -DCMAKE_BUILD_TYPE=Release -A %2 "%XLIB_DIR%"
-IF ERRORLEVEL 1 exit /b 1
-msbuild.exe /p:Platform=%2 /p:configuration="Release" libde265.sln /t:de265
-IF ERRORLEVEL 1 exit /b 1
+REM Use NMake Makefiles for x86, Visual Studio generator for x64
+IF /I "%2"=="Win32" (
+    cmake.exe -G "NMake Makefiles" -DCMAKE_BUILD_TYPE=Release "%XLIB_DIR%"
+    IF ERRORLEVEL 1 exit /b 1
+    nmake.exe
+    IF ERRORLEVEL 1 exit /b 1
+) ELSE (
+    cmake.exe -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release "%XLIB_DIR%"
+    IF ERRORLEVEL 1 exit /b 1
+    msbuild.exe /p:Platform=x64 /p:configuration="Release" libde265.sln /t:de265
+    IF ERRORLEVEL 1 exit /b 1
+)
 
 
 copy /y "%XBUILD_DIR%\libde265\Release\libde265.dll" "%XSRC_DIR%\bin%~3\"
@@ -238,8 +246,8 @@ pushd "%XBUILD_DIR%"
 REM not sure if there's any diff using nmake vs ninja
 
 REM derived from https://github.com/AOMediaCodec/libavif/blob/main/.github/workflows/ci-windows.yml
-::cmake.exe -G"NMake Makefiles" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DAVIF_CODEC_DAV1D=ON -DDAV1D_LIBRARY="%XDAV1D_DIST%\lib\dav1d.lib" -DDAV1D_INCLUDE_DIR="%XDAV1D_DIST%\include" "%XLIBAVIF_DIR%"
-cmake.exe -G Ninja -DCMAKE_BUILD_TYPE=Release -DAVIF_CODEC_DAV1D=ON -DDAV1D_LIBRARY="%XDAV1D_DIST%\lib\dav1d.lib" -DDAV1D_INCLUDE_DIR="%XDAV1D_DIST%\include" "%XLIBAVIF_DIR%"
+::cmake.exe -G"NMake Makefiles" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DAVIF_CODEC_DAV1D=ON -DDAV1D_LIBRARY="%XDAV1D_DIST%\lib\dav1d.lib" -DDAV1D_INCLUDE_DIR="%XDAV1D_DIST%\include" -DAVIF_LIBYUV=OFF "%XLIBAVIF_DIR%"
+cmake.exe -G Ninja -DCMAKE_BUILD_TYPE=Release -DAVIF_CODEC_DAV1D=ON -DAVIF_LIBYUV=OFF -DDAV1D_LIBRARY="%XDAV1D_DIST%\lib\dav1d.lib" -DDAV1D_INCLUDE_DIR="%XDAV1D_DIST%\include" "%XLIBAVIF_DIR%"
 IF ERRORLEVEL 1 exit /b 1
 ::nmake.exe
 ninja.exe

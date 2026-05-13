@@ -52,7 +52,7 @@ pushd "%XLIB_DIR%"
 REM delete any previous build files, if exists
 del "bin\lcms2.*" 2>nul
 
-msbuild /t:lcms2_DLL /p:Platform=%2 /p:Configuration=Release .\Projects\VC%XVS_VER%\lcms2.sln
+msbuild /t:lcms2_DLL /p:Platform=%2 /p:Configuration=Release ".\Projects\VC%XVS_VER%\lcms2.sln"
 IF ERRORLEVEL 1 exit /b 1
 
 copy /y "bin\lcms2.lib" "%XSRC_DIR%\lib%~3"
