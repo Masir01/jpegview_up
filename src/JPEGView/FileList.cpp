@@ -4,6 +4,8 @@
 #include "Helpers.h"
 #include "DirectoryWatcher.h"
 #include "Shlwapi.h"
+#include "MessageDef.h"
+#include <algorithm>
 
 ///////////////////////////////////////////////////////////////////////////////////
 // Helpers
@@ -15,7 +17,7 @@ bool CFileDesc::sm_bSortAscending = true;
 Helpers::ENavigationMode CFileList::sm_eMode = Helpers::NM_LoopDirectory;
 
 // Helper to add the current file of filefind object to the list
-static void AddToFileList(std::list<CFileDesc> & fileList, CFindFile & fileFind, LPCTSTR expectedExtension) {
+static void AddToFileList(std::vector<CFileDesc> & fileList, CFindFile & fileFind, LPCTSTR expectedExtension) {
 	if (!fileFind.IsDirectory()) {
 		if (expectedExtension != NULL) {
 			// compare if the extension is the expected extension
@@ -188,7 +190,7 @@ static LPCTSTR* GetSupportedFileEndingList() {
 }
 
 CFileList::CFileList(const CString & sInitialFile, CDirectoryWatcher & directoryWatcher, 
-	Helpers::ESorting eInitialSorting, bool isSortedAscending, bool bWrapAroundFolder, int nLevel, bool forceSorting)
+	Helpers::ESorting eInitialSorting, bool isSortedAscending, bool bWrapAroundFolder, int nLevel, bool forceSorting, HWND hAsyncCallbackWnd)
 	: m_directoryWatcher(directoryWatcher) {
 
 	CFileDesc::SetSorting(eInitialSorting, isSortedAscending);
@@ -197,6 +199,10 @@ CFileList::CFileList(const CString & sInitialFile, CDirectoryWatcher & directory
 	m_sInitialFile = sInitialFile;
 	m_nLevel = nLevel;
 	m_next = m_prev = NULL;
+	m_bLoading = false;
+	m_hCallbackWnd = NULL;
+	m_hCancelEvent = NULL;
+	m_hScanThread = NULL;
 	int nPos = sInitialFile.ReverseFind(_T('\\'));
 	m_sDirectory = (nPos > 0) ? sInitialFile.Left(nPos) : _T(""); // the backslash is stripped away!
 	nPos = sInitialFile.ReverseFind(_T('.'));
@@ -217,9 +223,21 @@ CFileList::CFileList(const CString & sInitialFile, CDirectoryWatcher & directory
 
 	if (!m_bIsSlideShowList) {
 		if (bImageFile || bIsDirectory) {
-			FindFiles();
-			m_iter = FindFile(sInitialFile);
-			m_iterStart = bWrapAroundFolder ? m_iter : m_fileList.begin();
+			if (hAsyncCallbackWnd != NULL) {
+				if (bImageFile) {
+					CFindFile fileFind;
+					if (fileFind.FindFile(sInitialFile)) {
+						AddToFileList(m_fileList, fileFind, NULL);
+					}
+				}
+				m_iter = m_fileList.begin();
+				m_iterStart = m_fileList.begin();
+				FindFilesAsync(hAsyncCallbackWnd);
+			} else {
+				FindFiles();
+				m_iter = FindFile(sInitialFile);
+				m_iterStart = bWrapAroundFolder ? m_iter : m_fileList.begin();
+			}
 		} else {
 			// neither image file nor directory nor list of file names - try to read anyway but normally will fail
 			CFindFile fileFind;
@@ -230,7 +248,7 @@ CFileList::CFileList(const CString & sInitialFile, CDirectoryWatcher & directory
 		}
 	} else {
 		sm_eMode = Helpers::NM_LoopDirectory;
-		if (forceSorting) m_fileList.sort();
+		if (forceSorting) std::sort(m_fileList.begin(), m_fileList.end());
 		m_iter = m_iterStart = m_fileList.begin();
 	}
 }
@@ -239,6 +257,7 @@ CFileList::~CFileList() {
 	if (m_bDeleteHistory) {
 		DeleteHistory();
 	}
+	CancelScan();
 	m_fileList.clear();
 }
 
@@ -253,7 +272,7 @@ CString CFileList::GetSupportedFileEndings() {
 	return sList;
 }
 
-void CFileList::Reload(LPCTSTR sFileName, bool clearForwardHistory) {
+void CFileList::Reload(LPCTSTR sFileName, bool clearForwardHistory, HWND hCallbackWnd /*= NULL*/) {
 	LPCTSTR sCurrent = sFileName;
 	if (sCurrent == NULL) {
 		sCurrent = Current();
@@ -278,6 +297,10 @@ void CFileList::Reload(LPCTSTR sFileName, bool clearForwardHistory) {
 	}
 
 	if (!m_bIsSlideShowList) {
+		if (hCallbackWnd != NULL) {
+			FindFilesAsync(hCallbackWnd);
+			return;
+		}
 		FindFiles();
 		m_iterStart = m_bWrapAroundFolder ? FindFile(m_sInitialFile) : m_fileList.begin();
 	} else {
@@ -338,7 +361,7 @@ void CFileList::FileHasRenamed(LPCTSTR sOldFileName, LPCTSTR sNewFileName) {
 	if (_tcsicmp(sOldFileName, m_sInitialFile) == 0) {
 		m_sInitialFile = sNewFileName;
 	}
-	std::list<CFileDesc>::iterator iter;
+	std::vector<CFileDesc>::iterator iter;
 	for (iter = m_fileList.begin( ); iter != m_fileList.end( ); iter++ ) {
 		if (_tcsicmp(sOldFileName, iter->GetName()) == 0) {
 			iter->SetName(sNewFileName);
@@ -363,7 +386,7 @@ void CFileList::ModificationTimeChanged() {
 CFileList* CFileList::Next() {
 	m_nMarkedIndexShow = -1;
 	if (m_fileList.size() > 0) {
-		std::list<CFileDesc>::iterator iterTemp = m_iter;
+		std::vector<CFileDesc>::iterator iterTemp = m_iter;
 		if (iterTemp == m_fileList.end())
 			return this;
 		iterTemp++;
@@ -483,7 +506,7 @@ LPCTSTR CFileList::CurrentDirectory() const {
 
 int CFileList::CurrentIndex() const {
 	int i = 0;
-	std::list<CFileDesc>::const_iterator iter;
+	std::vector<CFileDesc>::const_iterator iter;
 	for (iter = m_fileList.begin( ); iter != m_fileList.end( ); iter++ ) {
 		if (iter == m_iter) {
 			return i;
@@ -505,7 +528,7 @@ LPCTSTR CFileList::PeekNextPrev(int nIndex, bool bForward, bool bToggle) {
 	if (bToggle) {
 		return (m_nMarkedIndexShow == 0) ? m_sMarkedFile : m_sMarkedFileCurrent;
 	} else {
-		std::list<CFileDesc>::iterator thisIter = m_iter;
+		std::vector<CFileDesc>::iterator thisIter = m_iter;
 		LPCTSTR sFileName;
 		if (nIndex != 0) {
 			CFileList* pFL = bForward ? Next() : Prev();
@@ -522,7 +545,7 @@ void CFileList::SetSorting(Helpers::ESorting eSorting, bool sortAscending) {
 	if (eSorting != CFileDesc::GetSorting() || sortAscending != CFileDesc::IsSortedAscending()) {
 		CString sThisFile = (m_iter != m_fileList.end()) ? m_iter->GetName() : "";
 		CFileDesc::SetSorting(eSorting, sortAscending);
-		m_fileList.sort();
+		std::sort(m_fileList.begin(), m_fileList.end());
 		m_iter = FindFile(sThisFile);
 		m_iterStart = m_bWrapAroundFolder ? m_iter : m_fileList.begin();
 	}
@@ -623,7 +646,7 @@ void CFileList::DeleteHistory(bool onlyForward) {
 ///////////////////////////////////////////////////////////////////////////////////
 
 void CFileList::MoveIterToLast() {
-	std::list<CFileDesc>::iterator lastIter = m_iter;
+	std::vector<CFileDesc>::iterator lastIter = m_iter;
 	while (m_iter != m_fileList.end()) {
 		lastIter = m_iter;
 		m_iter++;
@@ -631,12 +654,12 @@ void CFileList::MoveIterToLast() {
 	m_iter = lastIter;
 }
 
-std::list<CFileDesc>::iterator CFileList::FindFile(const CString& sName) {
+std::vector<CFileDesc>::iterator CFileList::FindFile(const CString& sName) {
 	int nStart = sName.ReverseFind(_T('\\')) + 1;
 	if (nStart == sName.GetLength()) {
 		return m_fileList.begin();
 	}
-	std::list<CFileDesc>::iterator iter;
+	std::vector<CFileDesc>::iterator iter;
 	for (iter = m_fileList.begin( ); iter != m_fileList.end( ); iter++ ) {
 		if (_tcsicmp((LPCTSTR)sName + nStart, iter->GetTitle()) == 0) {
 			return iter;
@@ -801,8 +824,8 @@ CFileList* CFileList::TryCreateFileList(const CString& directory, int nNewLevel)
 		pList = pList->m_prev;
 	}
 
-	CFileList* pNewList = new CFileList(directory, m_directoryWatcher, CFileDesc::GetSorting(), CFileDesc::IsSortedAscending(), m_bWrapAroundFolder, nNewLevel);
-	if (pNewList->m_fileList.size() > 0) {
+	CFileList* pNewList = new CFileList(directory, m_directoryWatcher, CFileDesc::GetSorting(), CFileDesc::IsSortedAscending(), m_bWrapAroundFolder, nNewLevel, false, m_hCallbackWnd);
+	if (pNewList->m_fileList.size() > 0 || pNewList->IsLoading()) {
 		pNewList->m_prev = this;
 		m_next = pNewList;
 		return pNewList;
@@ -827,17 +850,16 @@ void CFileList::FindFiles() {
 		}
 	}
 
-	m_fileList.sort();
+	std::sort(m_fileList.begin(), m_fileList.end());
 }
 
 void CFileList::VerifyFiles() {
-	std::list<CFileDesc>::iterator iter;
-	for (iter = m_fileList.begin( ); iter != m_fileList.end( ); iter++ ) {
+	std::vector<CFileDesc>::iterator iter;
+	for (iter = m_fileList.begin( ); iter != m_fileList.end( ); ) {
 		if (::GetFileAttributes(iter->GetName()) == INVALID_FILE_ATTRIBUTES) {
 			iter = m_fileList.erase(iter);
-			if (iter == m_fileList.end()) {
-				break;
-			}
+		} else {
+			iter++;
 		}
 	}
 }
@@ -997,4 +1019,105 @@ bool CFileList::TryReadingSlideShowList(const CString & sSlideShowFile) {
 	fclose(fptr);
 	delete[] fileBuffOrig;
 	return true;
+}
+
+namespace {
+struct ScanParams {
+	CFileList* pFileList;
+	CString sDirectory;
+	HANDLE hCancelEvent;
+	HWND hCallbackWnd;
+};
+}
+
+UINT __stdcall CFileList::ScanThreadProc(LPVOID pParam) {
+	ScanParams* params = (ScanParams*)pParam;
+	CFileList* pFileList = params->pFileList;
+	
+	pFileList->m_scanResult.clear();
+	
+	if (!params->sDirectory.IsEmpty()) {
+		CFindFile fileFind;
+		LPCTSTR* allFileEndings = GetSupportedFileEndingList();
+		for (int i = 0; i < nNumEndings; i++) {
+			if (WaitForSingleObject(params->hCancelEvent, 0) == WAIT_OBJECT_0) {
+				break;
+			}
+			CString sPattern = params->sDirectory + _T("\\*.") + allFileEndings[i];
+			if (fileFind.FindFile(sPattern)) {
+				AddToFileList(pFileList->m_scanResult, fileFind, allFileEndings[i]);
+				while (fileFind.FindNextFile()) {
+					if (WaitForSingleObject(params->hCancelEvent, 0) == WAIT_OBJECT_0) {
+						break;
+					}
+					AddToFileList(pFileList->m_scanResult, fileFind, allFileEndings[i]);
+				}
+			}
+			fileFind.Close();
+		}
+	}
+	
+	if (WaitForSingleObject(params->hCancelEvent, 0) != WAIT_OBJECT_0) {
+		std::sort(pFileList->m_scanResult.begin(), pFileList->m_scanResult.end());
+	}
+	
+	HWND hWnd = params->hCallbackWnd;
+	delete params;
+	
+	if (hWnd && IsWindow(hWnd)) {
+		PostMessage(hWnd, WM_FILELIST_SCAN_COMPLETED, (WPARAM)pFileList, 0);
+	}
+	
+	return 0;
+}
+
+void CFileList::CancelScan() {
+	if (m_bLoading && m_hCancelEvent) {
+		SetEvent(m_hCancelEvent);
+		if (m_hScanThread != NULL) {
+			WaitForSingleObject(m_hScanThread, 5000);
+			CloseHandle(m_hScanThread);
+			m_hScanThread = NULL;
+		}
+		CloseHandle(m_hCancelEvent);
+		m_hCancelEvent = NULL;
+		m_bLoading = false;
+		m_hCallbackWnd = NULL;
+	}
+}
+
+void CFileList::FindFilesAsync(HWND hCallbackWnd) {
+	CancelScan();
+	
+	m_bLoading = true;
+	m_hCallbackWnd = hCallbackWnd;
+	m_hCancelEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+	
+	m_scanResult.clear();
+	
+	ScanParams* params = new ScanParams();
+	params->pFileList = this;
+	params->sDirectory = m_sDirectory;
+	params->hCancelEvent = m_hCancelEvent;
+	params->hCallbackWnd = hCallbackWnd;
+	
+	UINT uThreadId;
+	m_hScanThread = (HANDLE)_beginthreadex(NULL, 0, ScanThreadProc, params, 0, &uThreadId);
+}
+
+void CFileList::OnScanCompleted() {
+	if (!m_bLoading) return;
+	
+	m_fileList.swap(m_scanResult);
+	
+	m_iter = FindFile(m_sInitialFile);
+	m_iterStart = m_bWrapAroundFolder ? m_iter : m_fileList.begin();
+	
+	m_bLoading = false;
+	m_hCallbackWnd = NULL;
+	if (m_hCancelEvent) {
+		CloseHandle(m_hCancelEvent);
+		m_hCancelEvent = NULL;
+	}
+	m_hScanThread = NULL;
 }

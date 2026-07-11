@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vector>
 #include "Helpers.h"
 
 class CDirectoryWatcher;
@@ -59,15 +60,16 @@ public:
 	// (must end with backslash in this case) or a text file containing file names to display.
 	// Supported text file encodings are ANSI, Unicode or UTF-8.
 	// nLevel is increased when recursively create lists for sub-folders
+	// hAsyncCallbackWnd: if not NULL, file scanning will be done asynchronously in a background thread
 	CFileList(const CString & sInitialFile, CDirectoryWatcher & directoryWatcher, 
-		Helpers::ESorting eInitialSorting, bool isSortedAscending, bool bWrapAroundFolder, int nLevel = 0, bool forceSorting = false);
+		Helpers::ESorting eInitialSorting, bool isSortedAscending, bool bWrapAroundFolder, int nLevel = 0, bool forceSorting = false, HWND hAsyncCallbackWnd = NULL);
 	~CFileList();
 
 	// Gets a list of all supported file endings, separated by semicolon
 	static CString GetSupportedFileEndings();
 
 	// Reload file list for given file, if NULL for current file
-	void Reload(LPCTSTR sFileName = NULL, bool clearForwardHistory = true);
+	void Reload(LPCTSTR sFileName = NULL, bool clearForwardHistory = true, HWND hCallbackWnd = NULL);
 
 	// Tells the file list that a file has been renamed externally
 	void FileHasRenamed(LPCTSTR sOldFileName, LPCTSTR sNewFileName);
@@ -140,10 +142,16 @@ public:
 	bool CanOpenCurrentFileForReading() const;
 
 	// Returns the raw file list of the current folder
-	std::list<CFileDesc> & GetFileList() { return m_fileList; }
+	std::vector<CFileDesc> & GetFileList() { return m_fileList; }
 
 	// delete the chain of CFileLists forward and backward and only leave the current node alive
 	void DeleteHistory(bool onlyForward = false);
+
+	bool IsLoading() const { return m_bLoading; }
+	void CancelScan();
+	void FindFilesAsync(HWND hCallbackWnd);
+	void OnScanCompleted();
+	static UINT __stdcall ScanThreadProc(LPVOID pParam);
 
 private:
 	static Helpers::ENavigationMode sm_eMode;
@@ -157,10 +165,10 @@ private:
 	// filelists for several folders are chained
 	CFileList* m_next;
 	CFileList* m_prev;
-	std::list<CFileDesc> m_fileList;
-	std::list<CFileDesc>::iterator m_iter; // current position in m_fileList
-	std::list<CFileDesc>::iterator m_iterStart; // start of iteration in m_fileList
-	std::list<CFileDesc>::iterator m_iterCheckPoint;
+	std::vector<CFileDesc> m_fileList;
+	std::vector<CFileDesc>::iterator m_iter; // current position in m_fileList
+	std::vector<CFileDesc>::iterator m_iterStart; // start of iteration in m_fileList
+	std::vector<CFileDesc>::iterator m_iterCheckPoint;
 
 	CString m_sMarkedFile;
 	CString m_sMarkedFileCurrent;
@@ -168,10 +176,16 @@ private:
 
 	CDirectoryWatcher & m_directoryWatcher;
 
+	bool m_bLoading;
+	HWND m_hCallbackWnd;
+	std::vector<CFileDesc> m_scanResult;
+	HANDLE m_hCancelEvent;
+	HANDLE m_hScanThread;
+
 	void MoveIterToLast();
 	void NextInFolder();
 	CFileList* GotoFirstShown();
-	std::list<CFileDesc>::iterator FindFile(const CString& sName);
+	std::vector<CFileDesc>::iterator FindFile(const CString& sName);
 	CFileList* FindFileRecursively (const CString& sDirectory, const CString& sFindAfter, 
 		bool bSearchThisFolder, int nLevel, int nRecursion);
 	CFileList* TryCreateFileList(const CString& directory, int nNewLevel);

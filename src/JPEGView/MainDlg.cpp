@@ -376,7 +376,7 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 	// intitialize list of files to show with startup file (and folder)
 	m_pFileList = new CFileList(m_sStartupFile, *m_pDirectoryWatcher,
 		(m_eForcedSorting == Helpers::FS_Undefined) ? sp.Sorting() : m_eForcedSorting, sp.IsSortedAscending(), sp.WrapAroundFolder(),
-		0, m_eForcedSorting != Helpers::FS_Undefined);
+		0, m_eForcedSorting != Helpers::FS_Undefined, m_hWnd);
 	m_pFileList->SetNavigationMode(sp.Navigation());
 
 	// create thread pool for processing requests on multiple CPU cores
@@ -1039,8 +1039,18 @@ LRESULT CMainDlg::OnDisplayedFileChangedOnDisk(UINT /*uMsg*/, WPARAM /*wParam*/,
 
 LRESULT CMainDlg::OnActiveDirectoryFilelistChanged(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
 	if (CSettingsProvider::This().ReloadWhenDisplayedImageChanged() && m_pFileList != NULL && m_pFileList->CurrentFileExists()) {
-		m_pFileList->Reload(NULL, false);
-		Invalidate(FALSE);
+		m_pFileList->Reload(NULL, false, m_hWnd);
+	}
+	return 0;
+}
+
+LRESULT CMainDlg::OnFileListScanCompleted(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+	CFileList* pFileList = (CFileList*)wParam;
+	if (pFileList != NULL && m_pFileList == pFileList) {
+		pFileList->OnScanCompleted();
+		if (pFileList->Current() != NULL) {
+			Invalidate(FALSE);
+		}
 	}
 	return 0;
 }
@@ -2155,7 +2165,7 @@ void CMainDlg::OpenFile(LPCTSTR sFileName, bool bAfterStartup) {
 	bool oOldAscending = m_pFileList->IsSortedAscending();
 	delete m_pFileList;
 	m_sStartupFile = sFileName;
-	m_pFileList = new CFileList(m_sStartupFile, *m_pDirectoryWatcher, eOldSorting, oOldAscending, CSettingsProvider::This().WrapAroundFolder());
+	m_pFileList = new CFileList(m_sStartupFile, *m_pDirectoryWatcher, eOldSorting, oOldAscending, CSettingsProvider::This().WrapAroundFolder(), 0, false, m_hWnd);
 	// free current image and all read ahead images
 	InitParametersForNewImage();
 	m_pJPEGProvider->NotifyNotUsed(m_pCurrentImage);
