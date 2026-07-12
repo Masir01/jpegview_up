@@ -297,13 +297,13 @@ void CFileList::Reload(LPCTSTR sFileName, bool clearForwardHistory, HWND hCallba
 	}
 
 	if (!m_bIsSlideShowList) {
-		if (hCallbackWnd != NULL) {
-			FindFilesAsync(hCallbackWnd);
-			return;
-		}
-		FindFiles();
-		m_iterStart = m_bWrapAroundFolder ? FindFile(m_sInitialFile) : m_fileList.begin();
-	} else {
+			if (hCallbackWnd != NULL) {
+				FindFilesAsync(hCallbackWnd);
+				return;
+			}
+			FindFiles();
+			m_iterStart = m_bWrapAroundFolder ? FindFile(sCurrentFile) : m_fileList.begin();
+		} else {
 		VerifyFiles(); // maybe some of the files got deleted or moved
 		m_iterStart = m_fileList.begin();
 	}
@@ -1108,9 +1108,11 @@ void CFileList::FindFilesAsync(HWND hCallbackWnd) {
 void CFileList::OnScanCompleted() {
 	if (!m_bLoading) return;
 	
+	CString sCurrentFile = (m_iter != m_fileList.end()) ? m_iter->GetName() : m_sInitialFile;
+	
 	m_fileList.swap(m_scanResult);
 	
-	m_iter = FindFile(m_sInitialFile);
+	m_iter = FindFile(sCurrentFile);
 	m_iterStart = m_bWrapAroundFolder ? m_iter : m_fileList.begin();
 	
 	m_bLoading = false;
