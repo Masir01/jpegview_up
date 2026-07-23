@@ -1036,11 +1036,14 @@ UINT __stdcall CFileList::ScanThreadProc(LPVOID pParam) {
 	
 	pFileList->m_scanResult.clear();
 	
+	bool bCancelled = false;
+	
 	if (!params->sDirectory.IsEmpty()) {
 		CFindFile fileFind;
 		LPCTSTR* allFileEndings = GetSupportedFileEndingList();
 		for (int i = 0; i < nNumEndings; i++) {
 			if (WaitForSingleObject(params->hCancelEvent, 0) == WAIT_OBJECT_0) {
+				bCancelled = true;
 				break;
 			}
 			CString sPattern = params->sDirectory + _T("\\*.") + allFileEndings[i];
@@ -1048,6 +1051,7 @@ UINT __stdcall CFileList::ScanThreadProc(LPVOID pParam) {
 				AddToFileList(pFileList->m_scanResult, fileFind, allFileEndings[i]);
 				while (fileFind.FindNextFile()) {
 					if (WaitForSingleObject(params->hCancelEvent, 0) == WAIT_OBJECT_0) {
+						bCancelled = true;
 						break;
 					}
 					AddToFileList(pFileList->m_scanResult, fileFind, allFileEndings[i]);
@@ -1057,14 +1061,18 @@ UINT __stdcall CFileList::ScanThreadProc(LPVOID pParam) {
 		}
 	}
 	
-	if (WaitForSingleObject(params->hCancelEvent, 0) != WAIT_OBJECT_0) {
-		std::sort(pFileList->m_scanResult.begin(), pFileList->m_scanResult.end());
+	if (!bCancelled) {
+		if (WaitForSingleObject(params->hCancelEvent, 0) != WAIT_OBJECT_0) {
+			std::sort(pFileList->m_scanResult.begin(), pFileList->m_scanResult.end());
+		} else {
+			bCancelled = true;
+		}
 	}
 	
 	HWND hWnd = params->hCallbackWnd;
 	delete params;
 	
-	if (hWnd && IsWindow(hWnd)) {
+	if (!bCancelled && hWnd && IsWindow(hWnd)) {
 		PostMessage(hWnd, WM_FILELIST_SCAN_COMPLETED, (WPARAM)pFileList, 0);
 	}
 	
