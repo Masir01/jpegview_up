@@ -263,21 +263,13 @@ static bool CPUSupportsHWMultiprocessing(void) {
 }
 
 int NumCoresPerPhysicalProc(void) {
-	if (!CPUSupportsHWMultiprocessing()) {
-		return 1;
-	}
-
-	int output[4];
-
-	// check if cpuid supports leaf 4
-	__cpuid(output, 0);
-	if (output[0] < 4)
-		return 1; // not support, single core
-
-	// start with index = 0; Leaf 4 reports
-	__cpuidex(output, 4, 0);
-
-	return (int)((output[0] & 0xFC000000) >> 26) + 1;
+	// Use Windows API for accuracy - CPUID leaf 4 core count is unreliable on
+	// hybrid architectures (P/E cores), VMs, and certain CPU configurations.
+	// GetSystemInfo() returns the number of logical processors which correctly
+	// reflects the hardware available for thread pool scheduling.
+	SYSTEM_INFO sysInfo;
+	GetSystemInfo(&sysInfo);
+	return (int)sysInfo.dwNumberOfProcessors;
 }
 
 bool PatternMatch(LPCTSTR & sMatchingPattern, LPCTSTR sString, LPCTSTR sPattern) {
@@ -753,6 +745,14 @@ EImageFormat GetImageFormat(LPCTSTR sFileName) {
 	LPCTSTR sEnding = _tcsrchr(sFileName, _T('.'));
 	if (sEnding != NULL) {
 		sEnding += 1;
+
+		// When WICPriority is enabled, check FilesProcessedByWIC first so users can
+		// force WIC decode even for extensions that normally use native decoders
+		if (CSettingsProvider::This().WICPriority() &&
+			IsInFileEndingList(CSettingsProvider::This().FilesProcessedByWIC(), sEnding)) {
+			return IF_WIC;
+		}
+
 		if (_tcsicmp(sEnding, _T("JPG")) == 0 || _tcsicmp(sEnding, _T("JPEG")) == 0) {
 			return IF_JPEG;
 		} else if (_tcsicmp(sEnding, _T("BMP")) == 0) {

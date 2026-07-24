@@ -2,6 +2,7 @@
 #include "TJPEGWrapper.h"
 #include "libjpeg-turbo\include\turbojpeg.h"
 #include "MaxImageDef.h"
+#include "SettingsProvider.h"
 
 void * TurboJpeg::ReadImage(int &width,
 					   int &height,
@@ -19,6 +20,9 @@ void * TurboJpeg::ReadImage(int &width,
 	tjhandle hDecoder = tj3Init(TJINIT_DECOMPRESS);
 	if (hDecoder == NULL) {
 		return NULL;
+	}
+	if (CSettingsProvider::This().FastJPEGDecode()) {
+		tj3Set(hDecoder, TJPARAM_FASTDCT, 1);
 	}
 
 	unsigned char* pPixelData = NULL;

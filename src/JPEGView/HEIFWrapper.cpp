@@ -3,6 +3,7 @@
 #include "HEIFWrapper.h"
 #include "MaxImageDef.h"
 #include "ICCProfileTransform.h"
+#include "libheif/heif_decoding.h"
 
 void * HeifReader::ReadImage(int &width,
 					   int &height,
@@ -26,33 +27,59 @@ void * HeifReader::ReadImage(int &width,
 	frame_count = context.get_number_of_top_level_images();
 	heif_item_id item_id = context.get_list_of_top_level_image_IDs().at(frame_index);
 	heif::ImageHandle handle = context.get_image_handle(item_id);
-	// height = handle.get_height();
-	// width = handle.get_width();
-	heif::Image image = handle.decode_image(heif_colorspace_RGB, heif_chroma_interleaved_RGBA);
-	int stride;
-	uint8_t* data = image.get_plane(heif_channel_interleaved, &stride);
-	width = image.get_width(heif_channel_interleaved);
-	height = image.get_height(heif_channel_interleaved);
 
-	if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION)
-		return NULL;
-	if (abs((double)width * height) > MAX_IMAGE_PIXELS) {
-		outOfMemory = true;
+	// Use C API directly with decoding options for speed improvements
+	heif_decoding_options* decode_opts = heif_decoding_options_alloc();
+	if (decode_opts) {
+		decode_opts->ignore_transformations = 1;
+		decode_opts->convert_hdr_to_8bit = 1;
+	}
+
+	heif_image* c_image = NULL;
+	heif_error err = heif_decode_image(handle.get_raw_image_handle(), &c_image,
+		heif_colorspace_RGB, heif_chroma_interleaved_RGBA, decode_opts);
+	heif_decoding_options_free(decode_opts);
+
+	if (err.code != heif_error_Ok) {
 		return NULL;
 	}
-	if (width < 1 || height < 1 || width * nchannels > stride)
+
+	int stride;
+	uint8_t* data = (uint8_t*)heif_image_get_plane_readonly(c_image, heif_channel_interleaved, &stride);
+	width = heif_image_get_width(c_image, heif_channel_interleaved);
+	height = heif_image_get_height(c_image, heif_channel_interleaved);
+
+	if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
+		heif_image_release(c_image);
 		return NULL;
+	}
+	if (abs((double)width * height) > MAX_IMAGE_PIXELS) {
+		outOfMemory = true;
+		heif_image_release(c_image);
+		return NULL;
+	}
+	if (width < 1 || height < 1 || width * nchannels > stride) {
+		heif_image_release(c_image);
+		return NULL;
+	}
 
 	int size = width * nchannels * height;
 	pPixelData = new(std::nothrow) unsigned char[size];
 	if (pPixelData == NULL) {
 		outOfMemory = true;
+		heif_image_release(c_image);
 		return NULL;
 	}
-	std::vector<uint8_t> iccp = image.get_raw_color_profile();
-	void* transform = ICCProfileTransform::CreateTransform(iccp.data(), iccp.size(), ICCProfileTransform::FORMAT_RGBA);
+
+	size_t profile_size = heif_image_handle_get_raw_color_profile_size(handle.get_raw_image_handle());
+	std::vector<uint8_t> iccp;
+	if (profile_size > 0) {
+		iccp.resize(profile_size);
+		heif_image_handle_get_raw_color_profile(handle.get_raw_image_handle(), iccp.data());
+	}
+	void* transform = ICCProfileTransform::CreateTransform(iccp.data(), (int)iccp.size(), ICCProfileTransform::FORMAT_RGBA);
 	size_t i, j;
-	if (!ICCProfileTransform::DoTransform(transform, data, pPixelData, width, height, stride=stride)) {
+	if (!ICCProfileTransform::DoTransform(transform, data, pPixelData, width, height, stride)) {
 		unsigned int* o = (unsigned int*)pPixelData;
 		for (i = 0; i < height; i++) {
 			unsigned int* p = (unsigned int*)(data + i * stride);
@@ -65,6 +92,8 @@ void * HeifReader::ReadImage(int &width,
 		}
 	}
 	ICCProfileTransform::DeleteTransform(transform);
+
+	heif_image_release(c_image);
 
 	std::vector<heif_item_id> exif_blocks = handle.get_list_of_metadata_block_IDs("Exif");
 

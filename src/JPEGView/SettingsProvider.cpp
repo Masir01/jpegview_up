@@ -137,10 +137,13 @@ CSettingsProvider::CSettingsProvider(void) {
 	else {
 		m_eCPUAlgorithm = Helpers::ProbeCPU();
 	}
-	m_nNumCores = GetInt(_T("CPUCoresUsed"), 0, 0, 4);
+	m_nNumCores = GetInt(_T("CPUCoresUsed"), 0, 0, 256);
 	if (m_nNumCores == 0) {
-		m_nNumCores = Helpers::NumCoresPerPhysicalProc();
-		if (m_nNumCores > 4) m_nNumCores = 4;
+		// Auto-detect: cap at 8 for practical parallelism.
+		// Beyond 8, extra threads provide negligible benefit for image
+		// decoding/processing while increasing context switching overhead.
+		// Can be overridden via CPUCoresUsed=N in INI.
+		m_nNumCores = min(Helpers::NumCoresPerPhysicalProc(), 8);
 	}
 
 	CString sDownSampling = GetString(_T("DownSamplingFilter"), _T("BestQuality"));
@@ -170,6 +173,8 @@ CSettingsProvider::CSettingsProvider(void) {
 
 	m_nMaxSlideShowFileListSize = GetInt(_T("MaxSlideShowFileListSizeKB"), 200, 100, 10000);
 	m_nSlideShowEffectTimeMs = GetInt(_T("SlideShowEffectTime"), 200, 100, 5000);
+	m_bFastJPEGDecode = GetBool(_T("FastJPEGDecode"), false);
+	m_bWICPriority = GetBool(_T("WICPriority"), false);
 	m_bForceGDIPlus = GetBool(_T("ForceGDIPlus"), false);
 	m_bSingleInstance = GetBool(_T("SingleInstance"), false);
 	m_bSingleFullScreenInstance = GetBool(_T("SingleFullScreenInstance"), true);
