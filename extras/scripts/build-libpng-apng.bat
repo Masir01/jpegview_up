@@ -27,24 +27,16 @@ SET XOUT_DIR_64=%XLIB_DIR%\projects\vstudio\x64\Release Library
 
 SET XPATCH_DIR=%~dp0..\third_party\libpng-apng.src-patch
 
-REM this script doesn't "clean" you do it yourself
-
-IF EXIST "%XOUT_DIR_32%" (
-	echo libpng-apng 32-bit output exists, please delete folder before trying to build
-	exit /b 1
-)
-
-IF EXIST "%XOUT_DIR_64%" (
-	echo libpng-apng 64-bit output exists, please delete folder before trying to build
-	exit /b 1
-)
+REM auto-clean old output first
+rem IF EXIST "%XOUT_DIR_32%" rmdir /s /q "%XOUT_DIR_32%"
+IF EXIST "%XOUT_DIR_64%" rmdir /s /q "%XOUT_DIR_64%"
 
 call :PATCH_PNG
 IF ERRORLEVEL 1 exit /b 1
 
 
-call :BUILD_PNG x86 Win32
-IF ERRORLEVEL 1 exit /b 1
+rem call :BUILD_PNG x86 Win32
+rem IF ERRORLEVEL 1 exit /b 1
 call :BUILD_PNG x64 x64
 IF ERRORLEVEL 1 exit /b 1
 

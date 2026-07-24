@@ -37,3 +37,5 @@ ipch/
 *.VC.db
 *.VC.VC.opendb
 .vscode
+extras/scripts/build-libwebp.bat
+extras/scripts/build-libheif_libavif.bat
