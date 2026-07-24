@@ -39,9 +39,7 @@ pushd "%XLIB_DIR%"
 
 REM libwebp Makefile.vc handles /O2 internally for release-static
 REM /MT via RTLIBCFG=static, SIMD via internal runtime dispatch
-REM Inject /GL via CL env var for LTCG (Makefile.vc doesn't add it)
 REM Do NOT add CFLAGS with /arch — NMake misparses them (U1065 error)
-SET CL=/GL
 nmake.exe /f Makefile.vc ARCH=%1 CFG=release-static RTLIBCFG=static OBJDIR="%XOUT_DIR%"
 IF ERRORLEVEL 1 exit /b 1
 SET CL=
