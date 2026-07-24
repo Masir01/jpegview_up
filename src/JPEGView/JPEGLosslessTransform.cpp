@@ -7,8 +7,6 @@ unsigned char* _ReadFile(LPCTSTR sFileName, unsigned int & nLengthBytes);
 bool _WriteFile(LPCTSTR sFileName, unsigned char* pBuffer, unsigned int nLengthBytes);
 int _TransformationEnumToOpCode(CJPEGLosslessTransform::ETransformation transformation);
 
-// Performs a lossless JPEG transformation, transforming the input file and writing the result to the output file.
-// Input and output file can be identical, then the input file is overwritten by the resulting output file.
 CJPEGLosslessTransform::EResult CJPEGLosslessTransform::PerformTransformation(LPCTSTR sInputFile, LPCTSTR sOutputFile, 
 	CJPEGLosslessTransform::ETransformation transformation, bool bAllowTrim) {
 	tjtransform transform;
@@ -19,8 +17,6 @@ CJPEGLosslessTransform::EResult CJPEGLosslessTransform::PerformTransformation(LP
 	return _DoTransformation(sInputFile, sOutputFile, transform);
 }
 
-// Performs a lossless JPEG crop, using the input file and writing the result to the output file.
-// Input and output file can be identical, then the input file is overwritten by the resulting output file.
 CJPEGLosslessTransform::EResult CJPEGLosslessTransform::PerformCrop(LPCTSTR sInputFile, LPCTSTR sOutputFile, const CRect& cropRect) {
 	tjtransform transform;
 	memset(&transform, 0, sizeof(tjtransform));
@@ -38,14 +34,18 @@ CJPEGLosslessTransform::EResult CJPEGLosslessTransform::PerformCrop(LPCTSTR sInp
 static CJPEGLosslessTransform::EResult _DoTransformation(LPCTSTR sInputFile, LPCTSTR sOutputFile, tjtransform &transform) {
 	CJPEGLosslessTransform::EResult eResult = CJPEGLosslessTransform::Success;
 
-	tjhandle hTransform = tjInitTransform();
+	tjhandle hTransform = tj3Init(TJINIT_TRANSFORM);
 
 	unsigned int nNumBytesInput;
 	unsigned char* pInputJPEGBytes = _ReadFile(sInputFile, nNumBytesInput);
 	if (pInputJPEGBytes != NULL) {
 		unsigned char* pOutputJPEGBytes = NULL;
-		unsigned long nNumBytesOutput = 0;
-		if (0 == tjTransform(hTransform, pInputJPEGBytes, nNumBytesInput, 1, &pOutputJPEGBytes, &nNumBytesOutput, &transform, 0) && pOutputJPEGBytes != NULL) {
+		size_t nNumBytesOutput = 0;
+
+		tj3DecompressHeader(hTransform, pInputJPEGBytes, nNumBytesInput);
+
+		if (0 == tj3Transform(hTransform, pInputJPEGBytes, nNumBytesInput, 1,
+			&pOutputJPEGBytes, &nNumBytesOutput, &transform) && pOutputJPEGBytes != NULL) {
 			if (!_WriteFile(sOutputFile, pOutputJPEGBytes, nNumBytesOutput)) {
 				eResult = CJPEGLosslessTransform::WriteFileFailed;
 			}
@@ -53,7 +53,7 @@ static CJPEGLosslessTransform::EResult _DoTransformation(LPCTSTR sInputFile, LPC
 			eResult = CJPEGLosslessTransform::TransformationFailed;
 		}
 		if (pOutputJPEGBytes != NULL) {
-			tjFree(pOutputJPEGBytes);
+			tj3Free(pOutputJPEGBytes);
 		}
 	} else {
 		eResult = CJPEGLosslessTransform::ReadFileFailed;
@@ -61,13 +61,13 @@ static CJPEGLosslessTransform::EResult _DoTransformation(LPCTSTR sInputFile, LPC
 
 	delete[] pInputJPEGBytes;
 
-	tjDestroy(hTransform);
+	tj3Destroy(hTransform);
 
 	return eResult;
 }
 
 static unsigned char* _ReadFile(LPCTSTR sFileName, unsigned int & nLengthBytes) {
-	const unsigned int MAX_JPEG_FILE_SIZE = 1024*1024*50; // 50 MB
+	const unsigned int MAX_JPEG_FILE_SIZE = 1024*1024*50;
 
 	nLengthBytes = 0;
 	HANDLE hFile = ::CreateFile(sFileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
@@ -109,8 +109,6 @@ static bool _WriteFile(LPCTSTR sFileName, unsigned char* pBuffer, unsigned int n
 		sTempEnding = _T(".tmp");
 	}
 
-	// For security reasons, we never write to an existing file. So generate a tmp file if the file already exists.
-	// If all writing succeeds, the existing file is finally replaced by the temporary one.
 	CString sNewFileName = CString(sFileName) + sTempEnding;
 	hFile = ::CreateFile(sNewFileName, GENERIC_WRITE, FILE_SHARE_WRITE, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (hFile == INVALID_HANDLE_VALUE) {
@@ -126,14 +124,12 @@ static bool _WriteFile(LPCTSTR sFileName, unsigned char* pBuffer, unsigned int n
 
 	::CloseHandle(hFile);
 
-	// If the file was written to a temporary file and it succeeded, replace now the existing file with the temporary
 	if (bOk && sTempEnding[0] != 0) {
 		bOk = ::DeleteFile(sFileName);
 		if (bOk) {
 			bOk = ::MoveFile(sNewFileName, sFileName);
 		}
 	} else if (!bOk) {
-		// new file is only partly written or not at all, make sure it is deleted
 		::DeleteFile(sNewFileName);
 	}
 

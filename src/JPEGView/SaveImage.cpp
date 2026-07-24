@@ -138,9 +138,9 @@ static int GetJFIFBlockLength(unsigned char* pJPEGStream) {
 // Returns the compressed JPEG stream that must be freed by the caller. NULL in case of error.
 static void* CompressAndSave(LPCTSTR sFileName, CJPEGImage * pImage, 
 							 void* pData, int nWidth, int nHeight, int nQuality, int& nJPEGStreamLen, 
-							 bool& tjFreeNeeded, bool bCopyEXIF, bool bDeleteThumbnail) {
+							 bool& tj3FreeNeeded, bool bCopyEXIF, bool bDeleteThumbnail) {
 	nJPEGStreamLen = 0;
-	tjFreeNeeded = true;
+	tj3FreeNeeded = true;
 	bool bOutOfMemory;
 	unsigned char* pTargetStream = (unsigned char*) TurboJpeg::Compress(pData, nWidth, nHeight, 
 		nJPEGStreamLen, bOutOfMemory, nQuality);
@@ -150,7 +150,7 @@ static void* CompressAndSave(LPCTSTR sFileName, CJPEGImage * pImage,
 
 	FILE *fptr = _tfopen(sFileName, _T("wb"));
 	if (fptr == NULL) {
-		tjFree(pTargetStream);
+		tj3Free(pTargetStream);
 		return NULL;
 	}
 
@@ -190,9 +190,9 @@ static void* CompressAndSave(LPCTSTR sFileName, CJPEGImage * pImage,
 
 		int nJFIFLength = GetJFIFBlockLength(pTargetStream);
 		memcpy(pNewStream + 2 + pImage->GetEXIFDataLength() + nEXIFBlockLenCorrection, pTargetStream + 2 + nJFIFLength, nJPEGStreamLen - 2 - nJFIFLength);
-		tjFree(pTargetStream);
+		tj3Free(pTargetStream);
 		pTargetStream = pNewStream;
-		tjFreeNeeded = false;
+		tj3FreeNeeded = false;
 		nJPEGStreamLen = nJPEGStreamLen - nJFIFLength + pImage->GetEXIFDataLength() + nEXIFBlockLenCorrection;
 	}
 
@@ -201,15 +201,15 @@ static void* CompressAndSave(LPCTSTR sFileName, CJPEGImage * pImage,
 	if (sComment != NULL && sComment[0] != 0) {
 		uint8* pNewStream = RemoveExistingCommentSegment(pTargetStream, nJPEGStreamLen);
 		if (pNewStream != NULL) {
-			if (tjFreeNeeded) tjFree(pTargetStream); else delete[] pTargetStream;
+			if (tj3FreeNeeded) tj3Free(pTargetStream); else delete[] pTargetStream;
 			pTargetStream = pNewStream;
-			tjFreeNeeded = false;
+			tj3FreeNeeded = false;
 		}
 		pNewStream = InsertCommentBlock(pTargetStream, nJPEGStreamLen, sComment);
 		if (pNewStream != NULL) {
-			if (tjFreeNeeded) tjFree(pTargetStream); else delete[] pTargetStream;
+			if (tj3FreeNeeded) tj3Free(pTargetStream); else delete[] pTargetStream;
 			pTargetStream = pNewStream;
-			tjFreeNeeded = false;
+			tj3FreeNeeded = false;
 		}
 	}
 
@@ -218,7 +218,7 @@ static void* CompressAndSave(LPCTSTR sFileName, CJPEGImage * pImage,
 
 	// delete partial file if no success
 	if (!bSuccess) {
-		if (tjFreeNeeded) tjFree(pTargetStream); else delete[] pTargetStream;
+		if (tj3FreeNeeded) tj3Free(pTargetStream); else delete[] pTargetStream;
 		_tunlink(sFileName);
 		return NULL;
 	}
@@ -382,14 +382,14 @@ bool CSaveImage::SaveImage(LPCTSTR sFileName, CJPEGImage * pImage, const CImageP
 	if (eFileFormat == IF_JPEG || eFileFormat == IF_JPEG_Embedded) {
 		// Save JPEG not over GDI+ - we want to keep the meta-data if there is meta-data
 		int nJPEGStreamLen;
-		bool tjFreeNeeded;
+		bool tj3FreeNeeded;
 		void* pCompressedJPEG = CompressAndSave(sFileName, pImage, pDIB24bpp, imageSize.cx, imageSize.cy, 
-			CSettingsProvider::This().JPEGSaveQuality(), nJPEGStreamLen, tjFreeNeeded, true, !bFullSize);
+			CSettingsProvider::This().JPEGSaveQuality(), nJPEGStreamLen, tj3FreeNeeded, true, !bFullSize);
 		bSuccess = pCompressedJPEG != NULL;
 		if (bSuccess) {
 			nPixelHash = Helpers::CalculateJPEGFileHash(pCompressedJPEG, nJPEGStreamLen);
-			if (tjFreeNeeded) {
-				tjFree((unsigned char*)pCompressedJPEG);
+			if (tj3FreeNeeded) {
+				tj3Free((unsigned char*)pCompressedJPEG);
 			} else {
 				delete[] pCompressedJPEG;
 			}

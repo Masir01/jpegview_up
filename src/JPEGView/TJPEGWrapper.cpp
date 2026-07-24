@@ -1,4 +1,3 @@
-
 #include "stdafx.h"
 #include "TJPEGWrapper.h"
 #include "libjpeg-turbo\include\turbojpeg.h"
@@ -17,23 +16,27 @@ void * TurboJpeg::ReadImage(int &width,
 	nchannels = 3;
 	chromoSubsampling = TJSAMP_420;
 
-	tjhandle hDecoder = tjInitDecompress();
+	tjhandle hDecoder = tj3Init(TJINIT_DECOMPRESS);
 	if (hDecoder == NULL) {
 		return NULL;
 	}
 
 	unsigned char* pPixelData = NULL;
 	int nSubSampling;
-	int nResult = tjDecompressHeader2(hDecoder, (unsigned char*)buffer, sizebytes, &width, &height, &nSubSampling);
-	if (nResult == 0){
+	int nResult = tj3DecompressHeader(hDecoder, (unsigned char*)buffer, sizebytes);
+	if (nResult == 0) {
+		width = tj3Get(hDecoder, TJPARAM_JPEGWIDTH);
+		height = tj3Get(hDecoder, TJPARAM_JPEGHEIGHT);
+		nSubSampling = tj3Get(hDecoder, TJPARAM_SUBSAMP);
 		chromoSubsampling = (TJSAMP)nSubSampling;
+
 		if (abs((double)width * height) > MAX_IMAGE_PIXELS) {
 			outOfMemory = true;
 		} else if (width <= MAX_IMAGE_DIMENSION && height <= MAX_IMAGE_DIMENSION) {
 			pPixelData = new(std::nothrow) unsigned char[TJPAD(width * 3) * height];
 			if (pPixelData != NULL) {
-				nResult = tjDecompress2(hDecoder, (unsigned char*)buffer, sizebytes, pPixelData, width, TJPAD(width * 3), height,
-					TJPF_BGR, 0);
+				nResult = tj3Decompress8(hDecoder, (unsigned char*)buffer, sizebytes,
+					pPixelData, TJPAD(width * 3), TJPF_BGR);
 				if (nResult != 0) {
 					delete[] pPixelData;
 					pPixelData = NULL;
@@ -44,7 +47,7 @@ void * TurboJpeg::ReadImage(int &width,
 		}
 	}
 
-	tjDestroy(hDecoder);
+	tj3Destroy(hDecoder);
 
 	return pPixelData;
 }
@@ -58,27 +61,30 @@ void * TurboJpeg::Compress(const void *source,
 {
 	outOfMemory = false;
 	len = 0;
-	tjhandle hEncoder = tjInitCompress();
+	tjhandle hEncoder = tj3Init(TJINIT_COMPRESS);
 	if (hEncoder == NULL) {
 		return NULL;
 	}
 
+	tj3Set(hEncoder, TJPARAM_SUBSAMP, TJSAMP_420);
+	tj3Set(hEncoder, TJPARAM_QUALITY, quality);
+
 	unsigned char* pJPEGCompressed = NULL;
-	unsigned long nCompressedLen = 0;
-	int nResult = tjCompress2(hEncoder, (unsigned char*)source, width, TJPAD(width * 3), height, TJPF_BGR,
-		&pJPEGCompressed, &nCompressedLen, TJSAMP_420, quality, 0);
+	size_t nCompressedLen = 0;
+	int nResult = tj3Compress8(hEncoder, (unsigned char*)source, width,
+		TJPAD(width * 3), height, TJPF_BGR, &pJPEGCompressed, &nCompressedLen);
 	if (nResult != 0) {
 		if (pJPEGCompressed != NULL) {
-			tjFree(pJPEGCompressed);
+			tj3Free(pJPEGCompressed);
 			pJPEGCompressed = NULL;
 		} else {
 			outOfMemory = true;
 		}
 	}
 
-	len = nCompressedLen;
+	len = (int)nCompressedLen;
 
-	tjDestroy(hEncoder);
+	tj3Destroy(hEncoder);
 
 	return pJPEGCompressed;
 }
