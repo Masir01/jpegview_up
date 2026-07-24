@@ -74,7 +74,7 @@ cmake.exe -G"NMake Makefiles" ^
     -DWITH_TESTS=0 ^
     -DWITH_TOOLS=0 ^
     -DWITH_CRT_DLL=0 ^
-    -DCMAKE_C_FLAGS="/DWIN32 /D_WINDOWS /O2 /Ob2 /Oi /GL /fp:fast /MT" ^
+    -DCMAKE_C_FLAGS="/DWIN32 /D_WINDOWS /O2 /Ob2 /Oi /fp:fast /MT" ^
     "%XLIB_DIR%"
 IF ERRORLEVEL 1 exit /b 1
 
