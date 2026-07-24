@@ -17,8 +17,7 @@ IF EXIST "%XOUT_DIR%" (
     exit /b 1
 )
 
-call :BUILD_COPY_JXL x86 Win32 ""
-IF ERRORLEVEL 1 exit /b 1
+REM JPEGView only uses x64
 call :BUILD_COPY_JXL x64 x64 "64"
 IF ERRORLEVEL 1 exit /b 1
 
@@ -48,19 +47,45 @@ for /f "tokens=*" %%p in ('powershell -NoProfile -Command "$i=[Environment]::Get
 
 pushd "%XBUILD_DIR%"
 
-REM Use Ninja generator for better compatibility - disable system libs
-cmake.exe -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DJPEGXL_ENABLE_BENCHMARK=OFF -DJPEGXL_ENABLE_DOXYGEN=OFF -DJPEGXL_ENABLE_JNI=OFF -DJPEGXL_ENABLE_MANPAGES=OFF -DJPEGXL_ENABLE_OPENEXR=OFF -DJPEGXL_ENABLE_PLUGINS=OFF -DJPEGXL_ENABLE_SJPEG=OFF -DJPEGXL_ENABLE_TCMALLOC=OFF -DJPEGXL_FORCE_SYSTEM_BROTLI=OFF -DJPEGXL_ENABLE_BROTLI=ON "%XLIB_DIR%"
+REM libjxl uses HWY for full runtime SIMD dispatch — NO /arch flags (would break dispatch)
+REM cmake Release mode sets /O2; HWY handles SIMD math internally, no /fp needed
+REM JPEGXL_ENABLE_LTO enables LTCG (whole-program optimization + linker code gen)
+REM Disable everything JPEGView doesn't need for lean build
+cmake.exe -G Ninja ^
+    -DCMAKE_BUILD_TYPE=Release ^
+    -DJPEGXL_ENABLE_LTO=ON ^
+    -DBUILD_TESTING=OFF ^
+    -DJPEGXL_ENABLE_BENCHMARK=OFF ^
+    -DJPEGXL_ENABLE_DOXYGEN=OFF ^
+    -DJPEGXL_ENABLE_JNI=OFF ^
+    -DJPEGXL_ENABLE_MANPAGES=OFF ^
+    -DJPEGXL_ENABLE_OPENEXR=OFF ^
+    -DJPEGXL_ENABLE_PLUGINS=OFF ^
+    -DJPEGXL_ENABLE_SJPEG=OFF ^
+    -DJPEGXL_ENABLE_TCMALLOC=OFF ^
+    -DJPEGXL_FORCE_SYSTEM_BROTLI=OFF ^
+    -DJPEGXL_ENABLE_BROTLI=ON ^
+    "%XLIB_DIR%"
 IF ERRORLEVEL 1 exit /b 1
 ninja.exe -C "%XBUILD_DIR%"
 IF ERRORLEVEL 1 exit /b 1
 
 popd
 
+REM create destination directories if they don't exist
+if not exist "%XSRC_DIR%\JPEGView\libjxl\bin%XJPV_ARCH_PATH%" mkdir "%XSRC_DIR%\JPEGView\libjxl\bin%XJPV_ARCH_PATH%"
+if not exist "%XSRC_DIR%\JPEGView\libjxl\lib%XJPV_ARCH_PATH%" mkdir "%XSRC_DIR%\JPEGView\libjxl\lib%XJPV_ARCH_PATH%"
+
 REM copy the libs over
 copy /y "%XBUILD_DIR%\lib\jxl.dll" "%XSRC_DIR%\JPEGView\libjxl\bin%XJPV_ARCH_PATH%\"
 copy /y "%XBUILD_DIR%\lib\jxl_threads.dll" "%XSRC_DIR%\JPEGView\libjxl\bin%XJPV_ARCH_PATH%\"
 copy /y "%XBUILD_DIR%\lib\jxl_cms.dll" "%XSRC_DIR%\JPEGView\libjxl\bin%XJPV_ARCH_PATH%\"
-copy /y "%XBUILD_DIR%\third_party\brotli\enc\brotli.dll" "%XSRC_DIR%\JPEGView\libjxl\bin%XJPV_ARCH_PATH%\"
+copy /y "%XBUILD_DIR%\lib\jxl_dec.dll" "%XSRC_DIR%\JPEGView\libjxl\bin%XJPV_ARCH_PATH%\"
+REM brotli DLLs are built in third_party\brotli\ (not in enc\ subfolder)
+REM all three brotli DLLs (brotlicommon, brotlidec, brotlienc) are needed at runtime
+copy /y "%XBUILD_DIR%\third_party\brotli\brotlicommon.dll" "%XSRC_DIR%\JPEGView\libjxl\bin%XJPV_ARCH_PATH%\"
+copy /y "%XBUILD_DIR%\third_party\brotli\brotlidec.dll" "%XSRC_DIR%\JPEGView\libjxl\bin%XJPV_ARCH_PATH%\"
+copy /y "%XBUILD_DIR%\third_party\brotli\brotlienc.dll" "%XSRC_DIR%\JPEGView\libjxl\bin%XJPV_ARCH_PATH%\"
 copy /y "%XBUILD_DIR%\lib\jxl.lib" "%XSRC_DIR%\JPEGView\libjxl\lib%XJPV_ARCH_PATH%\"
 copy /y "%XBUILD_DIR%\lib\jxl_dec.lib" "%XSRC_DIR%\JPEGView\libjxl\lib%XJPV_ARCH_PATH%\"
 copy /y "%XBUILD_DIR%\lib\jxl_threads.lib" "%XSRC_DIR%\JPEGView\libjxl\lib%XJPV_ARCH_PATH%\"

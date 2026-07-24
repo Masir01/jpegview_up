@@ -18,10 +18,7 @@ IF EXIST "%XOUT_DIR%" (
 	exit /b 1
 )
 
-
-call :BUILD_COPY_LCMS x86 Win32 ""
-IF ERRORLEVEL 1 exit /b 1
-
+REM JPEGView only uses x64
 call :BUILD_COPY_LCMS x64 x64 "64"
 IF ERRORLEVEL 1 exit /b 1
 
@@ -52,7 +49,15 @@ pushd "%XLIB_DIR%"
 REM delete any previous build files, if exists
 del "bin\lcms2.*" 2>nul
 
-msbuild /t:lcms2_DLL /p:Platform=%2 /p:Configuration=Release ".\Projects\VC%XVS_VER%\lcms2.sln"
+REM create destination directories if they don't exist
+if not exist "%XSRC_DIR%\lib%~3" mkdir "%XSRC_DIR%\lib%~3"
+if not exist "%XSRC_DIR%\bin%~3" mkdir "%XSRC_DIR%\bin%~3"
+
+REM VS Release config has /O2; add /GL for LTCG
+REM Override toolset from v142 (VS 2019 .sln) to v143 (current)
+msbuild /t:lcms2_DLL /p:Platform=%2 /p:Configuration=Release ^
+    /p:PlatformToolset=v143 /p:AdditionalOptions="/GL" ^
+    ".\Projects\VC%XVS_VER%\lcms2.sln"
 IF ERRORLEVEL 1 exit /b 1
 
 copy /y "bin\lcms2.lib" "%XSRC_DIR%\lib%~3"

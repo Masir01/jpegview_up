@@ -19,9 +19,7 @@ IF EXIST "%XMF_PATH%" (
 call :PATCH_LIBRAW_MAKEFILE
 IF ERRORLEVEL 1 exit /b 1
 
-call :BUILD_COPY_LIBRAW x86 ""
-IF ERRORLEVEL 1 exit /b 1
-
+REM JPEGView only uses x64
 call :BUILD_COPY_LIBRAW x64 "64"
 IF ERRORLEVEL 1 exit /b 1
 
@@ -51,8 +49,15 @@ IF EXIST "%XTMP_FILE%" (
     exit /b 1
 )
 
-REM add in the extra features compile flags
->> "%XTMP_FILE%" echo COPT_OPT=/DUSE_X3FTOOLS /DUSE_6BY9RPI /DUSE_OLD_VIDEOCAMS
+REM add in the extra features compile flags + LTCG + fp:fast + openmp
+REM LibRaw has its own runtime SIMD dispatch, do NOT add /arch flags
+REM /fp:fast speeds up demosaic / white balance / color matrix math
+REM /GL enables LTCG (link-time code generation)
+REM /openmp enables LibRaw internal parallelism (#pragma omp in demosaic etc.)
+REM   LibRaw detects _OPENMP and auto-enables LIBRAW_USE_OPENMP (MSVC>=2010)
+REM   DLL boundary contains OpenMP runtime, no impact on JPEGView EXE
+REM COPT already has /O2 /EHsc /MP
+>> "%XTMP_FILE%" echo COPT_OPT=/DUSE_X3FTOOLS /DUSE_6BY9RPI /DUSE_OLD_VIDEOCAMS /openmp /fp:fast /GL
 
 REM concat the file
 copy "%XTMP_FILE%" /A + Makefile.msvc /A "%XMAKEFILE%" /A
