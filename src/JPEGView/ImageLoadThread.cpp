@@ -683,7 +683,7 @@ void CImageLoadThread::ProcessReadPNGRequest(CRequest* request) {
 	HGLOBAL hFileBuffer = NULL;
 	void* pBuffer = NULL;
 	try {
-		long long nFileSize;
+		long long nFileSize = 0;
 		unsigned int nNumBytesRead;
 		if (!bUseCachedDecoder) {
 			// Don't read too huge files
@@ -825,7 +825,7 @@ void CImageLoadThread::ProcessReadJXLRequest(CRequest* request) {
 	SetErrorMode(nPrevErrorMode);
 	if (!bUseCachedDecoder) {
 		::CloseHandle(hFile);
-		// delete[] pBuffer;
+		delete[] pBuffer;
 	}
 }
 #endif
@@ -948,7 +948,7 @@ void CImageLoadThread::ProcessReadHEIFRequest(CRequest* request) {
 				free(pEXIFData);
 			}
 		}
-	} catch(heif::Error he) {
+	} catch(const heif::Error& he) {
 		// invalid image
 		delete request->Image;
 		request->Image = NULL;
