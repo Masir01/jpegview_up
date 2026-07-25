@@ -279,6 +279,14 @@ FastJPEGDecode=false
 ; even if a native decoder exists (e.g., JPEG, PNG, etc.). Useful for troubleshooting
 ; or when WIC handles certain files better. Default: false.
 WICPriority=false
+; Skip EXIF rotation/flip metadata for HEIF images (faster decoding).
+; true  = ignore orientation metadata, decode faster (no EXIF auto-rotate)
+; false = apply EXIF orientation (default)
+HEIFIgnoreTransformations=false
+; Convert HDR HEIF images to 8-bit directly during decoding.
+; true  = convert to 8-bit directly (faster)
+; false = keep original bit depth (requires more memory)
+HEIFConvertHDRTo8bit=true
 
 ; If true, embedded ICC color profiles are used for JPEG, PNG and TIFF. This forces using GDI+ and therefore
 ; results in much slower loading of JPEGs! Only set to true if you really need this.

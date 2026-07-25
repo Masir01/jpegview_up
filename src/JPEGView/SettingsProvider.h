@@ -72,6 +72,8 @@ public:
 	int SlideShowEffectTimeMs() { return m_nSlideShowEffectTimeMs; }
 	bool FastJPEGDecode() { return m_bFastJPEGDecode; }
 	bool WICPriority() { return m_bWICPriority; }
+	bool HEIFIgnoreTransformations() { return m_bHEIFIgnoreTransformations; }
+	bool HEIFConvertHDRTo8bit() { return m_bHEIFConvertHDRTo8bit; }
 	bool ForceGDIPlus() { return m_bForceGDIPlus; }
 	bool SingleInstance() { return m_bSingleInstance; }
 	bool SingleFullScreenInstance() { return m_bSingleFullScreenInstance; }
@@ -245,6 +247,8 @@ private:
 	int m_nSlideShowEffectTimeMs;
 	bool m_bFastJPEGDecode;
 	bool m_bWICPriority;
+	bool m_bHEIFIgnoreTransformations;
+	bool m_bHEIFConvertHDRTo8bit;
 	bool m_bForceGDIPlus;
 	bool m_bSingleInstance;
 	bool m_bSingleFullScreenInstance;

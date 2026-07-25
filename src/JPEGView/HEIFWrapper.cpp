@@ -3,6 +3,7 @@
 #include "HEIFWrapper.h"
 #include "MaxImageDef.h"
 #include "ICCProfileTransform.h"
+#include "SettingsProvider.h"
 #include "libheif/heif_decoding.h"
 
 void * HeifReader::ReadImage(int &width,
@@ -28,11 +29,13 @@ void * HeifReader::ReadImage(int &width,
 	heif_item_id item_id = context.get_list_of_top_level_image_IDs().at(frame_index);
 	heif::ImageHandle handle = context.get_image_handle(item_id);
 
-	// Use C API directly with decoding options for speed improvements
+	// Use C API directly with decoding options, configurable via JPEGView.ini
+	//   HEIFIgnoreTransformations=true: skip EXIF rotation/flip (faster)
+	//   HEIFConvertHDRTo8bit=true:      convert HDR to 8-bit directly (default)
 	heif_decoding_options* decode_opts = heif_decoding_options_alloc();
 	if (decode_opts) {
-		decode_opts->ignore_transformations = 1;
-		decode_opts->convert_hdr_to_8bit = 1;
+		decode_opts->ignore_transformations = CSettingsProvider::This().HEIFIgnoreTransformations() ? 1 : 0;
+		decode_opts->convert_hdr_to_8bit = CSettingsProvider::This().HEIFConvertHDRTo8bit() ? 1 : 0;
 	}
 
 	heif_image* c_image = NULL;

@@ -175,6 +175,8 @@ CSettingsProvider::CSettingsProvider(void) {
 	m_nSlideShowEffectTimeMs = GetInt(_T("SlideShowEffectTime"), 200, 100, 5000);
 	m_bFastJPEGDecode = GetBool(_T("FastJPEGDecode"), false);
 	m_bWICPriority = GetBool(_T("WICPriority"), false);
+	m_bHEIFIgnoreTransformations = GetBool(_T("HEIFIgnoreTransformations"), false);
+	m_bHEIFConvertHDRTo8bit = GetBool(_T("HEIFConvertHDRTo8bit"), true);
 	m_bForceGDIPlus = GetBool(_T("ForceGDIPlus"), false);
 	m_bSingleInstance = GetBool(_T("SingleInstance"), false);
 	m_bSingleFullScreenInstance = GetBool(_T("SingleFullScreenInstance"), true);
