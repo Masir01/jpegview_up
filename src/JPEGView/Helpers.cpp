@@ -851,7 +851,13 @@ __int64 GetFileSize(LPCTSTR sPath) {
 	}
 	__int64 fileSize = 0;
 	::GetFileSizeEx(hFile, (PLARGE_INTEGER)&fileSize);
-	::CloseHandle(hFile);
+	::	CloseHandle(hFile);
+	return fileSize;
+}
+
+__int64 GetFileSize(HANDLE hFile) {
+	__int64 fileSize = 0;
+	::GetFileSizeEx(hFile, (PLARGE_INTEGER)&fileSize);
 	return fileSize;
 }
 

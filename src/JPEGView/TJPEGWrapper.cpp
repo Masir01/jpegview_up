@@ -33,6 +33,9 @@ void * TurboJpeg::ReadImage(int &width,
 		height = tj3Get(hDecoder, TJPARAM_JPEGHEIGHT);
 		nSubSampling = tj3Get(hDecoder, TJPARAM_SUBSAMP);
 		chromoSubsampling = (TJSAMP)nSubSampling;
+		if (chromoSubsampling == TJSAMP_UNKNOWN) {
+			chromoSubsampling = TJSAMP_420;
+		}
 
 		if (abs((double)width * height) > MAX_IMAGE_PIXELS) {
 			outOfMemory = true;
@@ -84,6 +87,13 @@ void * TurboJpeg::Compress(const void *source,
 		} else {
 			outOfMemory = true;
 		}
+	}
+
+	if (nCompressedLen > INT_MAX) {
+		tj3Free(pJPEGCompressed);
+		tj3Destroy(hEncoder);
+		outOfMemory = true;
+		return NULL;
 	}
 
 	len = (int)nCompressedLen;
