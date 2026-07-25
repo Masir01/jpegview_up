@@ -35,6 +35,20 @@ volatile int CImageLoadThread::m_curHandle = 0;
 
 // find image format of this image by reading some header bytes
 static EImageFormat GetImageFormat(LPCTSTR sFileName) {
+	// When WICPriority is enabled, check extension-based WIC list before
+	// magic-byte detection so that known formats (e.g. JPEG) can be directed
+	// to WICLoader.
+	if (CSettingsProvider::This().WICPriority()) {
+		LPCTSTR sEnding = _tcsrchr(sFileName, _T('.'));
+		if (sEnding != NULL) {
+			sEnding += 1;
+			if (Helpers::IsInFileEndingList(
+				CSettingsProvider::This().FilesProcessedByWIC(), sEnding)) {
+				return IF_WIC;
+			}
+		}
+	}
+
 	FILE *fptr;
 	if ((fptr = _tfopen(sFileName, _T("rb"))) == NULL) {
 		return IF_Unknown;

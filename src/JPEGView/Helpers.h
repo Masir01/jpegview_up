@@ -248,6 +248,10 @@ namespace Helpers {
 	// Gets the image format given a file name (uses the file extension)
 	EImageFormat GetImageFormat(LPCTSTR sFileName);
 
+	// Checks whether sEnding (without dot, e.g. "jpg") appears in the
+	// semicolon-separated file ending list (e.g. "*.wdp;*.hdp;*.jxr")
+	bool IsInFileEndingList(LPCTSTR sFileEndings, LPCTSTR sEnding);
+
 	// Returns the short form of the path (including the short form of the file name)
 	CString GetShortFilePath(LPCTSTR sPath);
 

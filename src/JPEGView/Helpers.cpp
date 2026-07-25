@@ -720,7 +720,7 @@ LPCTSTR ConvertTransitionEffectToString(ETransitionEffect effect) {
 	}
 }
 
-static bool IsInFileEndingList(LPCTSTR sFileEndings, LPCTSTR sEnding) {
+bool IsInFileEndingList(LPCTSTR sFileEndings, LPCTSTR sEnding) {
 	const int BUFFER_SIZE = 256;
 	TCHAR buffer[BUFFER_SIZE];
 	_tcsncpy_s(buffer, BUFFER_SIZE, sFileEndings, _TRUNCATE);
