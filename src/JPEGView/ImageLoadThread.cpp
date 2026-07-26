@@ -306,105 +306,58 @@ void CImageLoadThread::ProcessRequest(CRequestBase& request) {
 	// Get image format and read the image
 	switch (GetImageFormat(rq.FileName)) {
 		case IF_JPEG :
-			DeleteCachedGDIBitmap();
-			DeleteCachedWebpDecoder();
-			DeleteCachedPngDecoder();
-			DeleteCachedJxlDecoder();
-			DeleteCachedAvifDecoder();
+			InvalidateDecoderCaches(false, IF_Unknown);
 			ProcessReadJPEGRequest(&rq);
 			break;
 		case IF_WindowsBMP :
-			DeleteCachedGDIBitmap();
-			DeleteCachedWebpDecoder();
-			DeleteCachedPngDecoder();
-			DeleteCachedJxlDecoder();
-			DeleteCachedAvifDecoder();
+			InvalidateDecoderCaches(false, IF_Unknown);
 			ProcessReadBMPRequest(&rq);
 			break;
 		case IF_TGA :
-			DeleteCachedGDIBitmap();
-			DeleteCachedWebpDecoder();
-			DeleteCachedPngDecoder();
-			DeleteCachedJxlDecoder();
-			DeleteCachedAvifDecoder();
+			InvalidateDecoderCaches(false, IF_Unknown);
 			ProcessReadTGARequest(&rq);
 			break;
 		case IF_WEBP:
-			DeleteCachedGDIBitmap();
-			DeleteCachedPngDecoder();
-			DeleteCachedJxlDecoder();
-			DeleteCachedAvifDecoder();
+			InvalidateDecoderCaches(false, IF_WEBP);
 			ProcessReadWEBPRequest(&rq);
 			break;
 		case IF_PNG:
-			DeleteCachedGDIBitmap();
-			DeleteCachedWebpDecoder();
-			DeleteCachedJxlDecoder();
-			DeleteCachedAvifDecoder();
+			InvalidateDecoderCaches(false, IF_PNG);
 			ProcessReadPNGRequest(&rq);
 			break;
 #ifndef WINXP
 		case IF_JXL:
-			DeleteCachedGDIBitmap();
-			DeleteCachedWebpDecoder();
-			DeleteCachedPngDecoder();
-			DeleteCachedAvifDecoder();
+			InvalidateDecoderCaches(false, IF_JXL);
 			ProcessReadJXLRequest(&rq);
 			break;
 		case IF_AVIF:
-			DeleteCachedGDIBitmap();
-			DeleteCachedWebpDecoder();
-			DeleteCachedPngDecoder();
-			DeleteCachedJxlDecoder();
+			InvalidateDecoderCaches(false, IF_AVIF);
 			ProcessReadAVIFRequest(&rq);
 			break;
 		case IF_HEIF:
-			DeleteCachedGDIBitmap();
-			DeleteCachedWebpDecoder();
-			DeleteCachedPngDecoder();
-			DeleteCachedJxlDecoder();
-			DeleteCachedAvifDecoder();
+			InvalidateDecoderCaches(false, IF_Unknown);
 			ProcessReadHEIFRequest(&rq);
 			break;
 		case IF_PSD:
-			DeleteCachedGDIBitmap();
-			DeleteCachedWebpDecoder();
-			DeleteCachedPngDecoder();
-			DeleteCachedJxlDecoder();
-			DeleteCachedAvifDecoder();
+			InvalidateDecoderCaches(false, IF_Unknown);
 			ProcessReadPSDRequest(&rq);
 			break;
 		case IF_CameraRAW:
-			DeleteCachedGDIBitmap();
-			DeleteCachedWebpDecoder();
-			DeleteCachedPngDecoder();
-			DeleteCachedJxlDecoder();
-			DeleteCachedAvifDecoder();
+			InvalidateDecoderCaches(false, IF_Unknown);
 			ProcessReadRAWRequest(&rq);
 			break;
 #endif
 		case IF_QOI:
-			DeleteCachedGDIBitmap();
-			DeleteCachedWebpDecoder();
-			DeleteCachedPngDecoder();
-			DeleteCachedJxlDecoder();
-			DeleteCachedAvifDecoder();
+			InvalidateDecoderCaches(false, IF_Unknown);
 			ProcessReadQOIRequest(&rq);
 			break;
 		case IF_WIC:
-			DeleteCachedGDIBitmap();
-			DeleteCachedWebpDecoder();
-			DeleteCachedPngDecoder();
-			DeleteCachedJxlDecoder();
-			DeleteCachedAvifDecoder();
+			InvalidateDecoderCaches(false, IF_Unknown);
 			ProcessReadWICRequest(&rq);
 			break;
 		default:
 			// try with GDI+
-			DeleteCachedWebpDecoder();
-			DeleteCachedPngDecoder();
-			DeleteCachedJxlDecoder();
-			DeleteCachedAvifDecoder();
+			InvalidateDecoderCaches(true, IF_Unknown);
 			ProcessReadGDIPlusRequest(&rq);
 			break;
 	}
@@ -482,6 +435,24 @@ void CImageLoadThread::DeleteCachedAvifDecoder() {
 	SetErrorMode(nPrevErrorMode);
 	m_sLastAvifFileName.Empty();
 #endif
+}
+
+void CImageLoadThread::InvalidateDecoderCaches(bool bKeepGdiCache, EImageFormat eKeepDecoder) {
+	if (!bKeepGdiCache) {
+		DeleteCachedGDIBitmap();
+	}
+	if (eKeepDecoder != IF_WEBP) {
+		DeleteCachedWebpDecoder();
+	}
+	if (eKeepDecoder != IF_PNG) {
+		DeleteCachedPngDecoder();
+	}
+	if (eKeepDecoder != IF_JXL) {
+		DeleteCachedJxlDecoder();
+	}
+	if (eKeepDecoder != IF_AVIF) {
+		DeleteCachedAvifDecoder();
+	}
 }
 
 void CImageLoadThread::ProcessReadJPEGRequest(CRequest * request) {

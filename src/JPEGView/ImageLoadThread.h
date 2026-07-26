@@ -2,6 +2,7 @@
 #pragma once
 
 #include "ProcessParams.h"
+#include "ImageProcessingTypes.h"
 #include "WorkThread.h"
 #include <gdiplus.h>
 
@@ -106,6 +107,7 @@ private:
 	void DeleteCachedPngDecoder();
 	void DeleteCachedJxlDecoder();
 	void DeleteCachedAvifDecoder();
+	void InvalidateDecoderCaches(bool bKeepGdiCache, EImageFormat eKeepDecoder);
 
 	void ProcessReadJPEGRequest(CRequest * request);
 	void ProcessReadPNGRequest(CRequest * request);
