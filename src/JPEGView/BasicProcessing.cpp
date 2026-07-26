@@ -324,7 +324,7 @@ int16* CBasicProcessing::Create1Channel16bppGrayscaleImage(int nWidth, int nHeig
 		LUTs[512 + i] = (uint32)(0.114 * i * cdScaler + 0.5);
 	}
 
-	int16* pNewImage = new(std::nothrow) int16[nWidth * nHeight];
+	int16* pNewImage = new(std::nothrow) int16[(size_t)nWidth * nHeight];
 	if (pNewImage == NULL) return NULL;
 	int nPadSrc = Helpers::DoPadding(nWidth*nChannels, 4) - nWidth*nChannels;
 	int16* pTarget = pNewImage;
@@ -344,7 +344,7 @@ void* CBasicProcessing::Apply3ChannelLUT32bpp(int nWidth, int nHeight, const voi
 		return NULL;
 	}
 
-	uint32* pTarget = new(std::nothrow) uint32[nWidth * nHeight];
+	uint32* pTarget = new(std::nothrow) uint32[(size_t)nWidth * nHeight];
 	if (pTarget == NULL) return NULL;
 	const uint32* pSrc = (uint32*)pDIBPixels;
 	uint32* pTgt = pTarget;
@@ -366,7 +366,7 @@ void* CBasicProcessing::ApplySaturationAnd3ChannelLUT32bpp(int nWidth, int nHeig
 
 	const int cnScaler = 1 << 16;
 	const int cnMax = 255 * cnScaler;
-	uint32* pTarget = new(std::nothrow) uint32[nWidth * nHeight];
+	uint32* pTarget = new(std::nothrow) uint32[(size_t)nWidth * nHeight];
 	if (pTarget == NULL) return NULL;
 	const uint32* pSrc = (uint32*)pDIBPixels;
 	uint32* pTgt = pTarget;
@@ -608,11 +608,11 @@ static void RotateBlock32bpp(const uint32* pSrc, uint32* pTgt, int nWidth, int n
 
 // 180 degrees rotation
 static void* Rotate32bpp180(int nWidth, int nHeight, const void* pDIBPixels) {
-	uint32* pTarget = new(std::nothrow) uint32[nWidth * nHeight];
+	uint32* pTarget = new(std::nothrow) uint32[(size_t)nWidth * nHeight];
 	if (pTarget == NULL) return NULL;
 	const uint32* pSource = (uint32*)pDIBPixels;
 	for (uint32 i = 0; i < nHeight; i++) {
-		uint32* pTgt = pTarget + nWidth*(nHeight - 1 - i) + (nWidth - 1);
+		uint32* pTgt = pTarget + (size_t)nWidth * (nHeight - 1 - i) + (nWidth - 1);
 		const uint32* pSrc = pSource + nWidth*i;
 		for (uint32 j = 0; j < nWidth; j++) {
 			*pTgt = *pSrc;
@@ -655,7 +655,7 @@ void* CBasicProcessing::Rotate32bpp(int nWidth, int nHeight, const void* pDIBPix
 }
 
 void* CBasicProcessing::MirrorH32bpp(int nWidth, int nHeight, const void* pDIBPixels) {
-	uint32* pTarget = new(std::nothrow) uint32[nWidth * nHeight];
+	uint32* pTarget = new(std::nothrow) uint32[(size_t)nWidth * nHeight];
 	if (pTarget == NULL) return NULL;
 	uint32* pTgt = pTarget;
 	for (int j = 0; j < nHeight; j++) {
@@ -669,7 +669,7 @@ void* CBasicProcessing::MirrorH32bpp(int nWidth, int nHeight, const void* pDIBPi
 }
 
 void* CBasicProcessing::MirrorV32bpp(int nWidth, int nHeight, const void* pDIBPixels) {
-	uint32* pTarget = new(std::nothrow) uint32[nWidth * nHeight];
+	uint32* pTarget = new(std::nothrow) uint32[(size_t)nWidth * nHeight];
 	if (pTarget == NULL) return NULL;
 	uint32* pTgt = pTarget;
 	for (int j = 0; j < nHeight; j++) {
@@ -713,7 +713,7 @@ void* CBasicProcessing::Convert8bppTo32bppDIB(int nWidth, int nHeight, const voi
 	}
 	int nPaddedWidthS = Helpers::DoPadding(nWidth, 4);
 	int nPadS = nPaddedWidthS - nWidth;
-	uint32* pNewDIB = new(std::nothrow) uint32[nWidth * nHeight];
+	uint32* pNewDIB = new(std::nothrow) uint32[(size_t)nWidth * nHeight];
 	if (pNewDIB == NULL) return NULL;
 	uint32* pTargetDIB = pNewDIB;
 	const uint8* pSourceDIB = (uint8*)pDIBPixels;
@@ -757,7 +757,7 @@ void* CBasicProcessing::Convert1To4Channels(int nWidth, int nHeight, const void*
 		return NULL;
 	}
 	int nPadSrc = Helpers::DoPadding(nWidth, 4) - nWidth;
-	uint32* pNewDIB = new(std::nothrow) uint32[nWidth * nHeight];
+	uint32* pNewDIB = new(std::nothrow) uint32[(size_t)nWidth * nHeight];
 	if (pNewDIB == NULL) return NULL;
 	uint32* pTarget = pNewDIB;
 	const uint8* pSource = (uint8*)pPixels;
@@ -772,7 +772,7 @@ void* CBasicProcessing::Convert1To4Channels(int nWidth, int nHeight, const void*
 }
 
 void* CBasicProcessing::Convert16bppGrayTo32bppDIB(int nWidth, int nHeight, const int16* pPixels) {
-	uint32* pNewDIB = new(std::nothrow) uint32[nWidth * nHeight];
+	uint32* pNewDIB = new(std::nothrow) uint32[(size_t)nWidth * nHeight];
 	if (pNewDIB == NULL) return NULL;
 	uint32* pTarget = pNewDIB;
 	const int16* pSource = pPixels;
@@ -791,7 +791,7 @@ void* CBasicProcessing::Convert3To4Channels(int nWidth, int nHeight, const void*
 		return NULL;
 	}
 	int nPadSrc = Helpers::DoPadding(nWidth*3, 4) - nWidth*3;
-	uint32* pNewDIB = new(std::nothrow) uint32[nWidth * nHeight];
+	uint32* pNewDIB = new(std::nothrow) uint32[(size_t)nWidth * nHeight];
 	if (pNewDIB == NULL) return NULL;
 	uint32* pTarget = pNewDIB;
 	const uint8* pSource = (uint8*)pIJLPixels;
@@ -809,7 +809,7 @@ void* CBasicProcessing::ConvertGdiplus32bppRGB(int nWidth, int nHeight, int nStr
 	if (pGdiplusPixels == NULL || nWidth*4 > abs(nStride)) {
 		return NULL;
 	}
-	uint32* pNewDIB = new(std::nothrow) uint32[nWidth * nHeight];
+	uint32* pNewDIB = new(std::nothrow) uint32[(size_t)nWidth * nHeight];
 	if (pNewDIB == NULL) return NULL;
 	uint32* pTgt = pNewDIB;
 	const uint8* pSrc = (const uint8*)pGdiplusPixels;
