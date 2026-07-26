@@ -64,7 +64,7 @@ void CImageProcPanelCtl::SetVisible(bool bVisible) {
 void CImageProcPanelCtl::AfterNewImageLoaded() {
 	ShowHideSaveDBButtons();
 	m_pImageProcPanel->GetBtnUnsharpMask()->SetShow(CurrentImage() != NULL);
-	if (CurrentImage() != NULL && !CurrentImage()->IsClipboardImage() && !m_pMainDlg->IsInMovieMode()) {
+	if (CurrentImage() != NULL && !CurrentImage()->IsClipboardImage() && !m_pMainDlg->ViewFlags().bInMovieMode) {
 		m_pImageProcPanel->GetTextParamDB()->SetShow(true);
 		m_pImageProcPanel->GetTextRename()->SetShow(true);
 		LPCTSTR sCurrentFileTitle = m_pMainDlg->GetFileList()->CurrentFileTitle();
@@ -121,11 +121,11 @@ bool CImageProcPanelCtl::OnMouseMove(int nX, int nY) {
 				nIPAreaStart += m_pImageProcPanel->SliderAreaHeight() / 2;
 			}
 		}
-		if (!m_pMainDlg->IsFullScreenMode()) {
+		if (!m_pMainDlg->ViewFlags().bFullScreenMode) {
 			::KillTimer(m_pMainDlg->GetHWND(), IPPANEL_TIMER_EVENT_ID);
 		}
 		if (nY > nIPAreaStart) {
-			if (!m_pMainDlg->IsFullScreenMode()) {
+			if (!m_pMainDlg->ViewFlags().bFullScreenMode) {
 				::SetTimer(m_pMainDlg->GetHWND(), IPPANEL_TIMER_EVENT_ID, 50, NULL);
 			} else if (m_nOldMouseY != 0 && nY > nIPAreaStart) {	
 				SetVisible(true);
@@ -143,7 +143,7 @@ bool CImageProcPanelCtl::OnMouseMove(int nX, int nY) {
 }
 
 void CImageProcPanelCtl::ShowHideSaveDBButtons() {
-	bool bFlags = !m_pMainDlg->IsInMovieMode() && !m_pMainDlg->IsKeepParams();
+	bool bFlags = !m_pMainDlg->ViewFlags().bInMovieMode && !m_pMainDlg->ViewFlags().bKeepParams;
 	m_pImageProcPanel->GetBtnSaveTo()->SetShow(CurrentImage() != NULL && !CurrentImage()->IsClipboardImage() && !CurrentImage()->IsProcessedNoParamDB() && bFlags);
 	m_pImageProcPanel->GetBtnRemoveFrom()->SetShow(CurrentImage() != NULL && !CurrentImage()->IsProcessedNoParamDB() && bFlags && CurrentImage()->IsInParamDB());
 	m_pMainDlg->InvalidateRect(PanelRect(), FALSE);
@@ -222,7 +222,7 @@ bool CImageProcPanelCtl::RenameCurrentFile(LPCTSTR sNewFileTitle) {
 	m_pMainDlg->GetJPEGProvider()->FileHasRenamed(sCurFileName, sNewFileName);
 
 	// Needs to update filename
-	if (m_pMainDlg->GetEXIFDisplayCtl()->IsActive() || m_pMainDlg->IsShowFileName()) {
+	if (m_pMainDlg->GetEXIFDisplayCtl()->IsActive() || m_pMainDlg->ViewFlags().bShowFileName) {
 		InvalidateMainDlg();
 	}
 	m_pMainDlg->UpdateWindowTitle();

@@ -3494,7 +3494,7 @@ void CMainDlg::StartAnimation() {
 		return;
 	}
 	m_state.m_eProcFlagsBeforeMovie = CreateDefaultProcessingFlags(m_state.m_bKeepParams);
-	m_state.m_bKeepParametersBeforeAnimation = IsKeepParams();
+	m_state.m_bKeepParametersBeforeAnimation = m_state.m_bKeepParams;
 	if (!m_state.m_bKeepParametersBeforeAnimation) {
 		ExecuteCommand(IDM_KEEP_PARAMETERS);
 	}
@@ -3525,7 +3525,7 @@ void CMainDlg::StopAnimation() {
 	if (!m_state.m_bIsAnimationPlaying) {
 		return;
 	}
-	if (IsKeepParams() != m_state.m_bKeepParametersBeforeAnimation) {
+	if (m_state.m_bKeepParams != m_state.m_bKeepParametersBeforeAnimation) {
 		ExecuteCommand(IDM_KEEP_PARAMETERS);
 	}
 	if (GetProcessingFlag(m_state.m_eProcFlagsBeforeMovie, PFLAG_AutoContrast)) {
@@ -3552,4 +3552,31 @@ void CMainDlg::ToggleAlwaysOnTop() {
 		SWP_NOMOVE | SWP_NOSIZE  // causes SetWindowPos to ignore the parameters for top/left/width/height
 	);
 
+}
+
+// IViewState::ViewFlags() - build the merged boolean snapshot from CAppState and CCropCtl.
+const CViewFlags& CMainDlg::ViewFlags() const {
+	CViewFlags& f = m_viewFlags;
+	f.bShowFileName        = m_state.m_bShowFileName;
+	f.bInMovieMode         = m_state.m_bMovieMode;
+	f.bInZoomMode          = m_state.m_bZoomModeOnLeftMouse;
+	f.bPlayingAnimation    = m_state.m_bIsAnimationPlaying;
+	f.bFullScreenMode      = m_state.m_bFullScreenMode;
+	f.bLandscapeMode       = m_state.m_bLandscapeMode;
+	f.bHQResampling        = m_state.m_bHQResampling;
+	f.bAutoContrast        = m_state.m_bAutoContrast;
+	f.bAutoContrastSection = m_state.m_bAutoContrastSection;
+	f.bLDC                 = m_state.m_bLDC;
+	f.bKeepParams          = m_state.m_bKeepParams;
+	f.bSpanVirtualDesktop  = m_state.m_bSpanVirtualDesktop;
+	f.bDoDragging          = m_state.m_bDoDragging;
+	f.bInZooming           = m_state.m_bInZooming;
+	f.bShowZoomFactor      = m_state.m_bShowZoomFactor;
+	f.bPanMouseCursorSet   = m_state.m_bPanMouseCursorSet;
+	f.bMouseOn             = m_state.m_bMouseOn;
+	f.bWindowBorderless    = m_state.m_bWindowBorderless;
+	f.bAlwaysOnTop         = m_state.m_bAlwaysOnTop;
+	f.bCropping            = m_pCropCtl->IsCropping();
+	f.bDoCropping          = m_pCropCtl->IsDoCropping();
+	return m_viewFlags;
 }

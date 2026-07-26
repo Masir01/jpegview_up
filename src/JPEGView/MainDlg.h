@@ -133,27 +133,8 @@ public:
 
 	// Called by the different controller classes
 	HWND GetHWND() { return m_hWnd; }
-	bool IsShowFileName() { return m_state.m_bShowFileName; }
-	bool IsInMovieMode() { return m_state.m_bMovieMode; }
-	bool IsInZoomMode() { return m_state.m_bZoomModeOnLeftMouse; }
-	bool IsPlayingAnimation() { return m_state.m_bIsAnimationPlaying; }
-	bool IsFullScreenMode() { return m_state.m_bFullScreenMode; }
-	bool IsLandscapeMode() { return m_state.m_bLandscapeMode; }
-	bool IsHQResampling() { return m_state.m_bHQResampling; }
-	bool IsAutoContrast() { return m_state.m_bAutoContrast; }
-	bool IsAutoContrastSection() { return m_state.m_bAutoContrastSection; }
-	bool IsLDC() { return m_state.m_bLDC; }
-	bool IsKeepParams() { return m_state.m_bKeepParams; }
-	bool IsSpanVirtualDesktop() { return m_state.m_bSpanVirtualDesktop; }
-	bool IsCropping() { return m_pCropCtl->IsCropping(); }
-	bool IsDoCropping() { return m_pCropCtl->IsDoCropping(); }
-	bool IsDoDragging() { return m_state.m_bDoDragging; }
-	bool IsInZooming() { return m_state.m_bInZooming; }
-	bool IsShowZoomFactor() { return m_state.m_bShowZoomFactor; }
-	bool IsPanMouseCursorSet() { return m_state.m_bPanMouseCursorSet; }
-	bool IsMouseOn() { return m_state.m_bMouseOn; }
-	bool IsWindowBorderless() { return m_state.m_bWindowBorderless; }
-	bool IsAlwaysOnTop() { return m_state.m_bAlwaysOnTop; }
+	// All 21 IsXxx() booleans merged into CViewFlags; exposed via IViewState::ViewFlags()
+	const CViewFlags& ViewFlags() const;
 
 	CPoint GetMousePos() { return CPoint(m_state.m_nMouseX, m_state.m_nMouseY); }
 	double GetZoom() { return m_state.m_dZoom; }
@@ -237,6 +218,7 @@ private:
 	
 	// Application state (extracted from CMainDlg to reduce coupling; see AppState.h)
 	CAppState m_state;
+	mutable CViewFlags m_viewFlags; // filled by ViewFlags()
 
 	// Owned sub-objects (services and controllers) - kept in CMainDlg
 	CCropCtl* m_pCropCtl;

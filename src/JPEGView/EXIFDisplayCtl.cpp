@@ -86,10 +86,10 @@ void CEXIFDisplayCtl::AfterNewImageLoaded() {
 }
 
 void CEXIFDisplayCtl::OnPrePaintMainDlg(HDC hPaintDC) {
-	if (m_pMainDlg->IsShowFileName() && m_nFileNameHeight == 0) {
+	if (m_pMainDlg->ViewFlags().bShowFileName && m_nFileNameHeight == 0) {
 		m_nFileNameHeight = GetFileNameHeight(hPaintDC);
 	}
-	m_pEXIFDisplay->SetPosition(CPoint(m_pImageProcPanel->PanelRect().left, m_pMainDlg->IsShowFileName() ? m_nFileNameHeight + 6 : 0));
+	m_pEXIFDisplay->SetPosition(CPoint(m_pImageProcPanel->PanelRect().left, m_pMainDlg->ViewFlags().bShowFileName ? m_nFileNameHeight + 6 : 0));
 	FillEXIFDataDisplay();
 	if (CurrentImage() != NULL && m_pEXIFDisplay->GetShowHistogram()) {
 		m_pEXIFDisplay->SetHistogram(CurrentImage()->GetProcessedHistogram());

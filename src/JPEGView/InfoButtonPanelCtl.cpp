@@ -18,7 +18,7 @@ CInfoButtonPanelCtl::~CInfoButtonPanelCtl() {
 }
 
 bool CInfoButtonPanelCtl::IsVisible() { 
-	return m_bVisible && m_pMainDlg->IsFullScreenMode() && !m_pMainDlg->GetEXIFDisplayCtl()->IsActive(); 
+	return m_bVisible && m_pMainDlg->ViewFlags().bFullScreenMode && !m_pMainDlg->GetEXIFDisplayCtl()->IsActive(); 
 }
 
 void CInfoButtonPanelCtl::SetVisible(bool bVisible) { 
@@ -29,7 +29,7 @@ void CInfoButtonPanelCtl::SetVisible(bool bVisible) {
 }
 
 bool CInfoButtonPanelCtl::OnMouseMove(int nX, int nY) {
-	if (!m_pMainDlg->IsFullScreenMode()) {
+	if (!m_pMainDlg->ViewFlags().bFullScreenMode) {
 		return false;
 	}
 	bool bHandled = CPanelController::OnMouseMove(nX, nY);

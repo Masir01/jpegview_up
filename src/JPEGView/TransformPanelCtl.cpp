@@ -118,7 +118,7 @@ void CTransformPanelCtl::Apply() {
 		return;
 	}
 	ApplyTransformation();
-	if (!m_bAutoCrop || m_pMainDlg->IsFullScreenMode()) {
+	if (!m_bAutoCrop || m_pMainDlg->ViewFlags().bFullScreenMode) {
 		m_pMainDlg->ExecuteCommand(IDM_FIT_TO_SCREEN_NO_ENLARGE);
 	}
 	m_pMainDlg->AdjustWindowToImage(false);

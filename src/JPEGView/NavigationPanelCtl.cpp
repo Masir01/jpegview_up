@@ -44,15 +44,15 @@ CNavigationPanelCtl::CNavigationPanelCtl(IMainView* pMainDlg, CPanel* pImageProc
 	if (CSettingsProvider::This().AllowFileDeletion()) {
 		m_pNavPanel->GetBtnDelete()->SetButtonPressedHandler(&OnExecuteCommand, pMainDlg, GetDeleteCommandId());
 	}
-	m_pNavPanel->GetBtnZoomMode()->SetButtonPressedHandler(&OnExecuteCommand, pMainDlg, IDM_ZOOM_MODE, pMainDlg->IsInZoomMode());
+	m_pNavPanel->GetBtnZoomMode()->SetButtonPressedHandler(&OnExecuteCommand, pMainDlg, IDM_ZOOM_MODE, pMainDlg->ViewFlags().bInZoomMode);
 	m_pNavPanel->GetBtnFitToScreen()->SetButtonPressedHandler(&OnToggleZoomFit, this);
 	m_pNavPanel->GetBtnWindowMode()->SetButtonPressedHandler(&OnToggleWindowMode, this);
 	m_pNavPanel->GetBtnRotateCW()->SetButtonPressedHandler(&OnRotate, this, IDM_ROTATE_90);
 	m_pNavPanel->GetBtnRotateCCW()->SetButtonPressedHandler(&OnRotate, this, IDM_ROTATE_270);
 	m_pNavPanel->GetBtnRotateFree()->SetButtonPressedHandler(&OnExecuteCommand, pMainDlg, IDM_ROTATE);
 	m_pNavPanel->GetBtnPerspectiveCorrection()->SetButtonPressedHandler(&OnExecuteCommand, pMainDlg, IDM_PERSPECTIVE);
-	m_pNavPanel->GetBtnKeepParams()->SetButtonPressedHandler(&OnExecuteCommand, pMainDlg, IDM_KEEP_PARAMETERS, pMainDlg->IsKeepParams());
-	m_pNavPanel->GetBtnLandscapeMode()->SetButtonPressedHandler(&OnExecuteCommand, pMainDlg, IDM_LANDSCAPE_MODE, pMainDlg->IsLandscapeMode());
+	m_pNavPanel->GetBtnKeepParams()->SetButtonPressedHandler(&OnExecuteCommand, pMainDlg, IDM_KEEP_PARAMETERS, pMainDlg->ViewFlags().bKeepParams);
+	m_pNavPanel->GetBtnLandscapeMode()->SetButtonPressedHandler(&OnExecuteCommand, pMainDlg, IDM_LANDSCAPE_MODE, pMainDlg->ViewFlags().bLandscapeMode);
 	m_pNavPanel->GetBtnShowInfo()->SetButtonPressedHandler(&OnExecuteCommand, pMainDlg, IDM_SHOW_FILEINFO, pMainDlg->GetEXIFDisplayCtl()->IsActive());
 }
 
@@ -77,7 +77,7 @@ void CNavigationPanelCtl::AdjustMaximalWidth(int nMaxWidth) {
 bool CNavigationPanelCtl::IsVisible() {
 	bool bMouseInNavPanel = m_bMouseInNavPanel && !m_pMainDlg->GetImageProcPanelCtl()->IsVisible();
 	return m_bEnabled && !(m_fCurrentBlendingFactorNavPanel <= 0.0f && !bMouseInNavPanel) &&
-		!m_pMainDlg->IsInMovieMode() && !m_pMainDlg->IsDoCropping() && (m_pMainDlg->IsMouseOn() || bMouseInNavPanel);
+		!m_pMainDlg->ViewFlags().bInMovieMode && !m_pMainDlg->ViewFlags().bDoCropping && (m_pMainDlg->ViewFlags().bMouseOn || bMouseInNavPanel);
 }
 
 void CNavigationPanelCtl::SetActive(bool bActive) {
@@ -110,14 +110,14 @@ bool CNavigationPanelCtl::OnMouseMove(int nX, int nY) {
 	// Start timer to fade out nav panel if no mouse movement
 	bool bModalPanelShown = m_pMainDlg->GetPanelMgr()->IsModalPanelShown();
 	bool bImageProcPanelShown = m_pMainDlg->GetImageProcPanelCtl()->IsVisible();
-	if ((m_nMouseX != nX || m_nMouseY != nY) && !m_pMainDlg->IsPanMouseCursorSet()) {
+	if ((m_nMouseX != nX || m_nMouseY != nY) && !m_pMainDlg->ViewFlags().bPanMouseCursorSet) {
 		::KillTimer(m_pMainDlg->GetHWND(), NAVPANEL_START_ANI_TIMER_EVENT_ID);
 		if (!bImageProcPanelShown && !bModalPanelShown) {
 			if (!m_bInNavPanelAnimation) {
 				::SetTimer(m_pMainDlg->GetHWND(), NAVPANEL_START_ANI_TIMER_EVENT_ID, 2000, NULL);
 			} else {
 				// Mouse moved - fade in navigation panel
-				if (m_pMainDlg->IsMouseOn()) {
+				if (m_pMainDlg->ViewFlags().bMouseOn) {
 					if (m_nBlendInNavPanelCountdown >= 5) {
 						StartNavPanelAnimation(false, true);
 						m_nBlendInNavPanelCountdown = 0;
@@ -287,7 +287,7 @@ void CNavigationPanelCtl::EndNavPanelAnimation() {
 }
 
 void CNavigationPanelCtl::HideNavPanelTemporary(bool bForce) {
-	if (bForce || !m_bMouseInNavPanel || m_pMainDlg->GetImageProcPanelCtl()->IsVisible() || m_pMainDlg->IsCropping()) {
+	if (bForce || !m_bMouseInNavPanel || m_pMainDlg->GetImageProcPanelCtl()->IsVisible() || m_pMainDlg->ViewFlags().bCropping) {
 		m_bInNavPanelAnimation = true;
 		m_fCurrentBlendingFactorNavPanel = 0.0;
 		m_pMainDlg->InvalidateRect(PanelRect(), FALSE);
@@ -348,7 +348,7 @@ void CNavigationPanelCtl::OnRotate(void* pContext, int nParameter, CButtonCtrl &
 void CNavigationPanelCtl::OnToggleZoomFit(void* pContext, int nParameter, CButtonCtrl & sender) {
 	CNavigationPanelCtl* pThis = (CNavigationPanelCtl*)pContext;
 	if (IsCurrentImageFitToScreen(pThis->m_pMainDlg)) {
-		pThis->m_pMainDlg->ResetZoomTo100Percents(pThis->m_pMainDlg->IsMouseOn());
+		pThis->m_pMainDlg->ResetZoomTo100Percents(pThis->m_pMainDlg->ViewFlags().bMouseOn);
 	} else {
 		pThis->m_pMainDlg->ResetZoomToFitScreen(false, true, true);
 	}

@@ -27,8 +27,8 @@ bool CZoomNavigatorCtl::IsVisible() {
 		bool bShowZoomNavigator = (virtualImageSize.cx > clippedSize.cx || virtualImageSize.cy > clippedSize.cy);
 		if (bShowZoomNavigator) {
 			CRect navBoundRect = CZoomNavigator::GetNavigatorBound(m_pImageProcPanel->PanelRect());
-			bShowZoomNavigator = m_pMainDlg->IsDoDragging() || m_pMainDlg->IsInZooming() || m_pMainDlg->IsShowZoomFactor() || 
-				(!m_pMainDlg->IsCropping() && navBoundRect.PtInRect(m_pMainDlg->GetMousePos()));
+			bShowZoomNavigator = m_pMainDlg->ViewFlags().bDoDragging || m_pMainDlg->ViewFlags().bInZooming || m_pMainDlg->ViewFlags().bShowZoomFactor || 
+				(!m_pMainDlg->ViewFlags().bCropping && navBoundRect.PtInRect(m_pMainDlg->GetMousePos()));
 		}
 		return bShowZoomNavigator;
 	}

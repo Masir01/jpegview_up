@@ -43,24 +43,24 @@ void CHelpDisplayCtl::GenerateHelpDisplay() {
 	m_pHelpDisplay->AddLine(_T("Esc"), CNLS::GetString(_T("Close help text display / Close JPEGView")));
 	m_pHelpDisplay->AddLine(_T("F1"), CNLS::GetString(_T("Show/hide this help text")));
 	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_SHOW_FILEINFO), m_pMainDlg->GetEXIFDisplayCtl()->IsActive(), CNLS::GetString(_T("Show/hide picture information (EXIF data)")));
-	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_SHOW_FILENAME), m_pMainDlg->IsShowFileName(), CNLS::GetString(_T("Show/hide file name")));
-	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_TOGGLE_RESAMPLING_QUALITY), m_pMainDlg->IsHQResampling(), CNLS::GetString(_T("Enable/disable high quality resampling")));
-	if (m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_KEEP_PARAMETERS), m_pMainDlg->IsKeepParams(), CNLS::GetString(_T("Enable/disable keeping of geometry related (zoom/pan/rotation)")))) {
+	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_SHOW_FILENAME), m_pMainDlg->ViewFlags().bShowFileName, CNLS::GetString(_T("Show/hide file name")));
+	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_TOGGLE_RESAMPLING_QUALITY), m_pMainDlg->ViewFlags().bHQResampling, CNLS::GetString(_T("Enable/disable high quality resampling")));
+	if (m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_KEEP_PARAMETERS), m_pMainDlg->ViewFlags().bKeepParams, CNLS::GetString(_T("Enable/disable keeping of geometry related (zoom/pan/rotation)")))) {
 		m_pHelpDisplay->AddLineInfo(_T(""), LPCTSTR(NULL), CNLS::GetString(_T("and image processing (brightness/contrast/sharpen) parameters between images")));
 	}
-	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_AUTO_CORRECTION), m_pMainDlg->IsAutoContrast(), CNLS::GetString(_T("Enable/disable automatic contrast correction (histogram equalization)")));
-	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_AUTO_CORRECTION_SECTION), m_pMainDlg->IsAutoContrastSection(), CNLS::GetString(_T("Apply auto contrast correction using only visible section of image")));
-	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_LDC), m_pMainDlg->IsLDC(), CNLS::GetString(_T("Enable/disable automatic density correction (local brightness correction)")));
+	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_AUTO_CORRECTION), m_pMainDlg->ViewFlags().bAutoContrast, CNLS::GetString(_T("Enable/disable automatic contrast correction (histogram equalization)")));
+	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_AUTO_CORRECTION_SECTION), m_pMainDlg->ViewFlags().bAutoContrastSection, CNLS::GetString(_T("Apply auto contrast correction using only visible section of image")));
+	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_LDC), m_pMainDlg->ViewFlags().bLDC, CNLS::GetString(_T("Enable/disable automatic density correction (local brightness correction)")));
 	TCHAR buffLS[16]; _stprintf_s(buffLS, 16, _T("%.2f"), m_pImageProcParams->LightenShadows);
 	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_LDC_SHADOWS_INC, IDM_LDC_SHADOWS_DEC), buffLS, CNLS::GetString(_T("Increase/decrease lightening of shadows (LDC must be on)")));
 	TCHAR buffDH[16]; _stprintf_s(buffDH, 16, _T("%.2f"), m_pImageProcParams->DarkenHighlights);
 	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_LDC_HIGHLIGHTS_INC, IDM_LDC_HIGHLIGHTS_DEC), buffDH, CNLS::GetString(_T("Increase/decrease darkening of highlights (LDC must be on)")));
-	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_LANDSCAPE_MODE), m_pMainDlg->IsLandscapeMode(), CNLS::GetString(_T("Enable/disable landscape picture enhancement mode")));
+	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_LANDSCAPE_MODE), m_pMainDlg->ViewFlags().bLandscapeMode, CNLS::GetString(_T("Enable/disable landscape picture enhancement mode")));
 	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_LOOP_FOLDER), m_pMainDlg->GetFileList()->GetNavigationMode() == Helpers::NM_LoopDirectory, CNLS::GetString(_T("Loop through files in current folder")));
 	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_LOOP_RECURSIVELY), m_pMainDlg->GetFileList()->GetNavigationMode() == Helpers::NM_LoopSubDirectories, CNLS::GetString(_T("Loop through files in current directory and all subfolders")));
 	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_LOOP_SIBLINGS), m_pMainDlg->GetFileList()->GetNavigationMode() == Helpers::NM_LoopSameDirectoryLevel, CNLS::GetString(_T("Loop through files in current directory and all sibling folders (folders on same level)")));
-	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_FULL_SCREEN_MODE), m_pMainDlg->IsFullScreenMode(), CNLS::GetString(_T("Enable/disable full screen mode")));
-	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_SPAN_SCREENS), m_pMainDlg->IsSpanVirtualDesktop(), CNLS::GetString(_T("Maximize/restore to/from virtual desktop (only for multi-monitor systems)")));
+	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_FULL_SCREEN_MODE), m_pMainDlg->ViewFlags().bFullScreenMode, CNLS::GetString(_T("Enable/disable full screen mode")));
+	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_SPAN_SCREENS), m_pMainDlg->ViewFlags().bSpanVirtualDesktop, CNLS::GetString(_T("Maximize/restore to/from virtual desktop (only for multi-monitor systems)")));
 	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_TOGGLE_MONITOR), LPCTSTR(NULL), CNLS::GetString(_T("Toggle between screens (only for multi-monitor systems)")));
 	TCHAR buffMI[256]; _stprintf_s(buffMI, 256, CNLS::GetString(_T("Mark image for toggling. Use %s to toggle between marked and current image")), _KeyDesc(IDM_TOGGLE));
 	m_pHelpDisplay->AddLine(_KeyDesc(IDM_MARK_FOR_TOGGLE), buffMI);
@@ -96,8 +96,8 @@ void CHelpDisplayCtl::GenerateHelpDisplay() {
 	m_pHelpDisplay->AddLineInfo(_T("Ctrl[+Shift] 1 .. 9"),  LPCTSTR(NULL), CNLS::GetString(_T("Set timeout to n/10 sec, respectively n/100 sec (Ctrl+Shift)")));
 	m_pHelpDisplay->AddLine(_KeyDesc(IDM_ROTATE_270, IDM_ROTATE_90), CNLS::GetString(_T("Rotate image and fit to screen")));
 	m_pHelpDisplay->AddLine(_KeyDesc(IDM_FIT_TO_SCREEN), CNLS::GetString(_T("Fit image to screen")));
-	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_HIDE_TITLE_BAR), m_pMainDlg->IsWindowBorderless(), CNLS::GetString(_T("Toggle window title bar hidden mode")));
-	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_ALWAYS_ON_TOP), m_pMainDlg->IsAlwaysOnTop(), CNLS::GetString(_T("Toggle window always on top mode")));
+	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_HIDE_TITLE_BAR), m_pMainDlg->ViewFlags().bWindowBorderless, CNLS::GetString(_T("Toggle window title bar hidden mode")));
+	m_pHelpDisplay->AddLineInfo(_KeyDesc(IDM_ALWAYS_ON_TOP), m_pMainDlg->ViewFlags().bAlwaysOnTop, CNLS::GetString(_T("Toggle window always on top mode")));
 	m_pHelpDisplay->AddLine(_KeyDesc(IDM_TOGGLE_FIT_TO_SCREEN_100_PERCENTS), CNLS::GetString(_T("Zoom 1:1 (100 %)")));
 	TCHAR buff5[16]; buff5[0] = 0; if (m_pMainDlg->GetZoom() > 0) _stprintf_s(buff5, 16, _T("%.0f %%"), m_pMainDlg->GetZoom() * 100);
 	_stprintf_s(buffMI, 256, CNLS::GetString(_T("Zoom in (%s)/Zoom out (%s)")), _KeyDesc(IDM_ZOOM_INC), _KeyDesc(IDM_ZOOM_DEC));

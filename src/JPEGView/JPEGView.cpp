@@ -244,7 +244,7 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 
 		try {
 			nRet = (int)dlgMain.DoModal();
-			if (CSettingsProvider::This().StickyWindowSize() && !dlgMain.IsFullScreenMode()) {
+			if (CSettingsProvider::This().StickyWindowSize() && !dlgMain.ViewFlags().bFullScreenMode) {
 				CSettingsProvider::This().SaveStickyWindowRect(dlgMain.WindowRectOnClose());
 			}
 			::ShowCursor(TRUE);
