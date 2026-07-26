@@ -7,7 +7,34 @@
 // if a define is to be included in the publicly-exposed definitions, start the comment with ":KeyMap:"
 // don't worry about the formatting, the script that auto-generates the definition will take care of it
 
-#define JPEGVIEW_VERSION "1, 3, 46, 0\0"
+// Single source of truth for the version number.
+// Change only the four numbers below; everything else is derived automatically.
+#define JPEGVIEW_VER_MAJOR 1
+#define JPEGVIEW_VER_MINOR 3
+#define JPEGVIEW_VER_PATCH 51
+#define JPEGVIEW_VER_BUILD 0
+
+// Stringizer helpers (work in both C++ and the RC preprocessor)
+#define _JV_XSTR(x) #x
+#define _JV_STR(x)  _JV_XSTR(x)
+
+// "1, 3, 46, 0" style used by AboutDlg via JPEGVIEW_VERSION
+#define JPEGVIEW_VERSION \
+    _JV_STR(JPEGVIEW_VER_MAJOR) ", " \
+    _JV_STR(JPEGVIEW_VER_MINOR) ", " \
+    _JV_STR(JPEGVIEW_VER_PATCH) ", " \
+    _JV_STR(JPEGVIEW_VER_BUILD) "\0"
+
+// "1.3.46.0" style used by the VS_VERSION_INFO resource strings
+#define JPEGVIEW_VER_STRING \
+    _JV_STR(JPEGVIEW_VER_MAJOR) "." \
+    _JV_STR(JPEGVIEW_VER_MINOR) "." \
+    _JV_STR(JPEGVIEW_VER_PATCH) "." \
+    _JV_STR(JPEGVIEW_VER_BUILD)
+
+// Numeric tuple used by FILEVERSION / PRODUCTVERSION in JPEGView.rc
+#define JPEGVIEW_VER_TUPLE \
+    JPEGVIEW_VER_MAJOR, JPEGVIEW_VER_MINOR, JPEGVIEW_VER_PATCH, JPEGVIEW_VER_BUILD
 // title for main window and msgbox so it can be change via actions
 #define JPEGVIEW_TITLE "JPEGView"
 
