@@ -80,6 +80,11 @@ void CWorkThread::Abort() {
 void CWorkThread::ThreadFunc(void* arg) {
 
 	CWorkThread* thisPtr = (CWorkThread*) arg;
+	// Lower the priority of all worker threads (image decoding and resampling)
+	// so they do not preempt the UI thread during zoom/pan/navigation. Only the
+	// CPU scheduling priority is lowered; the I/O priority (disk reads) stays
+	// unchanged, so image load speed is not affected.
+	::SetThreadPriority(::GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
 	if (thisPtr->m_bCoInitialize) {
 		::CoInitialize(NULL);
 	}
