@@ -275,6 +275,10 @@ ForceGDIPlus=false
 ; Gives ~5-15% speedup on modern CPUs, more on older ones.
 ; At quality >90 the accuracy difference is more visible. Default: false.
 FastJPEGDecode=false
+; Use faster (lower quality) half-size decode for RAW (libraw) images.
+; Decodes at 1/2 dimensions (1/4 pixels) for a major speedup on large RAW files.
+; Default: false.
+FastRAWDecode=false
 ; When enabled, file extensions listed in FilesProcessedByWIC will be decoded by WIC
 ; even if a native decoder exists (e.g., JPEG, PNG, etc.). Useful for troubleshooting
 ; or when WIC handles certain files better. Default: false.

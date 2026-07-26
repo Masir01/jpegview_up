@@ -36,6 +36,9 @@ void * HeifReader::ReadImage(int &width,
 	if (decode_opts) {
 		decode_opts->ignore_transformations = CSettingsProvider::This().HEIFIgnoreTransformations() ? 1 : 0;
 		decode_opts->convert_hdr_to_8bit = CSettingsProvider::This().HEIFConvertHDRTo8bit() ? 1 : 0;
+		// Enable codec-level multithreaded decoding, following the main "CPUCoresUsed" config.
+		// 0 would mean "use decoder default"; we set the configured core count (capped at 8).
+		decode_opts->num_codec_threads = CSettingsProvider::This().NumberOfCoresToUse();
 	}
 
 	heif_image* c_image = NULL;

@@ -71,6 +71,7 @@ public:
 	Helpers::ETransitionEffect SlideShowTransitionEffect() { return m_eSlideShowTransitionEffect; }
 	int SlideShowEffectTimeMs() { return m_nSlideShowEffectTimeMs; }
 	bool FastJPEGDecode() { return m_bFastJPEGDecode; }
+	bool FastRAWDecode() { return m_bFastRAWDecode; }
 	bool WICPriority() { return m_bWICPriority; }
 	bool HEIFIgnoreTransformations() { return m_bHEIFIgnoreTransformations; }
 	bool HEIFConvertHDRTo8bit() { return m_bHEIFConvertHDRTo8bit; }
@@ -246,6 +247,7 @@ private:
 	Helpers::ETransitionEffect m_eSlideShowTransitionEffect;
 	int m_nSlideShowEffectTimeMs;
 	bool m_bFastJPEGDecode;
+	bool m_bFastRAWDecode;
 	bool m_bWICPriority;
 	bool m_bHEIFIgnoreTransformations;
 	bool m_bHEIFConvertHDRTo8bit;

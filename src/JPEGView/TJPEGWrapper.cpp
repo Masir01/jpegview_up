@@ -23,6 +23,8 @@ void * TurboJpeg::ReadImage(int &width,
 	}
 	if (CSettingsProvider::This().FastJPEGDecode()) {
 		tj3Set(hDecoder, TJPARAM_FASTDCT, 1);
+		// Fast upsampling (~1.25x faster, negligible quality loss at typical quality)
+		tj3Set(hDecoder, TJPARAM_FASTUPSAMPLE, 1);
 	}
 
 	unsigned char* pPixelData = NULL;

@@ -1,4 +1,5 @@
 #include "stdafx.h"
+#include "SettingsProvider.h"
 
 #include "RAWWrapper.h"
 #include "libraw/libraw.h"
@@ -20,6 +21,10 @@ CJPEGImage* RawReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory, bool b
 	
 	CJPEGImage* Image = NULL;
 	if (!bGetThumb) {
+		if (CSettingsProvider::This().FastRAWDecode()) {
+			// Fast preview: decode at 1/2 dimensions (1/4 pixels), major speedup on large RAW.
+			RawProcessor.imgdata.params.half_size = 1;
+		}
 		RawProcessor.get_mem_image_format(&width, &height, &colors, &bps);
 		RawProcessor.imgdata.params.output_bps = 8;
 
