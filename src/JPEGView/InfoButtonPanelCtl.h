@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "PanelController.h"
 
@@ -8,7 +8,7 @@ class CInfoButtonPanel;
 class CInfoButtonPanelCtl : public CPanelController
 {
 public:
-	CInfoButtonPanelCtl(CMainDlg* pMainDlg, CPanel* pImageProcPanel);
+	CInfoButtonPanelCtl(IMainView* pMainDlg, CPanel* pImageProcPanel);
 	virtual ~CInfoButtonPanelCtl();
 
 	virtual float DimFactor() { return 0.1f; }

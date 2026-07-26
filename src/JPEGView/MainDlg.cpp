@@ -1,4 +1,4 @@
-// MainDlg.cpp : implementation of the CMainDlg class
+﻿// MainDlg.cpp : implementation of the CMainDlg class
 //
 /////////////////////////////////////////////////////////////////////////////
 
@@ -180,30 +180,30 @@ CMainDlg::CMainDlg(bool bForceFullScreen) {
 	// Read the string table for the requested language if one is present
 	CNLS::ReadStringTable(CNLS::GetStringTableFileName(sp.Language()));
 
-	m_bLandscapeMode = sp.LandscapeMode();
-	m_pImageProcParams = new CImageProcessingParams(GetDefaultProcessingParams());
-	InitFromProcessingFlags(GetDefaultProcessingFlags(m_bLandscapeMode), m_bHQResampling, m_bAutoContrast, m_bAutoContrastSection, m_bLDC, m_bLandscapeMode);
+	m_state.m_bLandscapeMode = sp.LandscapeMode();
+	m_state.m_pImageProcParams = new CImageProcessingParams(GetDefaultProcessingParams());
+	InitFromProcessingFlags(GetDefaultProcessingFlags(m_state.m_bLandscapeMode), m_state.m_bHQResampling, m_state.m_bAutoContrast, m_state.m_bAutoContrastSection, m_state.m_bLDC, m_state.m_bLandscapeMode);
 
 	// Initialize second parameter set using hard coded values, turning off all corrections except sharpening
-	m_pImageProcParams2 = new CImageProcessingParams(GetNoProcessingParams()); 
-	m_eProcessingFlags2 = PFLAG_HighQualityResampling;
+	m_state.m_pImageProcParams2 = new CImageProcessingParams(GetNoProcessingParams()); 
+	m_state.m_eProcessingFlags2 = PFLAG_HighQualityResampling;
 
-	m_pImageProcParamsKept = new CImageProcessingParams();
-	m_eProcessingFlagsKept = PFLAG_HighQualityResampling;
-	m_dZoomKept = -1;
-	m_offsetKept = CPoint(0, 0);
-	m_bCurrentImageInParamDB = false;
-	m_bCurrentImageIsSpecialProcessing = false;
-	m_dCurrentInitialLightenShadows = -1;
+	m_state.m_pImageProcParamsKept = new CImageProcessingParams();
+	m_state.m_eProcessingFlagsKept = PFLAG_HighQualityResampling;
+	m_state.m_dZoomKept = -1;
+	m_state.m_offsetKept = CPoint(0, 0);
+	m_state.m_bCurrentImageInParamDB = false;
+	m_state.m_bCurrentImageIsSpecialProcessing = false;
+	m_state.m_dCurrentInitialLightenShadows = -1;
 
-	m_bDefaultSelectionMode = sp.DefaultSelectionMode();
-	m_bShowFileName = sp.ShowFileName();
-	m_bKeepParams = sp.KeepParams();
-	m_eAutoZoomModeWindowed = sp.AutoZoomMode();
-	m_eAutoZoomModeFullscreen = sp.AutoZoomModeFullscreen();
+	m_state.m_bDefaultSelectionMode = sp.DefaultSelectionMode();
+	m_state.m_bShowFileName = sp.ShowFileName();
+	m_state.m_bKeepParams = sp.KeepParams();
+	m_state.m_eAutoZoomModeWindowed = sp.AutoZoomMode();
+	m_state.m_eAutoZoomModeFullscreen = sp.AutoZoomModeFullscreen();
 
-	m_eTransitionEffect = sp.SlideShowTransitionEffect();
-	m_nTransitionTime = sp.SlideShowEffectTimeMs();
+	m_state.m_eTransitionEffect = sp.SlideShowTransitionEffect();
+	m_state.m_nTransitionTime = sp.SlideShowEffectTimeMs();
 
 	CHistogramCorr::SetContrastCorrectionStrength((float)sp.AutoContrastAmount());
 	CHistogramCorr::SetBrightnessCorrectionStrength((float)sp.AutoBrightnessAmount());
@@ -215,59 +215,59 @@ CMainDlg::CMainDlg(bool bForceFullScreen) {
 	m_bExceptionErrorLastImage = false;
 	m_nLastLoadError = HelpersGUI::FileLoad_Ok;
 
-	m_dMovieFPS = 1.0;
+	m_state.m_dMovieFPS = 1.0;
 	m_nAutoStartSlideShow = false;
 	m_eForcedSorting = Helpers::FS_Undefined;
 
-	m_eProcFlagsBeforeMovie = PFLAG_None;
-	m_nRotation = 0;
-	m_nUserRotation = 0;
-	m_dZoomAtResizeStart = 1.0;
-	m_bZoomMode = false;
-	m_bZoomModeOnLeftMouse = false;
-	m_bUserZoom = false;
-	m_bUserPan = false;
-	m_bMovieMode = false;
-	m_bProcFlagsTouched = false;
-	m_bInTrackPopupMenu = false;
-	m_bResizeForNewImage = false;
-	m_dZoom = -1.0;
-	m_dRealizedZoom = -1.0;
-	m_dZoomMult = -1.0;
-	m_bDragging = false;
-	m_bDoDragging = false;
-	m_offsets = CPoint(0, 0);
-	m_DIBOffsets = CPoint(0, 0);
-	m_nCapturedX = m_nCapturedY = 0;
-	m_nMouseX = m_nMouseY = 0;
-	m_bAutoFitWndToImage = sp.DefaultWndToImage();
-	m_bFullScreenMode = bForceFullScreen || (sp.ShowFullScreen() && !sp.AutoFullScreen());
-	m_bLockPaint = true;
-	m_nCurrentTimeout = 0;
-	m_startMouse.x = m_startMouse.y = -1;
-	m_virtualImageSize = CSize(-1, -1);
-	m_bInZooming = false;
-	m_bTemporaryLowQ = false;
-	m_bShowZoomFactor = false;
-	m_bSpanVirtualDesktop = false;
-	m_bPanMouseCursorSet = false;
-	m_storedWindowPlacement.length = sizeof(WINDOWPLACEMENT);
-	m_nMonitor = 0;
-	m_monitorRect = CRect(0, 0, 0, 0);
-	m_windowRectOnClose = CRect(0, 0, 0, 0);
-	m_bMouseOn = false;
-	m_bKeepParametersBeforeAnimation = false;
-	m_bIsAnimationPlaying = false;
-	m_nLastAnimationOffset = 0;
-	m_nExpectedNextAnimationTickCount = 0;
-	m_bUseLosslessWEBP = false;
-	m_isBeforeFileSelected = true;
-	m_dLastImageDisplayTime = 0.0;
-	m_isUserFitToScreen = false;
-	m_autoZoomFitToScreen = Helpers::ZM_FillScreen;
-	m_bWindowBorderless = sp.WindowBorderlessOnStartup();  // unlike AlwaysOnTop, this is set early on initialize as it affects calculations of the window size, position, etc
-	m_bAlwaysOnTop = false;  // default normal window.  this will be set to true when AlwaysOnTop is toggled if set to startup in INI
-	m_bSelectZoom = false;  // this value is set when LButtonDown happens, to be read by LButtonUp
+	m_state.m_eProcFlagsBeforeMovie = PFLAG_None;
+	m_state.m_nRotation = 0;
+	m_state.m_nUserRotation = 0;
+	m_state.m_dZoomAtResizeStart = 1.0;
+	m_state.m_bZoomMode = false;
+	m_state.m_bZoomModeOnLeftMouse = false;
+	m_state.m_bUserZoom = false;
+	m_state.m_bUserPan = false;
+	m_state.m_bMovieMode = false;
+	m_state.m_bProcFlagsTouched = false;
+	m_state.m_bInTrackPopupMenu = false;
+	m_state.m_bResizeForNewImage = false;
+	m_state.m_dZoom = -1.0;
+	m_state.m_dRealizedZoom = -1.0;
+	m_state.m_dZoomMult = -1.0;
+	m_state.m_bDragging = false;
+	m_state.m_bDoDragging = false;
+	m_state.m_offsets = CPoint(0, 0);
+	m_state.m_DIBOffsets = CPoint(0, 0);
+	m_state.m_nCapturedX = m_state.m_nCapturedY = 0;
+	m_state.m_nMouseX = m_state.m_nMouseY = 0;
+	m_state.m_bAutoFitWndToImage = sp.DefaultWndToImage();
+	m_state.m_bFullScreenMode = bForceFullScreen || (sp.ShowFullScreen() && !sp.AutoFullScreen());
+	m_state.m_bLockPaint = true;
+	m_state.m_nCurrentTimeout = 0;
+	m_state.m_startMouse.x = m_state.m_startMouse.y = -1;
+	m_state.m_virtualImageSize = CSize(-1, -1);
+	m_state.m_bInZooming = false;
+	m_state.m_bTemporaryLowQ = false;
+	m_state.m_bShowZoomFactor = false;
+	m_state.m_bSpanVirtualDesktop = false;
+	m_state.m_bPanMouseCursorSet = false;
+	m_state.m_storedWindowPlacement.length = sizeof(WINDOWPLACEMENT);
+	m_state.m_nMonitor = 0;
+	m_state.m_monitorRect = CRect(0, 0, 0, 0);
+	m_state.m_windowRectOnClose = CRect(0, 0, 0, 0);
+	m_state.m_bMouseOn = false;
+	m_state.m_bKeepParametersBeforeAnimation = false;
+	m_state.m_bIsAnimationPlaying = false;
+	m_state.m_nLastAnimationOffset = 0;
+	m_state.m_nExpectedNextAnimationTickCount = 0;
+	m_state.m_bUseLosslessWEBP = false;
+	m_state.m_isBeforeFileSelected = true;
+	m_state.m_dLastImageDisplayTime = 0.0;
+	m_state.m_isUserFitToScreen = false;
+	m_state.m_autoZoomFitToScreen = Helpers::ZM_FillScreen;
+	m_state.m_bWindowBorderless = sp.WindowBorderlessOnStartup();  // unlike AlwaysOnTop, this is set early on initialize as it affects calculations of the window size, position, etc
+	m_state.m_bAlwaysOnTop = false;  // default normal window.  this will be set to true when AlwaysOnTop is toggled if set to startup in INI
+	m_state.m_bSelectZoom = false;  // this value is set when LButtonDown happens, to be read by LButtonUp
 
 	m_pPanelMgr = new CPanelMgr();
 	m_pZoomNavigatorCtl = NULL;
@@ -289,8 +289,8 @@ CMainDlg::~CMainDlg() {
 	delete m_pDirectoryWatcher;
 	delete m_pFileList;
 	if (m_pJPEGProvider != NULL) delete m_pJPEGProvider;
-	delete m_pImageProcParams;
-	delete m_pImageProcParamsKept;
+	delete m_state.m_pImageProcParams;
+	delete m_state.m_pImageProcParamsKept;
 	delete m_pZoomNavigatorCtl;
 	delete m_pCropCtl;
 	delete m_pPanelMgr; // this will delete all panel controllers and all panels
@@ -301,8 +301,8 @@ void CMainDlg::SetStartupInfo(LPCTSTR sStartupFile, int nAutostartSlideShow, Hel
 	int nTransitionTime, bool bAutoExit, int nDisplayMonitor) { 
 	m_sStartupFile = sStartupFile; m_nAutoStartSlideShow = nAutostartSlideShow; m_eForcedSorting = eSorting;
 	m_bAutoExit = bAutoExit;
-	if ((int)eEffect >= 0) m_eTransitionEffect = eEffect;
-	if (nTransitionTime > 0) m_nTransitionTime = nTransitionTime;
+	if ((int)eEffect >= 0) m_state.m_eTransitionEffect = eEffect;
+	if (nTransitionTime > 0) m_state.m_nTransitionTime = nTransitionTime;
 	if (nDisplayMonitor >= 0) CSettingsProvider::This().SetMonitorOverride(nDisplayMonitor);
 }
 
@@ -319,15 +319,15 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 
 	// determine the monitor rectangle and client rectangle
 	CSettingsProvider& sp = CSettingsProvider::This();
-	m_nMonitor = sp.DisplayMonitor();
-	m_monitorRect = CMultiMonitorSupport::GetMonitorRect(m_nMonitor);
+	m_state.m_nMonitor = sp.DisplayMonitor();
+	m_state.m_monitorRect = CMultiMonitorSupport::GetMonitorRect(m_state.m_nMonitor);
 	// move to correct monitor - but no redraw as Windows does not like that this early
-	::SetWindowPos(m_hWnd, HWND_TOP, m_monitorRect.left, m_monitorRect.top, m_monitorRect.Width(), m_monitorRect.Height(),
+	::SetWindowPos(m_hWnd, HWND_TOP, m_state.m_monitorRect.left, m_state.m_monitorRect.top, m_state.m_monitorRect.Width(), m_state.m_monitorRect.Height(),
 		SWP_NOZORDER | SWP_NOCOPYBITS | SWP_NOACTIVATE | SWP_NOREDRAW);
-	m_clientRect = m_bFullScreenMode ? m_monitorRect : CMultiMonitorSupport::GetDefaultClientRectInWindowMode(sp.AutoFullScreen());
+	m_state.m_clientRect = m_state.m_bFullScreenMode ? m_state.m_monitorRect : CMultiMonitorSupport::GetDefaultClientRectInWindowMode(sp.AutoFullScreen());
 
 	// Create image processing panel at bottom of screen
-	m_pImageProcPanelCtl = new CImageProcPanelCtl(this, m_pImageProcParams, &m_bLDC, &m_bAutoContrast);
+	m_pImageProcPanelCtl = new CImageProcPanelCtl(this, m_state.m_pImageProcParams, &m_state.m_bLDC, &m_state.m_bAutoContrast);
 	m_pPanelMgr->AddPanelController(m_pImageProcPanelCtl);
 
 	// Create EXIF display panel
@@ -347,7 +347,7 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 	m_pPanelMgr->AddPanelController(m_pTiltCorrectionPanelCtl);
 
 	// Create navigation panel
-	m_pNavPanelCtl = new CNavigationPanelCtl(this, m_pImageProcPanelCtl->GetPanel(), &m_bFullScreenMode);
+	m_pNavPanelCtl = new CNavigationPanelCtl(this, m_pImageProcPanelCtl->GetPanel(), &m_state.m_bFullScreenMode);
 	m_pPanelMgr->AddPanelController(m_pNavPanelCtl);
 
 	// Create window button panel (on top, right)
@@ -370,8 +370,8 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 	SetIcon(hIconSmall, FALSE);
 
 	// turn on/off mouse coursor
-	m_bMouseOn = !m_bFullScreenMode;
-	::ShowCursor(m_bMouseOn);
+	m_state.m_bMouseOn = !m_state.m_bFullScreenMode;
+	::ShowCursor(m_state.m_bMouseOn);
 
 	// intitialize list of files to show with startup file (and folder)
 	m_pFileList = new CFileList(m_sStartupFile, *m_pDirectoryWatcher,
@@ -385,7 +385,7 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 	// create JPEG provider and request first image - do no processing yet if not in fullscreen mode (as we do not know the size yet)
 	m_pJPEGProvider = new CJPEGProvider(m_hWnd, NUM_THREADS, READ_AHEAD_BUFFERS);	
 	m_pCurrentImage = m_pJPEGProvider->RequestImage(m_pFileList, CJPEGProvider::FORWARD,
-		m_pFileList->Current(), 0, CreateProcessParams(!m_bFullScreenMode), m_bOutOfMemoryLastImage, m_bExceptionErrorLastImage);
+		m_pFileList->Current(), 0, CreateProcessParams(!m_state.m_bFullScreenMode), m_bOutOfMemoryLastImage, m_bExceptionErrorLastImage);
 	if (m_pCurrentImage != NULL && m_pCurrentImage->IsAnimation()) {
 		StartAnimation();
 	}
@@ -393,7 +393,7 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 	CheckIfApplyAutoFitWndToImage(true);
 	AfterNewImageLoaded(true, true, false); // synchronize to per image parameters
 
-	if (!m_bFullScreenMode) {
+	if (!m_state.m_bFullScreenMode) {
 		// Window mode, set correct window size
 		SetCurrentWindowStyle();
 		if (!IsAdjustWindowToImage()) {
@@ -406,9 +406,9 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 			this->ShowWindow(SW_MAXIMIZE);
 		}
 	} else {
-		PrefetchDIB(m_monitorRect);
+		PrefetchDIB(m_state.m_monitorRect);
 		SetWindowLong(GWL_STYLE, WS_VISIBLE);
-		SetWindowPos(HWND_TOP, &m_monitorRect, SWP_NOZORDER);
+		SetWindowPos(HWND_TOP, &m_state.m_monitorRect, SWP_NOZORDER);
 		SetWindowPos(NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOCOPYBITS | SWP_FRAMECHANGED);
 	}
 
@@ -417,8 +417,8 @@ LRESULT CMainDlg::OnInitDialog(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam
 		ToggleAlwaysOnTop();
 	}
 
-	m_bLockPaint = false;
-	m_isBeforeFileSelected = m_sStartupFile.IsEmpty();
+	m_state.m_bLockPaint = false;
+	m_state.m_isBeforeFileSelected = m_sStartupFile.IsEmpty();
 
 	if (m_nAutoStartSlideShow > 0) {
 		StartMovieMode(1.0 / m_nAutoStartSlideShow);
@@ -435,7 +435,7 @@ LRESULT CMainDlg::OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, B
 {
 	static bool s_bFirst = true;
 
-	if (m_bLockPaint) {
+	if (m_state.m_bLockPaint) {
 		return 0;
 	}
 
@@ -444,7 +444,7 @@ LRESULT CMainDlg::OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, B
 		s_bFirst = false;
 		if (m_sStartupFile.IsEmpty()) {
 			if (CSettingsProvider::This().SkipFileOpenDialogOnStartup())
-				m_isBeforeFileSelected = false;
+				m_state.m_isBeforeFileSelected = false;
 			else {
 				OpenFileWithDialog(true, true);
 				Invalidate(TRUE);
@@ -453,16 +453,16 @@ LRESULT CMainDlg::OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, B
 	}
 
 	CPaintDC dc(m_hWnd);
-	m_dRealizedZoom = 1.0;
+	m_state.m_dRealizedZoom = 1.0;
 
-	this->GetClientRect(&m_clientRect);
+	this->GetClientRect(&m_state.m_clientRect);
 	CRect imageProcessingArea = m_pImageProcPanelCtl->PanelRect();
 	CRectF visRectZoomNavigator(0.0f, 0.0f, 1.0f, 1.0f);
 	CBrush backBrush;
 	backBrush.CreateSolidBrush(CSettingsProvider::This().ColorBackground());
 
 #ifdef DEBUG
-	CString a; a.Format(_T("client rect w/h pix: %d %d = %d\n"), m_clientRect.Width(), m_clientRect.Height(), m_clientRect.Width() * m_clientRect.Height());
+	CString a; a.Format(_T("client rect w/h pix: %d %d = %d\n"), m_state.m_clientRect.Width(), m_state.m_clientRect.Height(), m_state.m_clientRect.Width() * m_state.m_clientRect.Height());
 	//::OutputDebugString(a);
 #endif
 
@@ -475,44 +475,44 @@ LRESULT CMainDlg::OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, B
 		m_pPanelMgr->OnPrePaint(dc);
 		m_pPanelMgr->PrepareMemDCMgr(memDCMgr, excludedClippingRects);
 		memDCMgr.ExcludeFromClippingRegion(dc, excludedClippingRects);
-		dc.FillRect(&m_clientRect, backBrush);
+		dc.FillRect(&m_state.m_clientRect, backBrush);
 	} else {
 		// do this as very first - may changes size of image
-		m_pCurrentImage->VerifyRotation(CRotationParams(m_pCurrentImage->GetRotationParams(), m_nRotation));
+		m_pCurrentImage->VerifyRotation(CRotationParams(m_pCurrentImage->GetRotationParams(), m_state.m_nRotation));
 
 		// Find out zoom multiplier if not yet known
-		if (m_dZoomMult < 0.0) {
-			m_dZoomMult = GetZoomMultiplier(m_pCurrentImage, m_clientRect);
+		if (m_state.m_dZoomMult < 0.0) {
+			m_state.m_dZoomMult = GetZoomMultiplier(m_pCurrentImage, m_state.m_clientRect);
 		}
 
 		// find out the new vitual image size and the size of the bitmap to request
 		CSize newSize = Helpers::GetVirtualImageSize(m_pCurrentImage->OrigSize(),
-			m_clientRect.Size(), IsAdjustWindowToImage() ? Helpers::ZM_FitToScreenNoZoom : 
-			   (m_isUserFitToScreen ? m_autoZoomFitToScreen : GetAutoZoomMode()), m_dZoom);
-		m_virtualImageSize = newSize;
-		m_dRealizedZoom = (double)newSize.cx / m_pCurrentImage->OrigSize().cx;
-		CPoint unlimitedOffsets = m_offsets;
-		m_offsets = Helpers::LimitOffsets(m_offsets, m_clientRect.Size(), newSize);
-		m_DIBOffsets = m_bZoomMode ? (unlimitedOffsets - m_offsets) : CPoint(0, 0);
+			m_state.m_clientRect.Size(), IsAdjustWindowToImage() ? Helpers::ZM_FitToScreenNoZoom : 
+			   (m_state.m_isUserFitToScreen ? m_state.m_autoZoomFitToScreen : GetAutoZoomMode()), m_state.m_dZoom);
+		m_state.m_virtualImageSize = newSize;
+		m_state.m_dRealizedZoom = (double)newSize.cx / m_pCurrentImage->OrigSize().cx;
+		CPoint unlimitedOffsets = m_state.m_offsets;
+		m_state.m_offsets = Helpers::LimitOffsets(m_state.m_offsets, m_state.m_clientRect.Size(), newSize);
+		m_state.m_DIBOffsets = m_state.m_bZoomMode ? (unlimitedOffsets - m_state.m_offsets) : CPoint(0, 0);
 
 		// Clip to client rectangle and request the DIB
-		CSize clippedSize(min(m_clientRect.Width(), newSize.cx), min(m_clientRect.Height(), newSize.cy));
-		CPoint offsetsInImage = m_pCurrentImage->ConvertOffset(newSize, clippedSize, m_offsets);
+		CSize clippedSize(min(m_state.m_clientRect.Width(), newSize.cx), min(m_state.m_clientRect.Height(), newSize.cy));
+		CPoint offsetsInImage = m_pCurrentImage->ConvertOffset(newSize, clippedSize, m_state.m_offsets);
 
 		void* pDIBData;
 		if (m_pUnsharpMaskPanelCtl->IsVisible()) {
 			pDIBData = m_pUnsharpMaskPanelCtl->GetUSMDIBForPreview(clippedSize, offsetsInImage, 
-				*m_pImageProcParams, CreateProcessingFlags(m_bHQResampling && !m_bTemporaryLowQ && !m_bZoomMode, m_bAutoContrast, m_bAutoContrastSection, m_bLDC, false, m_bLandscapeMode));
+				*m_state.m_pImageProcParams, CreateProcessingFlags(m_state.m_bHQResampling && !m_state.m_bTemporaryLowQ && !m_state.m_bZoomMode, m_state.m_bAutoContrast, m_state.m_bAutoContrastSection, m_state.m_bLDC, false, m_state.m_bLandscapeMode));
 		} else if (m_pRotationPanelCtl->IsVisible()) {
 			pDIBData = m_pRotationPanelCtl->GetDIBForPreview(newSize, clippedSize, offsetsInImage, 
-				*m_pImageProcParams, CreateProcessingFlags(false, m_bAutoContrast, m_bAutoContrastSection, m_bLDC, false, m_bLandscapeMode));
+				*m_state.m_pImageProcParams, CreateProcessingFlags(false, m_state.m_bAutoContrast, m_state.m_bAutoContrastSection, m_state.m_bLDC, false, m_state.m_bLandscapeMode));
 		} else if (m_pTiltCorrectionPanelCtl->IsVisible()) {
 			pDIBData = m_pTiltCorrectionPanelCtl->GetDIBForPreview(newSize, clippedSize, offsetsInImage, 
-				*m_pImageProcParams, CreateProcessingFlags(false, m_bAutoContrast, m_bAutoContrastSection, m_bLDC, false, m_bLandscapeMode));
+				*m_state.m_pImageProcParams, CreateProcessingFlags(false, m_state.m_bAutoContrast, m_state.m_bAutoContrastSection, m_state.m_bLDC, false, m_state.m_bLandscapeMode));
 		} else {
 			pDIBData = m_pCurrentImage->GetDIB(newSize, clippedSize, offsetsInImage, 
-				*m_pImageProcParams, 
-				CreateProcessingFlags(m_bHQResampling && !m_bTemporaryLowQ && !m_bZoomMode, m_bAutoContrast, m_bAutoContrastSection, m_bLDC, false, m_bLandscapeMode));
+				*m_state.m_pImageProcParams, 
+				CreateProcessingFlags(m_state.m_bHQResampling && !m_state.m_bTemporaryLowQ && !m_state.m_bZoomMode, m_state.m_bAutoContrast, m_state.m_bAutoContrastSection, m_state.m_bLDC, false, m_state.m_bLandscapeMode));
 		}
 
 		// Zoom navigator - check if visible and create exclusion rectangle
@@ -528,11 +528,11 @@ LRESULT CMainDlg::OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, B
 		// Paint the DIB
 		if (pDIBData != NULL) {
 			BITMAPINFO bmInfo;
-			CPoint ptDIBStart = HelpersGUI::DrawDIB32bppWithBlackBorders(dc, bmInfo, pDIBData, backBrush, m_clientRect, clippedSize, m_DIBOffsets);
+			CPoint ptDIBStart = HelpersGUI::DrawDIB32bppWithBlackBorders(dc, bmInfo, pDIBData, backBrush, m_state.m_clientRect, clippedSize, m_state.m_DIBOffsets);
 			// The DIB is also blitted into the memory DCs of the panels
 			memDCMgr.BlitImageToMemDC(pDIBData, &bmInfo, ptDIBStart, m_pNavPanelCtl->CurrentBlendingFactor());
 		}
-		if (m_bZoomMode) m_offsets = unlimitedOffsets;
+		if (m_state.m_bZoomMode) m_state.m_offsets = unlimitedOffsets;
 	}
 
 	// Restore the old clipping region by adding the excluded rectangles again
@@ -540,16 +540,16 @@ LRESULT CMainDlg::OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, B
 
 	// paint zoom navigator
 	CTrapezoid trapezoid = m_pTiltCorrectionPanelCtl->IsVisible() ? m_pTiltCorrectionPanelCtl->GetCurrentTrapezoid(CZoomNavigator::GetNavigatorRect(m_pCurrentImage, m_pImageProcPanelCtl->PanelRect(), m_pNavPanelCtl->PanelRect()).Size()) : CTrapezoid();
-	m_pZoomNavigatorCtl->OnPaint(dc, visRectZoomNavigator, m_pImageProcParams,
-		CreateProcessingFlags(!m_pRotationPanelCtl->IsVisible() && !m_pTiltCorrectionPanelCtl->IsVisible(), m_bAutoContrast, false, m_bLDC, false, m_bLandscapeMode), 
+	m_pZoomNavigatorCtl->OnPaint(dc, visRectZoomNavigator, m_state.m_pImageProcParams,
+		CreateProcessingFlags(!m_pRotationPanelCtl->IsVisible() && !m_pTiltCorrectionPanelCtl->IsVisible(), m_state.m_bAutoContrast, false, m_state.m_bLDC, false, m_state.m_bLandscapeMode), 
 		m_pRotationPanelCtl->IsVisible() ? m_pRotationPanelCtl->GetLQRotationAngle() : 0.0, 
 		m_pTiltCorrectionPanelCtl->IsVisible() ? &trapezoid : NULL);
 
 	// Display file name if enabled
-	DisplayFileName(imageProcessingArea, dc, m_dRealizedZoom);
+	DisplayFileName(imageProcessingArea, dc, m_state.m_dRealizedZoom);
 
 	// Display errors and warnings
-	DisplayErrors(m_pCurrentImage, m_clientRect, dc);
+	DisplayErrors(m_pCurrentImage, m_state.m_clientRect, dc);
 
 	// Now blit the memory DCs of the panels to the screen
 	memDCMgr.PaintMemDCToScreen();
@@ -566,9 +566,9 @@ LRESULT CMainDlg::OnPaint(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, B
 	}
 
 	// Show current zoom factor
-	if (m_bInZooming || m_bShowZoomFactor) {
+	if (m_state.m_bInZooming || m_state.m_bShowZoomFactor) {
 		TCHAR buff[32];
-		_stprintf_s(buff, 32, _T("%d %%"), int(m_dZoom*100 + 0.5));
+		_stprintf_s(buff, 32, _T("%d %%"), int(m_state.m_dZoom*100 + 0.5));
 		dc.SetTextColor(CSettingsProvider::This().ColorGUI());
 		HelpersGUI::SelectDefaultFileNameFont(dc);
 		HelpersGUI::DrawTextBordered(dc, buff, GetZoomTextRect(imageProcessingArea), DT_RIGHT);
@@ -589,23 +589,23 @@ void CMainDlg::PaintToDC(CDC& dc) {
 		backColor = RGB(0, 0, 1); // these f**ing nVidia drivers have a bug when blending pure black
 	CBrush backBrush;
 	backBrush.CreateSolidBrush(backColor);
-	m_dRealizedZoom = 1.0;
+	m_state.m_dRealizedZoom = 1.0;
 
 	CJPEGImage* pCurrentImage = GetCurrentImage();
 	if (pCurrentImage == NULL) {
-		dc.FillRect(&m_clientRect, backBrush);
+		dc.FillRect(&m_state.m_clientRect, backBrush);
 	} else {
 		// do this as very first - may changes size of image
 		pCurrentImage->VerifyRotation(CRotationParams(pCurrentImage->GetRotationParams(), GetRotation()));
 
 		// find out the new virtual image size and the size of the bitmap to request
-		double dZoom = m_dZoom;
-		CSize newSize = Helpers::GetVirtualImageSize(pCurrentImage->OrigSize(), m_clientRect.Size(), GetAutoZoomMode(), dZoom);
-		CPoint offsets = Helpers::LimitOffsets(GetOffsets(), m_clientRect.Size(), newSize);
-		m_dRealizedZoom = (double)newSize.cx / m_pCurrentImage->OrigSize().cx;
+		double dZoom = m_state.m_dZoom;
+		CSize newSize = Helpers::GetVirtualImageSize(pCurrentImage->OrigSize(), m_state.m_clientRect.Size(), GetAutoZoomMode(), dZoom);
+		CPoint offsets = Helpers::LimitOffsets(GetOffsets(), m_state.m_clientRect.Size(), newSize);
+		m_state.m_dRealizedZoom = (double)newSize.cx / m_pCurrentImage->OrigSize().cx;
 
 		// Clip to client rectangle and request the DIB
-		CSize clippedSize(min(m_clientRect.Width(), newSize.cx), min(m_clientRect.Height(), newSize.cy));
+		CSize clippedSize(min(m_state.m_clientRect.Width(), newSize.cx), min(m_state.m_clientRect.Height(), newSize.cy));
 		CPoint offsetsInImage = pCurrentImage->ConvertOffset(newSize, clippedSize, offsets);
 
 		void* pDIBData = pCurrentImage->GetDIB(newSize, clippedSize, offsetsInImage, 
@@ -613,7 +613,7 @@ void CMainDlg::PaintToDC(CDC& dc) {
 				CreateDefaultProcessingFlags());
 		if (pDIBData != NULL) {
 			BITMAPINFO bmInfo;
-			CPoint ptDIBStart = HelpersGUI::DrawDIB32bppWithBlackBorders(dc, bmInfo, pDIBData, backBrush, m_clientRect, clippedSize, CPoint(0, 0));
+			CPoint ptDIBStart = HelpersGUI::DrawDIB32bppWithBlackBorders(dc, bmInfo, pDIBData, backBrush, m_state.m_clientRect, clippedSize, CPoint(0, 0));
 		}
 
 		CRect imageProcessingArea = m_pImageProcPanelCtl->PanelRect();
@@ -624,8 +624,8 @@ void CMainDlg::PaintToDC(CDC& dc) {
 			m_pEXIFDisplayCtl->OnPaintPanel(dc, CPoint(0, 0));
 		}
 
-		DisplayFileName(imageProcessingArea, dc, m_dRealizedZoom);
-		DisplayErrors(pCurrentImage, m_clientRect, dc);
+		DisplayFileName(imageProcessingArea, dc, m_state.m_dRealizedZoom);
+		DisplayErrors(pCurrentImage, m_state.m_clientRect, dc);
 	}
 }
 
@@ -650,7 +650,7 @@ void CMainDlg::DisplayErrors(CJPEGImage* pCurrentImage, const CRect& clientRect,
 	dc.SetTextColor(CSettingsProvider::This().ColorGUI());
 	if (m_sStartupFile.IsEmpty() && m_pCurrentImage == NULL) {
 		CRect rectText(0, clientRect.Height()/2 - HelpersGUI::ScaleToScreen(40), clientRect.Width(), clientRect.Height());
-		if (m_isBeforeFileSelected) {
+		if (m_state.m_isBeforeFileSelected) {
 			dc.DrawText(CNLS::GetString(_T("Select file to display in 'File Open' dialog")), -1, &rectText, DT_CENTER | DT_WORDBREAK | DT_NOPREFIX);
 		} else {
 			dc.DrawText(CString(CNLS::GetString(_T("No image loaded!"))) + _T("\n\n") + CNLS::GetString(_T("Right mouse button: Context menu")) + _T("\nCtrl-V: ") +
@@ -671,7 +671,7 @@ void CMainDlg::DisplayFileName(const CRect& imageProcessingArea, CDC& dc, double
 	dc.SetTextColor(CSettingsProvider::This().ColorFileName());
 	dc.SetBkColor(RGB(0, 0, 0));
 
-	if (m_bShowFileName) {
+	if (m_state.m_bShowFileName) {
 		HelpersGUI::SelectDefaultFileNameFont(dc);
 		CString sFileName = Helpers::GetFileInfoString(CSettingsProvider::This().FileNameFormat(), m_pCurrentImage, m_pFileList, realizedZoom);
 		HelpersGUI::DrawTextBordered(dc, sFileName, CRect(HelpersGUI::ScaleToScreen(2) + imageProcessingArea.left, 0, imageProcessingArea.right, HelpersGUI::ScaleToScreen(30)), DT_LEFT); 
@@ -679,20 +679,20 @@ void CMainDlg::DisplayFileName(const CRect& imageProcessingArea, CDC& dc, double
 }
 
 LRESULT CMainDlg::OnSize(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
-	bool bKeepFitToScreen = !m_bResizeForNewImage && fabs(m_dZoom - GetZoomFactorForFitToScreen(false, false)) < 0.01;
-	this->GetClientRect(&m_clientRect);
+	bool bKeepFitToScreen = !m_state.m_bResizeForNewImage && fabs(m_state.m_dZoom - GetZoomFactorForFitToScreen(false, false)) < 0.01;
+	this->GetClientRect(&m_state.m_clientRect);
 	this->Invalidate(FALSE);
-	if (m_clientRect.Width() < HelpersGUI::ScaleToScreen(800)) {
+	if (m_state.m_clientRect.Width() < HelpersGUI::ScaleToScreen(800)) {
 		if (m_pImageProcPanelCtl != NULL) m_pImageProcPanelCtl->SetVisible(false);
 	}
 	if (m_pNavPanelCtl != NULL) {
-		m_pNavPanelCtl->AdjustMaximalWidth(m_clientRect.Width() - HelpersGUI::ScaleToScreen(16));
+		m_pNavPanelCtl->AdjustMaximalWidth(m_state.m_clientRect.Width() - HelpersGUI::ScaleToScreen(16));
 	}
-	m_nMouseX = m_nMouseY = -1;
+	m_state.m_nMouseX = m_state.m_nMouseY = -1;
 
 	// keep fit to screen
 	if (bKeepFitToScreen) {
-		if (fabs(m_dZoom - GetZoomFactorForFitToScreen(false, false)) >= 0.00001) {
+		if (fabs(m_state.m_dZoom - GetZoomFactorForFitToScreen(false, false)) >= 0.00001) {
 			StartLowQTimer(ZOOM_TIMEOUT);
 		}
 		ResetZoomToFitScreen(false, false, false);
@@ -715,7 +715,7 @@ LRESULT CMainDlg::OnAnotherInstanceStarted(UINT /*uMsg*/, WPARAM /*wParam*/, LPA
 	bHandled = FALSE;
 	COPYDATASTRUCT* pData = (COPYDATASTRUCT*)lParam;
 	if (pData != NULL && pData->dwData == KEY_MAGIC && pData->cbData > 0 && 
-		((m_bFullScreenMode && CSettingsProvider::This().SingleFullScreenInstance()) || CSettingsProvider::This().SingleInstance())) {
+		((m_state.m_bFullScreenMode && CSettingsProvider::This().SingleFullScreenInstance()) || CSettingsProvider::This().SingleInstance())) {
 		m_sStartupFile = CString((LPCTSTR)pData->lpData, pData->cbData / sizeof(TCHAR) - 1);
 		::PostMessage(m_hWnd, WM_LOAD_FILE_ASYNCH, 0, KEY_MAGIC);
 		bHandled = TRUE;
@@ -742,7 +742,7 @@ LRESULT CMainDlg::OnLoadFileAsynch(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lPar
 }
 
 LRESULT CMainDlg::OnClose(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled) {
-	GetWindowRect(m_windowRectOnClose);
+	GetWindowRect(m_state.m_windowRectOnClose);
 	bHandled = FALSE;
 	return 0;
 }
@@ -757,21 +757,21 @@ LRESULT CMainDlg::OnLButtonDown(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam,
 		bool bCtrl = (::GetKeyState(VK_CONTROL) & 0x8000) != 0;
 		bool bShift = (::GetKeyState(VK_SHIFT) & 0x8000) != 0;
 
-		bool bDraggingRequired = m_virtualImageSize.cx > m_clientRect.Width() || m_virtualImageSize.cy > m_clientRect.Height();
+		bool bDraggingRequired = m_state.m_virtualImageSize.cx > m_state.m_clientRect.Width() || m_state.m_virtualImageSize.cy > m_state.m_clientRect.Height();
 		bool bHandleByCropping = isCropping || m_pCropCtl->HitHandle(pointClicked.x, pointClicked.y) != CCropCtl::HH_None;
 		bool bTransformPanelShown = m_pRotationPanelCtl->IsVisible() || m_pTiltCorrectionPanelCtl->IsVisible();
 		if (bHandleByCropping || !m_pZoomNavigatorCtl->OnMouseLButton(MouseEvent_BtnDown, pointClicked.x, pointClicked.y)) {
-			if (!m_bZoomModeOnLeftMouse && !bHandleByCropping && HandleMouseButtonByKeymap(VK_LBUTTON)) {
+			if (!m_state.m_bZoomModeOnLeftMouse && !bHandleByCropping && HandleMouseButtonByKeymap(VK_LBUTTON)) {
 				return 0;
 			}
-			bool bZoomMode = (bShift || m_bZoomModeOnLeftMouse) && !bCtrl && !bTransformPanelShown && !bHandleByCropping && !m_pUnsharpMaskPanelCtl->IsVisible();
+			bool bZoomMode = (bShift || m_state.m_bZoomModeOnLeftMouse) && !bCtrl && !bTransformPanelShown && !bHandleByCropping && !m_pUnsharpMaskPanelCtl->IsVisible();
 			if (bZoomMode) {
-				m_bZoomMode = true;
-				m_dStartZoom = m_dZoom;
-				m_nCapturedX = m_nMouseX; m_nCapturedY = m_nMouseY;
-			} else if ((bCtrl || bHandleByCropping || (!bDraggingRequired && m_bDefaultSelectionMode)) && !bTransformPanelShown) {
+				m_state.m_bZoomMode = true;
+				m_state.m_dStartZoom = m_state.m_dZoom;
+				m_state.m_nCapturedX = m_state.m_nMouseX; m_state.m_nCapturedY = m_state.m_nMouseY;
+			} else if ((bCtrl || bHandleByCropping || (!bDraggingRequired && m_state.m_bDefaultSelectionMode)) && !bTransformPanelShown) {
 				// always go into selection/crop when in the right state and CTRL held down, otherwise it depends on the DefaultSelectionMode setting
-				m_bSelectZoom = bShift;  // if shift, go into select-to-zoom mode (no crop popup)
+				m_state.m_bSelectZoom = bShift;  // if shift, go into select-to-zoom mode (no crop popup)
 				m_pCropCtl->StartCropping(pointClicked.x, pointClicked.y);
 			} else if (bDraggingRequired && !bTransformPanelShown) {
 				StartDragging(pointClicked.x, pointClicked.y, false);
@@ -785,17 +785,17 @@ LRESULT CMainDlg::OnLButtonDown(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam,
 }
 
 LRESULT CMainDlg::OnLButtonUp(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/) {
-	if (m_bZoomMode) {
-		m_bZoomMode = false;
+	if (m_state.m_bZoomMode) {
+		m_state.m_bZoomMode = false;
 		AdjustWindowToImage(false);
 		Invalidate(FALSE);
-	} else if (m_bDragging) {
+	} else if (m_state.m_bDragging) {
 		EndDragging();
 	} else if (m_pCropCtl->IsCropping()) {
-		m_pCropCtl->EndCropping(!m_bSelectZoom);
-		if (m_bSelectZoom) {
+		m_pCropCtl->EndCropping(!m_state.m_bSelectZoom);
+		if (m_state.m_bSelectZoom) {
 			// select to zoom
-			m_bSelectZoom = false;
+			m_state.m_bSelectZoom = false;
 			ZoomToSelection();
 			m_pCropCtl->AbortCropping();
 		}
@@ -815,7 +815,7 @@ LRESULT CMainDlg::OnNCHitTest(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 	bool bLButton = ::GetAsyncKeyState(MK_LBUTTON) < 0;
 
 	// only move when alt is held down, double click causes this to expand as well
-	if (!m_bFullScreenMode && bAlt && ::DefWindowProc(m_hWnd, uMsg, wParam, lParam) == HTCLIENT && bLButton) {
+	if (!m_state.m_bFullScreenMode && bAlt && ::DefWindowProc(m_hWnd, uMsg, wParam, lParam) == HTCLIENT && bLButton) {
 		// don't allow intercepting if we're in full screen mode
 		// (which is really just the window repositioned so the titlebar falls off the screen)
 		return HTCAPTION;
@@ -826,7 +826,7 @@ LRESULT CMainDlg::OnNCHitTest(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 }
 
 LRESULT CMainDlg::OnNCLButtonDown(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*/, BOOL& bHandled) {
-	m_dZoomAtResizeStart = m_dZoom;
+	m_state.m_dZoomAtResizeStart = m_state.m_dZoom;
 	bHandled = FALSE; // do not handle message, this would block correct processing by OS
 	return 0;
 }
@@ -857,7 +857,7 @@ LRESULT CMainDlg::OnMButtonUp(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM /*lParam*
 }
 
 LRESULT CMainDlg::OnLButtonDblClk(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/) {
-	if (!m_bDragging && !m_pCropCtl->IsCropping()) {
+	if (!m_state.m_bDragging && !m_pCropCtl->IsCropping()) {
 		if (m_pPanelMgr->OnMouseLButton(MouseEvent_BtnDblClk, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam))) {
 			return 0;
 		}
@@ -868,8 +868,8 @@ LRESULT CMainDlg::OnLButtonDblClk(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lPara
 		}
 		double dZoom = -1.0;
 		CSize sizeAutoZoom = Helpers::GetVirtualImageSize(m_pCurrentImage->OrigSize(),
-			m_clientRect.Size(), IsAdjustWindowToImage() ? Helpers::ZM_FitToScreenNoZoom : GetAutoZoomMode(), dZoom);
-		if (sizeAutoZoom != m_virtualImageSize) {
+			m_state.m_clientRect.Size(), IsAdjustWindowToImage() ? Helpers::ZM_FitToScreenNoZoom : GetAutoZoomMode(), dZoom);
+		if (sizeAutoZoom != m_state.m_virtualImageSize) {
 			ExecuteCommand(GetAutoZoomMode() * 10 + IDM_AUTO_ZOOM_FIT_NO_ZOOM);
 		} else {
 			ResetZoomTo100Percents(true);
@@ -895,16 +895,16 @@ LRESULT CMainDlg::OnXButtonDown(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/,
 
 LRESULT CMainDlg::OnMouseMove(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& /*bHandled*/) {
 	// Turn mouse pointer on when mouse has moved some distance
-	int nOldMouseY = m_nMouseY;
-	int nOldMouseX = m_nMouseX;
-	m_nMouseX = GET_X_LPARAM(lParam);
-	m_nMouseY = GET_Y_LPARAM(lParam);
-	if (!m_bDragging) {
-		if (m_startMouse.x == -1 && m_startMouse.y == -1) {
-			m_startMouse.x = m_nMouseX;
-			m_startMouse.y = m_nMouseY;
+	int nOldMouseY = m_state.m_nMouseY;
+	int nOldMouseX = m_state.m_nMouseX;
+	m_state.m_nMouseX = GET_X_LPARAM(lParam);
+	m_state.m_nMouseY = GET_Y_LPARAM(lParam);
+	if (!m_state.m_bDragging) {
+		if (m_state.m_startMouse.x == -1 && m_state.m_startMouse.y == -1) {
+			m_state.m_startMouse.x = m_state.m_nMouseX;
+			m_state.m_startMouse.y = m_state.m_nMouseY;
 		} else {
-			if (abs(m_nMouseX - m_startMouse.x) + abs(m_nMouseY - m_startMouse.y) > 50) {
+			if (abs(m_state.m_nMouseX - m_state.m_startMouse.x) + abs(m_state.m_nMouseY - m_state.m_startMouse.y) > 50) {
 				MouseOn();
 			}
 		}
@@ -912,19 +912,19 @@ LRESULT CMainDlg::OnMouseMove(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, B
 
 	// Do dragging or cropping when needed, else pass event to panel manager and zoom navigator
 	bool bMouseCursorSet = false;
-	if (m_bZoomMode) {
-		int nDX = m_nMouseX - m_nCapturedX;
+	if (m_state.m_bZoomMode) {
+		int nDX = m_state.m_nMouseX - m_state.m_nCapturedX;
 		double dFactor = 1 + pow(nDX * nDX, 0.8) / 1500;
 		if (nDX < 0) dFactor = 1.0/dFactor;
-		PerformZoom(m_dStartZoom * dFactor, false, true, false);
-	} else if (m_bDragging) {
+		PerformZoom(m_state.m_dStartZoom * dFactor, false, true, false);
+	} else if (m_state.m_bDragging) {
 		DoDragging();
 	} else if (m_pCropCtl->IsCropping()) {
-		bMouseCursorSet = m_pCropCtl->DoCropping(m_nMouseX, m_nMouseY);
-	} else if (!m_pPanelMgr->OnMouseMove(m_nMouseX, m_nMouseY)) {
+		bMouseCursorSet = m_pCropCtl->DoCropping(m_state.m_nMouseX, m_state.m_nMouseY);
+	} else if (!m_pPanelMgr->OnMouseMove(m_state.m_nMouseX, m_state.m_nMouseY)) {
 		m_pZoomNavigatorCtl->OnMouseMove(nOldMouseX, nOldMouseY);
 	}
-	if (!m_bPanMouseCursorSet && !bMouseCursorSet) {
+	if (!m_state.m_bPanMouseCursorSet && !bMouseCursorSet) {
 		if (!m_pPanelMgr->MouseCursorCaptured()) {
 			::SetCursor(::LoadCursor(NULL, IDC_ARROW));
 		}
@@ -942,8 +942,8 @@ LRESULT CMainDlg::OnMouseWheel(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, 
 		} else if (nDelta > 0) {
 			GotoImage(POS_Previous);
 		}
-	} else if (m_dZoom > 0 && !m_pUnsharpMaskPanelCtl->IsVisible()) {
-		PerformZoom(CSettingsProvider::This().MouseWheelZoomSpeed() * double(nDelta) / WHEEL_DELTA, true, m_bMouseOn, true);
+	} else if (m_state.m_dZoom > 0 && !m_pUnsharpMaskPanelCtl->IsVisible()) {
+		PerformZoom(CSettingsProvider::This().MouseWheelZoomSpeed() * double(nDelta) / WHEEL_DELTA, true, m_state.m_bMouseOn, true);
 	}
 	return 0;
 }
@@ -1072,7 +1072,7 @@ LRESULT CMainDlg::OnDropFiles(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, B
 }
 
 LRESULT CMainDlg::OnTimer(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
-	if (wParam == ANIMATION_TIMER_EVENT_ID || (wParam == SLIDESHOW_TIMER_EVENT_ID && m_nCurrentTimeout > 0)) {
+	if (wParam == ANIMATION_TIMER_EVENT_ID || (wParam == SLIDESHOW_TIMER_EVENT_ID && m_state.m_nCurrentTimeout > 0)) {
 		// Remove all timer messages for slideshow and animation events that accumulated in the queue
 		MSG msg;
 		while (::PeekMessage(&msg, this->m_hWnd, WM_TIMER, WM_TIMER, PM_REMOVE)) {
@@ -1087,13 +1087,13 @@ LRESULT CMainDlg::OnTimer(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL&
 		}
 		// Goto next image if no other messages to process are pending
 		if (!::PeekMessage(&msg, this->m_hWnd, 0, 0, PM_NOREMOVE)) {
-			int nRealDisplayTimeMs = ::GetTickCount() - m_nLastSlideShowImageTickCount;
-			if (m_nCurrentTimeout > 250 && wParam == SLIDESHOW_TIMER_EVENT_ID) {
-				if (m_nCurrentTimeout - nRealDisplayTimeMs > 100) {
+			int nRealDisplayTimeMs = ::GetTickCount() - m_state.m_nLastSlideShowImageTickCount;
+			if (m_state.m_nCurrentTimeout > 250 && wParam == SLIDESHOW_TIMER_EVENT_ID) {
+				if (m_state.m_nCurrentTimeout - nRealDisplayTimeMs > 100) {
 					// restart timer
-					::Sleep(m_nCurrentTimeout - nRealDisplayTimeMs);
+					::Sleep(m_state.m_nCurrentTimeout - nRealDisplayTimeMs);
 					::KillTimer(this->m_hWnd, SLIDESHOW_TIMER_EVENT_ID);
-					::SetTimer(this->m_hWnd, SLIDESHOW_TIMER_EVENT_ID, m_nCurrentTimeout, NULL);
+					::SetTimer(this->m_hWnd, SLIDESHOW_TIMER_EVENT_ID, m_state.m_nCurrentTimeout, NULL);
 				}
 			}
 			GotoImage((wParam == ANIMATION_TIMER_EVENT_ID) ? POS_NextAnimation : POS_NextSlideShow, NO_REMOVE_KEY_MSG);
@@ -1101,22 +1101,22 @@ LRESULT CMainDlg::OnTimer(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL&
 				AnimateTransition();
 			}
 			if (wParam != ANIMATION_TIMER_EVENT_ID) {
-				m_nLastSlideShowImageTickCount = ::GetTickCount();
+				m_state.m_nLastSlideShowImageTickCount = ::GetTickCount();
 			}
 		}
 	} else if (wParam == ZOOM_TIMER_EVENT_ID) {
 		::KillTimer(this->m_hWnd, ZOOM_TIMER_EVENT_ID);
-		if (m_bTemporaryLowQ || m_bInZooming) {
+		if (m_state.m_bTemporaryLowQ || m_state.m_bInZooming) {
 			::SetTimer(this->m_hWnd, ZOOM_TEXT_TIMER_EVENT_ID, ZOOM_TEXT_TIMEOUT, NULL);
-			if (m_bInZooming) m_bShowZoomFactor = true;
-			m_bTemporaryLowQ = false;
-			m_bInZooming = false;
-			if (m_bHQResampling && m_pCurrentImage != NULL) {
+			if (m_state.m_bInZooming) m_state.m_bShowZoomFactor = true;
+			m_state.m_bTemporaryLowQ = false;
+			m_state.m_bInZooming = false;
+			if (m_state.m_bHQResampling && m_pCurrentImage != NULL) {
 				this->Invalidate(FALSE);
 			}
 		}
 	} else if (wParam == ZOOM_TEXT_TIMER_EVENT_ID) {
-		m_bShowZoomFactor = false;
+		m_state.m_bShowZoomFactor = false;
 		::KillTimer(this->m_hWnd, ZOOM_TEXT_TIMER_EVENT_ID);
 		m_pZoomNavigatorCtl->InvalidateZoomNavigatorRect();
 		CRect imageProcArea = m_pImageProcPanelCtl->PanelRect();
@@ -1150,11 +1150,11 @@ LRESULT CMainDlg::OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam,
 	HelpersGUI::TranslateMenuStrings(hMenuTrackPopup, m_pKeyMap);
 	
 	if (m_pEXIFDisplayCtl->IsActive()) ::CheckMenuItem(hMenuTrackPopup, IDM_SHOW_FILEINFO, MF_CHECKED);
-	if (m_bShowFileName) ::CheckMenuItem(hMenuTrackPopup, IDM_SHOW_FILENAME, MF_CHECKED);
+	if (m_state.m_bShowFileName) ::CheckMenuItem(hMenuTrackPopup, IDM_SHOW_FILENAME, MF_CHECKED);
 	if (m_pNavPanelCtl->IsActive()) ::CheckMenuItem(hMenuTrackPopup, IDM_SHOW_NAVPANEL, MF_CHECKED);
-	if (m_bAutoContrast) ::CheckMenuItem(hMenuTrackPopup, IDM_AUTO_CORRECTION, MF_CHECKED);
-	if (m_bLDC) ::CheckMenuItem(hMenuTrackPopup, IDM_LDC, MF_CHECKED);
-	if (m_bKeepParams) ::CheckMenuItem(hMenuTrackPopup, IDM_KEEP_PARAMETERS, MF_CHECKED);
+	if (m_state.m_bAutoContrast) ::CheckMenuItem(hMenuTrackPopup, IDM_AUTO_CORRECTION, MF_CHECKED);
+	if (m_state.m_bLDC) ::CheckMenuItem(hMenuTrackPopup, IDM_LDC, MF_CHECKED);
+	if (m_state.m_bKeepParams) ::CheckMenuItem(hMenuTrackPopup, IDM_KEEP_PARAMETERS, MF_CHECKED);
 	HMENU hMenuNavigation = ::GetSubMenu(hMenuTrackPopup, SUBMENU_POS_NAVIGATION);
 	::CheckMenuItem(hMenuNavigation,  m_pFileList->GetNavigationMode()*10 + IDM_LOOP_FOLDER, MF_CHECKED);
 	HMENU hMenuOrdering = ::GetSubMenu(hMenuTrackPopup, SUBMENU_POS_DISPLAY_ORDER);
@@ -1170,12 +1170,12 @@ LRESULT CMainDlg::OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam,
 		::EnableMenuItem(hMenuOrdering, IDM_SORT_DESCENDING, MF_BYCOMMAND | MF_GRAYED);
 	}
 	HMENU hMenuMovie = ::GetSubMenu(hMenuTrackPopup, SUBMENU_POS_MOVIE);
-	if (!m_bMovieMode) ::EnableMenuItem(hMenuMovie, IDM_STOP_MOVIE, MF_BYCOMMAND | MF_GRAYED);
+	if (!m_state.m_bMovieMode) ::EnableMenuItem(hMenuMovie, IDM_STOP_MOVIE, MF_BYCOMMAND | MF_GRAYED);
 	HMENU hMenuZoom = ::GetSubMenu(hMenuTrackPopup, SUBMENU_POS_ZOOM);
-	if (m_bSpanVirtualDesktop) ::CheckMenuItem(hMenuZoom,  IDM_SPAN_SCREENS, MF_CHECKED);
-	if (m_bFullScreenMode) ::CheckMenuItem(hMenuZoom,  IDM_FULL_SCREEN_MODE, MF_CHECKED);
-	if (m_bWindowBorderless) ::CheckMenuItem(hMenuZoom, IDM_HIDE_TITLE_BAR, MF_CHECKED);
-	if (m_bAlwaysOnTop) ::CheckMenuItem(hMenuZoom, IDM_ALWAYS_ON_TOP, MF_CHECKED);
+	if (m_state.m_bSpanVirtualDesktop) ::CheckMenuItem(hMenuZoom,  IDM_SPAN_SCREENS, MF_CHECKED);
+	if (m_state.m_bFullScreenMode) ::CheckMenuItem(hMenuZoom,  IDM_FULL_SCREEN_MODE, MF_CHECKED);
+	if (m_state.m_bWindowBorderless) ::CheckMenuItem(hMenuZoom, IDM_HIDE_TITLE_BAR, MF_CHECKED);
+	if (m_state.m_bAlwaysOnTop) ::CheckMenuItem(hMenuZoom, IDM_ALWAYS_ON_TOP, MF_CHECKED);
 	if (IsAdjustWindowToImage() && IsImageExactlyFittingWindow()) ::CheckMenuItem(hMenuZoom, IDM_FIT_WINDOW_TO_IMAGE, MF_CHECKED);
 	HMENU hMenuAutoZoomMode = ::GetSubMenu(hMenuTrackPopup, SUBMENU_POS_AUTOZOOMMODE);
 	::CheckMenuItem(hMenuAutoZoomMode, GetAutoZoomMode() * 10 + IDM_AUTO_ZOOM_FIT_NO_ZOOM, MF_CHECKED);
@@ -1190,21 +1190,21 @@ LRESULT CMainDlg::OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam,
 		::DeleteMenu(hMenuTrackPopup, SUBMENU_POS_USER_COMMANDS, MF_BYPOSITION);
 		::DeleteMenu(hMenuTrackPopup, SUBMENU_POS_USER_COMMANDS - 1, MF_BYPOSITION);
 	}
-	if (!m_bFullScreenMode) {
+	if (!m_state.m_bFullScreenMode) {
 		// Transition effect and speed only available in full screen mode
 		::DeleteMenu(hMenuMovie, 9, MF_BYPOSITION);
 		::DeleteMenu(hMenuMovie, 9, MF_BYPOSITION);
 	} else {
-		::CheckMenuItem(hMenuMovie, m_eTransitionEffect + IDM_EFFECT_NONE, MF_CHECKED);
-		int nIndex = (m_nTransitionTime < 180) ? 0 : (m_nTransitionTime < 375) ? 1 : (m_nTransitionTime < 750) ? 2 : (m_nTransitionTime < 1500) ? 3 : 4;
+		::CheckMenuItem(hMenuMovie, m_state.m_eTransitionEffect + IDM_EFFECT_NONE, MF_CHECKED);
+		int nIndex = (m_state.m_nTransitionTime < 180) ? 0 : (m_state.m_nTransitionTime < 375) ? 1 : (m_state.m_nTransitionTime < 750) ? 2 : (m_state.m_nTransitionTime < 1500) ? 3 : 4;
 		::CheckMenuItem(hMenuMovie, nIndex + IDM_EFFECTTIME_VERY_FAST, MF_CHECKED);
 	}
 
 	if (CParameterDB::This().IsEmpty()) ::EnableMenuItem(hMenuSettings, IDM_BACKUP_PARAMDB, MF_BYCOMMAND | MF_GRAYED);
 	if (CSettingsProvider::This().StoreToEXEPath()) ::EnableMenuItem(hMenuSettings, IDM_UPDATE_USER_CONFIG, MF_BYCOMMAND | MF_GRAYED);
-	if (m_bFullScreenMode) ::EnableMenuItem(hMenuZoom, IDM_FIT_WINDOW_TO_IMAGE, MF_BYCOMMAND | MF_GRAYED);
-	if (!m_bFullScreenMode) ::EnableMenuItem(hMenuZoom, IDM_SPAN_SCREENS, MF_BYCOMMAND | MF_GRAYED);
-	if (m_bFullScreenMode) ::EnableMenuItem(hMenuZoom, IDM_HIDE_TITLE_BAR, MF_BYCOMMAND | MF_GRAYED);
+	if (m_state.m_bFullScreenMode) ::EnableMenuItem(hMenuZoom, IDM_FIT_WINDOW_TO_IMAGE, MF_BYCOMMAND | MF_GRAYED);
+	if (!m_state.m_bFullScreenMode) ::EnableMenuItem(hMenuZoom, IDM_SPAN_SCREENS, MF_BYCOMMAND | MF_GRAYED);
+	if (m_state.m_bFullScreenMode) ::EnableMenuItem(hMenuZoom, IDM_HIDE_TITLE_BAR, MF_BYCOMMAND | MF_GRAYED);
 
 	::EnableMenuItem(hMenuMovie, IDM_SLIDESHOW_START, MF_BYCOMMAND | MF_GRAYED);
 	::EnableMenuItem(hMenuMovie, IDM_MOVIE_START_FPS, MF_BYCOMMAND | MF_GRAYED);
@@ -1235,10 +1235,10 @@ LRESULT CMainDlg::OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam,
 		::EnableMenuItem(hMenuTrackPopup, SUBMENU_POS_TRANSFORM, MF_BYPOSITION  | MF_GRAYED);
 		::EnableMenuItem(hMenuTrackPopup, SUBMENU_POS_WALLPAPER, MF_BYPOSITION | MF_GRAYED);
 	} else {
-		if (m_bKeepParams || m_pCurrentImage->IsClipboardImage() ||
+		if (m_state.m_bKeepParams || m_pCurrentImage->IsClipboardImage() ||
 			CParameterDB::This().FindEntry(m_pCurrentImage->GetPixelHash()) == NULL)
 			::EnableMenuItem(hMenuTrackPopup, IDM_CLEAR_PARAM_DB, MF_BYCOMMAND | MF_GRAYED);
-		if (m_bKeepParams || m_pCurrentImage->IsClipboardImage())
+		if (m_state.m_bKeepParams || m_pCurrentImage->IsClipboardImage())
 			::EnableMenuItem(hMenuTrackPopup, IDM_SAVE_PARAM_DB, MF_BYCOMMAND | MF_GRAYED);
 		if (m_pCurrentImage->IsClipboardImage()) {
 			::EnableMenuItem(hMenuTrackPopup, IDM_EXPLORE, MF_BYCOMMAND | MF_GRAYED);  // cannot explore clipboard image
@@ -1259,7 +1259,7 @@ LRESULT CMainDlg::OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam,
 	if (!HelpersGUI::CreateOpenWithCommandsMenu(hMenuOpenWithCommands) || m_pCurrentImage == NULL) {
 		::DeleteMenu(hMenuTrackPopup, SUBMENU_POS_OPENWITH, MF_BYPOSITION);
 	}
-	if (m_bMovieMode) {
+	if (m_state.m_bMovieMode) {
 		::EnableMenuItem(hMenuTrackPopup, IDM_SAVE, MF_BYCOMMAND | MF_GRAYED);
 		::EnableMenuItem(hMenuTrackPopup, IDM_RELOAD, MF_BYCOMMAND | MF_GRAYED);
 		::EnableMenuItem(hMenuTrackPopup, IDM_PRINT, MF_BYCOMMAND | MF_GRAYED);
@@ -1308,14 +1308,22 @@ LRESULT CMainDlg::OnCancel(WORD /*wNotifyCode*/, WORD wID, HWND /*hWndCtl*/, BOO
 // Static helpers for being called from UI controls
 ///////////////////////////////////////////////////////////////////////////////////
 
-void CMainDlg::OnExecuteCommand(void* pContext, int nParameter, CButtonCtrl & sender) {
+void OnExecuteCommand(void* pContext, int nParameter, CButtonCtrl & sender) {
 	((CMainDlg*)pContext)->ExecuteCommand(nParameter);
 }
 
-bool CMainDlg::IsCurrentImageFitToScreen(void* pContext) {
+bool IsCurrentImageFitToScreen(void* pContext) {
 	CMainDlg* pThis = (CMainDlg*)pContext;
-	return fabs(pThis->m_dZoom - pThis->GetZoomFactorForFitToScreen(false, true)) <= 0.01;
+	return fabs(pThis->m_state.m_dZoom - pThis->GetZoomFactorForFitToScreen(false, true)) <= 0.01;
 }
+
+void CMainDlg::Invalidate(BOOL bErase) { ::InvalidateRect(m_hWnd, NULL, bErase); }
+void CMainDlg::InvalidateRect(LPCRECT lpRect, BOOL bErase) { ::InvalidateRect(m_hWnd, lpRect, bErase); }
+HDC CMainDlg::GetDC() { return ::GetDC(m_hWnd); }
+int CMainDlg::ReleaseDC(HDC hDC) { return ::ReleaseDC(m_hWnd, hDC); }
+BOOL CMainDlg::ScreenToClient(LPPOINT lpPoint) { return ::ScreenToClient(m_hWnd, lpPoint); }
+BOOL CMainDlg::ClientToScreen(LPPOINT lpPoint) { return ::ClientToScreen(m_hWnd, lpPoint); }
+BOOL CMainDlg::UpdateWindow() { return ::UpdateWindow(m_hWnd); }
 
 ///////////////////////////////////////////////////////////////////////////////////
 // Private
@@ -1392,7 +1400,7 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 		case IDM_PRINT:
 			if (m_pCurrentImage != NULL) {
 				StopAnimation(); // stop any running animation
-				if (m_pPrintImage->Print(this->m_hWnd, m_pCurrentImage, *m_pImageProcParams, CreateDefaultProcessingFlags(), m_pFileList->Current())) {
+				if (m_pPrintImage->Print(this->m_hWnd, m_pCurrentImage, *m_state.m_pImageProcParams, CreateDefaultProcessingFlags(), m_pFileList->Current())) {
 					this->Invalidate(FALSE);
 				}
 			}
@@ -1404,7 +1412,7 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 			break;
 		case IDM_COPY_FULL:
 			if (m_pCurrentImage != NULL) {
-				CClipboard::CopyFullImageToClipboard(this->m_hWnd, m_pCurrentImage, *m_pImageProcParams, CreateDefaultProcessingFlags(), m_pFileList->Current());
+				CClipboard::CopyFullImageToClipboard(this->m_hWnd, m_pCurrentImage, *m_state.m_pImageProcParams, CreateDefaultProcessingFlags(), m_pFileList->Current());
 				this->Invalidate(FALSE);
 			}
 			break;
@@ -1456,7 +1464,7 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 			m_pNavPanelCtl->GetNavPanel()->GetBtnShowInfo()->SetActive(m_pEXIFDisplayCtl->IsActive());
 			break;
 		case IDM_SHOW_FILENAME:
-			m_bShowFileName = !m_bShowFileName;
+			m_state.m_bShowFileName = !m_state.m_bShowFileName;
 			this->Invalidate(FALSE);
 			break;
 		case IDM_SHOW_NAVPANEL:
@@ -1492,14 +1500,14 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 				(nCommand == IDM_SORT_MOD_DATE) ? Helpers::FS_LastModTime : 
 				(nCommand == IDM_SORT_RANDOM) ? Helpers::FS_Random : 
 				(nCommand == IDM_SORT_SIZE) ? Helpers::FS_FileSize : Helpers::FS_FileName, m_pFileList->IsSortedAscending());
-			if (m_pEXIFDisplayCtl->IsActive() || m_bShowFileName) {
+			if (m_pEXIFDisplayCtl->IsActive() || m_state.m_bShowFileName) {
 				this->Invalidate(FALSE);
 			}
 			break;
 		case IDM_SORT_ASCENDING:
 		case IDM_SORT_DESCENDING:
 			m_pFileList->SetSorting(m_pFileList->GetSorting(), nCommand == IDM_SORT_ASCENDING);
-			if (m_pEXIFDisplayCtl->IsActive() || m_bShowFileName) {
+			if (m_pEXIFDisplayCtl->IsActive() || m_state.m_bShowFileName) {
 				this->Invalidate(FALSE);
 			}
 			break;
@@ -1507,7 +1515,7 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 			StopMovieMode();
 			break;
 		case IDM_SLIDESHOW_RESUME:
-			StartMovieMode(m_dMovieFPS);
+			StartMovieMode(m_state.m_dMovieFPS);
 			break;
 		case IDM_SLIDESHOW_1:
 		case IDM_SLIDESHOW_2:
@@ -1533,14 +1541,14 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 		case IDM_EFFECT_SCROLL_LR:
 		case IDM_EFFECT_SCROLL_TB:
 		case IDM_EFFECT_SCROLL_BT:
-			m_eTransitionEffect = (Helpers::ETransitionEffect)(nCommand - IDM_EFFECT_NONE);
+			m_state.m_eTransitionEffect = (Helpers::ETransitionEffect)(nCommand - IDM_EFFECT_NONE);
 			break;
 		case IDM_EFFECTTIME_VERY_FAST:
 		case IDM_EFFECTTIME_FAST:
 		case IDM_EFFECTTIME_NORMAL:
 		case IDM_EFFECTTIME_SLOW:
 		case IDM_EFFECTTIME_VERY_SLOW:
-			m_nTransitionTime = 125 * (1 << (nCommand - IDM_EFFECTTIME_VERY_FAST));
+			m_state.m_nTransitionTime = 125 * (1 << (nCommand - IDM_EFFECTTIME_VERY_FAST));
 			break;
 		case IDM_MOVIE_5_FPS:
 		case IDM_MOVIE_10_FPS:
@@ -1551,37 +1559,37 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 			StartMovieMode(nCommand - IDM_MOVIE_START_FPS);
 			break;
 		case IDM_SAVE_PARAM_DB:
-			if (m_pCurrentImage != NULL && !m_bMovieMode && !m_bKeepParams) {
+			if (m_pCurrentImage != NULL && !m_state.m_bMovieMode && !m_state.m_bKeepParams) {
 				CParameterDBEntry newEntry;
-				EProcessingFlags procFlags = CreateProcessingFlags(m_bHQResampling, m_bAutoContrast, false, m_bLDC, false, m_bLandscapeMode);
-				newEntry.InitFromProcessParams(*m_pImageProcParams, procFlags, m_pCurrentImage->IsAnimation() ? CRotationParams(m_nRotation) : CRotationParams(m_pCurrentImage->GetRotationParams(), m_nRotation));
-				if ((m_bUserZoom || m_bUserPan) && !m_pCurrentImage->IsCropped()) {
-					newEntry.InitGeometricParams(m_pCurrentImage->OrigSize(), m_dZoom, m_offsets, 
-						m_bAutoFitWndToImage ? CMultiMonitorSupport::GetMonitorRect(m_hWnd).Size() : m_clientRect.Size(), m_bAutoFitWndToImage);
+				EProcessingFlags procFlags = CreateProcessingFlags(m_state.m_bHQResampling, m_state.m_bAutoContrast, false, m_state.m_bLDC, false, m_state.m_bLandscapeMode);
+				newEntry.InitFromProcessParams(*m_state.m_pImageProcParams, procFlags, m_pCurrentImage->IsAnimation() ? CRotationParams(m_state.m_nRotation) : CRotationParams(m_pCurrentImage->GetRotationParams(), m_state.m_nRotation));
+				if ((m_state.m_bUserZoom || m_state.m_bUserPan) && !m_pCurrentImage->IsCropped()) {
+					newEntry.InitGeometricParams(m_pCurrentImage->OrigSize(), m_state.m_dZoom, m_state.m_offsets, 
+						m_state.m_bAutoFitWndToImage ? CMultiMonitorSupport::GetMonitorRect(m_hWnd).Size() : m_state.m_clientRect.Size(), m_state.m_bAutoFitWndToImage);
 				}
 				newEntry.SetHash(m_pCurrentImage->GetPixelHash());
 				if (CParameterDB::This().AddEntry(newEntry)) {
 					// these parameters need to be updated when image is reused from cache
-					m_pCurrentImage->SetInitialParameters(*m_pImageProcParams, procFlags, m_nRotation, m_dZoom, m_offsets);
+					m_pCurrentImage->SetInitialParameters(*m_state.m_pImageProcParams, procFlags, m_state.m_nRotation, m_state.m_dZoom, m_state.m_offsets);
 					m_pCurrentImage->SetIsInParamDB(true);
 					m_pImageProcPanelCtl->ShowHideSaveDBButtons();
 				}
 			}
 			break;
 		case IDM_CLEAR_PARAM_DB:
-			if (m_pCurrentImage != NULL && !m_bMovieMode && !m_bKeepParams) {
+			if (m_pCurrentImage != NULL && !m_state.m_bMovieMode && !m_state.m_bKeepParams) {
 				if (CParameterDB::This().DeleteEntry(m_pCurrentImage->GetPixelHash())) {
 					// restore initial parameters and realize the parameters
-					EProcessingFlags procFlags = GetDefaultProcessingFlags(m_bLandscapeMode);
+					EProcessingFlags procFlags = GetDefaultProcessingFlags(m_state.m_bLandscapeMode);
 					m_pCurrentImage->RestoreInitialParameters(m_pFileList->Current(), 
 						GetDefaultProcessingParams(), procFlags, 0, -1, CPoint(0, 0), CSize(0, 0), CSize(0, 0));
-					*m_pImageProcParams = GetDefaultProcessingParams();
+					*m_state.m_pImageProcParams = GetDefaultProcessingParams();
 					// Sunset and night shot detection may has changed this
-					m_pImageProcParams->LightenShadows = m_pCurrentImage->GetInitialProcessParams().LightenShadows;
-					InitFromProcessingFlags(procFlags, m_bHQResampling, m_bAutoContrast, m_bAutoContrastSection, m_bLDC, m_bLandscapeMode);
-					m_nRotation = m_pCurrentImage->GetInitialRotation();
-					m_nUserRotation = 0;
-					m_dZoom = -1;
+					m_state.m_pImageProcParams->LightenShadows = m_pCurrentImage->GetInitialProcessParams().LightenShadows;
+					InitFromProcessingFlags(procFlags, m_state.m_bHQResampling, m_state.m_bAutoContrast, m_state.m_bAutoContrastSection, m_state.m_bLDC, m_state.m_bLandscapeMode);
+					m_state.m_nRotation = m_pCurrentImage->GetInitialRotation();
+					m_state.m_nUserRotation = 0;
+					m_state.m_dZoom = -1;
 					m_pCurrentImage->SetIsInParamDB(false);
 					m_pImageProcPanelCtl->ShowHideSaveDBButtons();
 					if (fabs(m_pCurrentImage->GetRotationParams().FreeRotation) > 0.009) {
@@ -1595,12 +1603,12 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 		case IDM_ROTATE_270:
 			if (m_pCurrentImage != NULL) {
 				uint32 nRotationDelta = (nCommand == IDM_ROTATE_90) ? 90 : 270;
-				m_nRotation = (m_nRotation + nRotationDelta) % 360;
-				m_nUserRotation = (m_nUserRotation + nRotationDelta) % 360;
+				m_state.m_nRotation = (m_state.m_nRotation + nRotationDelta) % 360;
+				m_state.m_nUserRotation = (m_state.m_nUserRotation + nRotationDelta) % 360;
 				m_pCurrentImage->Rotate(nRotationDelta);
-				if (!IsAdjustWindowToImage()) m_dZoom = -1;
-				m_bUserZoom = false;
-				m_bUserPan = false;
+				if (!IsAdjustWindowToImage()) m_state.m_dZoom = -1;
+				m_state.m_bUserZoom = false;
+				m_state.m_bUserPan = false;
 				AdjustWindowToImage(false);
 				this->Invalidate(FALSE);
 			}
@@ -1677,49 +1685,49 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 			}
 			break;
 		case IDM_AUTO_CORRECTION:
-			m_bAutoContrastSection = false;
-			m_bAutoContrast = !m_bAutoContrast;
+			m_state.m_bAutoContrastSection = false;
+			m_state.m_bAutoContrast = !m_state.m_bAutoContrast;
 			this->Invalidate(FALSE);
 			break;
 		case IDM_AUTO_CORRECTION_SECTION:
-			m_bAutoContrast = true;
-			m_bAutoContrastSection = !m_bAutoContrastSection;
+			m_state.m_bAutoContrast = true;
+			m_state.m_bAutoContrastSection = !m_state.m_bAutoContrastSection;
 			this->Invalidate(FALSE);
 			break;
 		case IDM_LDC:
-			m_bLDC = !m_bLDC;
+			m_state.m_bLDC = !m_state.m_bLDC;
 			this->Invalidate(FALSE);
 			break;
 		case IDM_LANDSCAPE_MODE:
-			m_bLandscapeMode = !m_bLandscapeMode;
-			m_pNavPanelCtl->GetNavPanel()->GetBtnLandscapeMode()->SetActive(m_bLandscapeMode);
-			if (m_bLandscapeMode) {
-				*m_pImageProcParams = _SetLandscapeModeParams(true, *m_pImageProcParams);
+			m_state.m_bLandscapeMode = !m_state.m_bLandscapeMode;
+			m_pNavPanelCtl->GetNavPanel()->GetBtnLandscapeMode()->SetActive(m_state.m_bLandscapeMode);
+			if (m_state.m_bLandscapeMode) {
+				*m_state.m_pImageProcParams = _SetLandscapeModeParams(true, *m_state.m_pImageProcParams);
 				if (m_pCurrentImage != NULL) {
-					m_pImageProcParams->LightenShadows *= m_pCurrentImage->GetLightenShadowFactor();
+					m_state.m_pImageProcParams->LightenShadows *= m_pCurrentImage->GetLightenShadowFactor();
 				}
-				m_bLDC = true;
-				m_bAutoContrast = true;
+				m_state.m_bLDC = true;
+				m_state.m_bAutoContrast = true;
 			} else {
 				EProcessingFlags eProcFlags = GetDefaultProcessingFlags(false);
 				CImageProcessingParams ipa = GetDefaultProcessingParams();
 				if (m_pCurrentImage != NULL) {
 					m_pCurrentImage->GetFileParams(m_pFileList->Current(), eProcFlags, ipa);
 				}
-				m_bLDC = GetProcessingFlag(eProcFlags, PFLAG_LDC);
-				m_bAutoContrast = GetProcessingFlag(eProcFlags, PFLAG_AutoContrast);
-				*m_pImageProcParams = ipa;
+				m_state.m_bLDC = GetProcessingFlag(eProcFlags, PFLAG_LDC);
+				m_state.m_bAutoContrast = GetProcessingFlag(eProcFlags, PFLAG_AutoContrast);
+				*m_state.m_pImageProcParams = ipa;
 			}
 			this->Invalidate(FALSE);
 			break;
 		case IDM_KEEP_PARAMETERS:
-			m_bKeepParams = !m_bKeepParams;
-			m_pNavPanelCtl->GetNavPanel()->GetBtnKeepParams()->SetActive(m_bKeepParams);
-			if (m_bKeepParams) {
-				*m_pImageProcParamsKept = *m_pImageProcParams;
-				m_eProcessingFlagsKept = CreateProcessingFlags(m_bHQResampling, m_bAutoContrast, false, m_bLDC, m_bKeepParams, m_bLandscapeMode);
-				m_dZoomKept = (m_bUserZoom || IsAdjustWindowToImage()) ? m_dZoom : -1;
-				m_offsetKept = m_bUserPan ? m_offsets : CPoint(0, 0);
+			m_state.m_bKeepParams = !m_state.m_bKeepParams;
+			m_pNavPanelCtl->GetNavPanel()->GetBtnKeepParams()->SetActive(m_state.m_bKeepParams);
+			if (m_state.m_bKeepParams) {
+				*m_state.m_pImageProcParamsKept = *m_state.m_pImageProcParams;
+				m_state.m_eProcessingFlagsKept = CreateProcessingFlags(m_state.m_bHQResampling, m_state.m_bAutoContrast, false, m_state.m_bLDC, m_state.m_bKeepParams, m_state.m_bLandscapeMode);
+				m_state.m_dZoomKept = (m_state.m_bUserZoom || IsAdjustWindowToImage()) ? m_state.m_dZoom : -1;
+				m_state.m_offsetKept = m_state.m_bUserPan ? m_state.m_offsets : CPoint(0, 0);
 			}
 			m_pImageProcPanelCtl->ShowHideSaveDBButtons();
 			break;
@@ -1735,31 +1743,31 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 			break;
 		case IDM_TOGGLE_FIT_TO_SCREEN_100_PERCENTS:
 		case IDM_TOGGLE_FILL_WITH_CROP_100_PERCENTS:
-			if (fabs(m_dZoom - 1) < 0.01) {
+			if (fabs(m_state.m_dZoom - 1) < 0.01) {
 				ResetZoomToFitScreen(nCommand == IDM_TOGGLE_FILL_WITH_CROP_100_PERCENTS, true, true);
 			} else {
-				ResetZoomTo100Percents(m_bMouseOn);
+				ResetZoomTo100Percents(m_state.m_bMouseOn);
 			}
 			break;
 		case IDM_SPAN_SCREENS:
-			if (m_bFullScreenMode && CMultiMonitorSupport::IsMultiMonitorSystem()) {
-				m_dZoom = -1.0;
+			if (m_state.m_bFullScreenMode && CMultiMonitorSupport::IsMultiMonitorSystem()) {
+				m_state.m_dZoom = -1.0;
 				this->Invalidate(FALSE);
-				if (m_bSpanVirtualDesktop) {
-					this->SetWindowPlacement(&m_storedWindowPlacement);
+				if (m_state.m_bSpanVirtualDesktop) {
+					this->SetWindowPlacement(&m_state.m_storedWindowPlacement);
 				} else {
-					this->GetWindowPlacement(&m_storedWindowPlacement);
+					this->GetWindowPlacement(&m_state.m_storedWindowPlacement);
 					CRect rectAllScreens = CMultiMonitorSupport::GetVirtualDesktop();
 					this->SetWindowPos(HWND_TOP, &rectAllScreens, SWP_NOZORDER);
 				}
-				m_bSpanVirtualDesktop = !m_bSpanVirtualDesktop;
-				this->GetClientRect(&m_clientRect);
+				m_state.m_bSpanVirtualDesktop = !m_state.m_bSpanVirtualDesktop;
+				this->GetClientRect(&m_state.m_clientRect);
 			}
 			break;
 		case IDM_FULL_SCREEN_MODE:
-			m_bFullScreenMode = !m_bFullScreenMode;
-			m_dZoomAtResizeStart = 1.0;
-			if (!m_bFullScreenMode) {
+			m_state.m_bFullScreenMode = !m_state.m_bFullScreenMode;
+			m_state.m_dZoomAtResizeStart = 1.0;
+			if (!m_state.m_bFullScreenMode) {
 				CRect windowRect;
 
 				// restore hidden title bar if enabled
@@ -1776,10 +1784,10 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 						m_hWnd,
 						CSize(MIN_WND_WIDTH, MIN_WND_HEIGHT),
 						defaultWindowRect.Size(),
-						dZoom, m_pCurrentImage, false, true, m_bWindowBorderless);
+						dZoom, m_pCurrentImage, false, true, m_state.m_bWindowBorderless);
 				this->SetWindowPos(HWND_TOP, windowRect.left, windowRect.top, windowRect.Width(), windowRect.Height(), SWP_NOZORDER | SWP_NOCOPYBITS);
 				this->MouseOn();
-				m_bSpanVirtualDesktop = false;
+				m_state.m_bSpanVirtualDesktop = false;
 			} else {
 				if (!IsZoomed() && sp.ExplicitWindowRect()) {
 					// Save the old window rect to be able to restore it
@@ -1797,22 +1805,22 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 				}
 				this->MouseOn();
 			}
-			m_dZoom = -1;
+			m_state.m_dZoom = -1;
 			StartLowQTimer(ZOOM_TIMEOUT);
 			this->SetWindowPos(NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOCOPYBITS | SWP_FRAMECHANGED);
 			break;
 		case IDM_HIDE_TITLE_BAR:
-			if (!m_bFullScreenMode) {
+			if (!m_state.m_bFullScreenMode) {
 				// only available when full screen mode is not active
 
-				m_bWindowBorderless = !m_bWindowBorderless;
+				m_state.m_bWindowBorderless = !m_state.m_bWindowBorderless;
 				SetCurrentWindowStyle();
 
 				// get the size of the border to shift the window pos downwards
 				int windowCaptionHeight = Helpers::GetWindowCaptionSize();
 				double dZoom = -1;
 				CRect windowRect = Helpers::GetWindowRectMatchingImageSize(
-					m_hWnd, CSize(MIN_WND_WIDTH, MIN_WND_HEIGHT), HUGE_SIZE, dZoom, m_pCurrentImage, false, true, m_bWindowBorderless);
+					m_hWnd, CSize(MIN_WND_WIDTH, MIN_WND_HEIGHT), HUGE_SIZE, dZoom, m_pCurrentImage, false, true, m_state.m_bWindowBorderless);
 
 				// don't try to adjust for an image that isn't loaded!
 				if (m_pCurrentImage != NULL)
@@ -1826,11 +1834,11 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 					// it causes the window to shift up one pixel at a time when going between borderless and not borderless repeatedly
 					// in other cases, it shifts downwards depending on rounding errors resizing the window and image... hard to hunt down but it's as good as it can get right now
 					if (windowCaptionHeight % 2 == 0) {
-						newTop = m_bWindowBorderless ?
+						newTop = m_state.m_bWindowBorderless ?
 							windowRect.top + (windowCaptionHeight / 2) :
 							windowRect.top - (windowCaptionHeight / 2);
 					} else {
-						newTop = m_bWindowBorderless ?
+						newTop = m_state.m_bWindowBorderless ?
 							windowRect.top + (windowCaptionHeight / 2) :
 							windowRect.top - (windowCaptionHeight / 2) + 1;
 					}
@@ -1839,7 +1847,7 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 					this->SetWindowPos(HWND_TOP, windowRect.left, newTop, windowRect.Width(), windowRect.Height(), SWP_NOZORDER | SWP_NOCOPYBITS | SWP_FRAMECHANGED);
 
 					// don't auto adjust unless auto is selected in options
-					if (IsAdjustWindowToImage() && !(m_bAutoFitWndToImage && !IsImageExactlyFittingWindow())) {
+					if (IsAdjustWindowToImage() && !(m_state.m_bAutoFitWndToImage && !IsImageExactlyFittingWindow())) {
 						AdjustWindowToImage(false);
 						this->Invalidate(FALSE);
 					}
@@ -1855,32 +1863,32 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 			break;
 		case IDM_FIT_WINDOW_TO_IMAGE:
 			// Note: If auto fit is on but the window size does not match the image size (due to manual window resizing), restore window to image
-			if (!(m_bAutoFitWndToImage && !IsImageExactlyFittingWindow()))
-				m_bAutoFitWndToImage = !m_bAutoFitWndToImage;
+			if (!(m_state.m_bAutoFitWndToImage && !IsImageExactlyFittingWindow()))
+				m_state.m_bAutoFitWndToImage = !m_state.m_bAutoFitWndToImage;
 			AdjustWindowToImage(false);
 			break;
 		case IDM_ZOOM_400:
-			PerformZoom(4.0, false, m_bMouseOn, true);
+			PerformZoom(4.0, false, m_state.m_bMouseOn, true);
 			break;
 		case IDM_ZOOM_200:
-			PerformZoom(2.0, false, m_bMouseOn, true);
+			PerformZoom(2.0, false, m_state.m_bMouseOn, true);
 			break;
 		case IDM_ZOOM_100:
-			ResetZoomTo100Percents(m_bMouseOn);
+			ResetZoomTo100Percents(m_state.m_bMouseOn);
 			break;
 		case IDM_ZOOM_50:
-			PerformZoom(0.5, false, m_bMouseOn, true);
+			PerformZoom(0.5, false, m_state.m_bMouseOn, true);
 			break;
 		case IDM_ZOOM_25:
-			PerformZoom(0.25, false, m_bMouseOn, true);
+			PerformZoom(0.25, false, m_state.m_bMouseOn, true);
 			break;
 		case IDM_ZOOM_INC:
 		case IDM_ZOOM_DEC:
-			PerformZoom((nCommand == IDM_ZOOM_INC) ? 1 : -1, true, m_bMouseOn, true);
+			PerformZoom((nCommand == IDM_ZOOM_INC) ? 1 : -1, true, m_state.m_bMouseOn, true);
 			break;
 		case IDM_ZOOM_MODE:
-			m_bZoomModeOnLeftMouse = !m_bZoomModeOnLeftMouse;
-			m_pNavPanelCtl->GetNavPanel()->GetBtnZoomMode()->SetActive(m_bZoomModeOnLeftMouse);
+			m_state.m_bZoomModeOnLeftMouse = !m_state.m_bZoomModeOnLeftMouse;
+			m_pNavPanelCtl->GetNavPanel()->GetBtnZoomMode()->SetActive(m_state.m_bZoomModeOnLeftMouse);
 			break;
 		case IDM_AUTO_ZOOM_FIT_NO_ZOOM:
 		case IDM_AUTO_ZOOM_FILL_NO_ZOOM:
@@ -1888,14 +1896,14 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 		case IDM_AUTO_ZOOM_FILL:
 			{
 				Helpers::EAutoZoomMode eAutoZoomMode = (Helpers::EAutoZoomMode)((nCommand - IDM_AUTO_ZOOM_FIT_NO_ZOOM) / 10);
-				if (m_eAutoZoomModeFullscreen == m_eAutoZoomModeWindowed)
-					m_eAutoZoomModeFullscreen = m_eAutoZoomModeWindowed = eAutoZoomMode;
-				else if (m_bFullScreenMode)
-					m_eAutoZoomModeFullscreen = eAutoZoomMode;
+				if (m_state.m_eAutoZoomModeFullscreen == m_state.m_eAutoZoomModeWindowed)
+					m_state.m_eAutoZoomModeFullscreen = m_state.m_eAutoZoomModeWindowed = eAutoZoomMode;
+				else if (m_state.m_bFullScreenMode)
+					m_state.m_eAutoZoomModeFullscreen = eAutoZoomMode;
 				else
-					m_eAutoZoomModeWindowed = eAutoZoomMode;
-				m_dZoom = -1.0;
-				m_offsets = CPoint(0, 0);
+					m_state.m_eAutoZoomModeWindowed = eAutoZoomMode;
+				m_state.m_dZoom = -1.0;
+				m_state.m_offsets = CPoint(0, 0);
 				this->Invalidate(FALSE);
 				AdjustWindowToImage(false);
 				break;
@@ -1938,12 +1946,12 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 			CleanupAndTerminate();
 			break;
 		case IDM_DEFAULT_ESC:
-			if (m_bMovieMode) {
+			if (m_state.m_bMovieMode) {
 				if (m_bAutoExit)
 					CleanupAndTerminate();
 				else
 					StopMovieMode(); // stop any running movie/slideshow
-			} else if (m_bIsAnimationPlaying) {
+			} else if (m_state.m_bIsAnimationPlaying) {
 				if (m_bAutoExit)
 					CleanupAndTerminate();
 				else
@@ -1968,7 +1976,7 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 			break;
 		case IDM_COPY_SEL:
 			if (m_pCurrentImage != NULL) {
-				CClipboard::CopyFullImageToClipboard(this->m_hWnd, m_pCurrentImage, *m_pImageProcParams, 
+				CClipboard::CopyFullImageToClipboard(this->m_hWnd, m_pCurrentImage, *m_state.m_pImageProcParams, 
 					CreateDefaultProcessingFlags(),
 					m_pCropCtl->GetImageCropRect(false), NULL);
 				this->Invalidate(FALSE);
@@ -2049,17 +2057,17 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 			break;
 		case IDM_CONTRAST_CORRECTION_INC:
 		case IDM_CONTRAST_CORRECTION_DEC:
-			if (m_bAutoContrast) {
+			if (m_state.m_bAutoContrast) {
 				double dInc = (nCommand == IDM_CONTRAST_CORRECTION_INC) ? 0.05 : -0.05;
-				m_pImageProcParams->ContrastCorrectionFactor = max(0.0, min(1.0, m_pImageProcParams->ContrastCorrectionFactor + dInc));
+				m_state.m_pImageProcParams->ContrastCorrectionFactor = max(0.0, min(1.0, m_state.m_pImageProcParams->ContrastCorrectionFactor + dInc));
 				this->Invalidate(FALSE);
 			}
 			break;
 		case IDM_COLOR_CORRECTION_INC:
 		case IDM_COLOR_CORRECTION_DEC:
-			if (m_bAutoContrast) {
+			if (m_state.m_bAutoContrast) {
 				double dInc = (nCommand == IDM_COLOR_CORRECTION_INC) ? 0.05 : -0.05;
-				m_pImageProcParams->ColorCorrectionFactor = max(-0.5, min(0.5, m_pImageProcParams->ColorCorrectionFactor + dInc));
+				m_state.m_pImageProcParams->ColorCorrectionFactor = max(-0.5, min(0.5, m_state.m_pImageProcParams->ColorCorrectionFactor + dInc));
 				this->Invalidate(FALSE);
 			}
 			break;
@@ -2079,7 +2087,7 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 				(nCommand == IDM_LDC_SHADOWS_INC || nCommand == IDM_LDC_HIGHLIGHTS_INC) ? LDC_INC : -LDC_INC);
 			break;
 		case IDM_TOGGLE_RESAMPLING_QUALITY:
-			m_bHQResampling = !m_bHQResampling;
+			m_state.m_bHQResampling = !m_state.m_bHQResampling;
 			this->Invalidate(FALSE);
 			break;
 		case IDM_TOGGLE_MONITOR:
@@ -2101,7 +2109,7 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 			break;
 		case IDM_CONTEXT_MENU:
 			BOOL bNotUsed;
-			OnContextMenu(0, 0, (m_nMouseX & 0xFFFF) | ((m_nMouseY & 0xFFFF) << 16), bNotUsed);
+			OnContextMenu(0, 0, (m_state.m_nMouseX & 0xFFFF) | ((m_state.m_nMouseY & 0xFFFF) << 16), bNotUsed);
 			break;
 		case IDM_SET_WALLPAPER_ORIG:
 			if (m_pFileList->Current() != NULL && m_pCurrentImage != NULL) {
@@ -2125,7 +2133,7 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 // Setting window styles have gotten out of hand with the addition of no title bar
 // instead of each call trying to figure out the logic, consolidate it to one function
 LONG CMainDlg::SetCurrentWindowStyle() {
-	if (!m_bWindowBorderless) {
+	if (!m_state.m_bWindowBorderless) {
 		return this->SetWindowLongW(GWL_STYLE, this->GetWindowLongW(GWL_STYLE) | WS_OVERLAPPEDWINDOW | WS_VISIBLE);
 	} else {
 		return this->SetWindowLongW(GWL_STYLE, this->GetWindowLongW(GWL_STYLE) & ~WS_OVERLAPPEDWINDOW | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_VISIBLE);  // lose resizing
@@ -2149,11 +2157,11 @@ bool CMainDlg::OpenFileWithDialog(bool bFullScreen, bool bAfterStartup) {
 	MouseOn();
 	CFileOpenDialog dlgOpen(this->m_hWnd, m_pFileList->Current(), CFileList::GetSupportedFileEndings(), bFullScreen);
 	if (IDOK == dlgOpen.DoModal(this->m_hWnd)) {
-		m_isBeforeFileSelected = false;
+		m_state.m_isBeforeFileSelected = false;
 		OpenFile(dlgOpen.m_szFileName, bAfterStartup);
 		return true;
 	}
-	m_isBeforeFileSelected = false;
+	m_state.m_isBeforeFileSelected = false;
 	return false;
 }
 
@@ -2171,7 +2179,7 @@ void CMainDlg::OpenFile(LPCTSTR sFileName, bool bAfterStartup) {
 	m_pJPEGProvider->NotifyNotUsed(m_pCurrentImage);
 	m_pJPEGProvider->ClearAllRequests();
 	m_pCurrentImage = m_pJPEGProvider->RequestImage(m_pFileList, CJPEGProvider::FORWARD,
-		m_pFileList->Current(), 0, CreateProcessParams(!m_bFullScreenMode && (bAfterStartup || IsAdjustWindowToImage())),
+		m_pFileList->Current(), 0, CreateProcessParams(!m_state.m_bFullScreenMode && (bAfterStartup || IsAdjustWindowToImage())),
 		m_bOutOfMemoryLastImage, m_bExceptionErrorLastImage);
 	m_nLastLoadError = GetLoadErrorAfterOpenFile();
 	if (bAfterStartup) CheckIfApplyAutoFitWndToImage(false);
@@ -2179,24 +2187,24 @@ void CMainDlg::OpenFile(LPCTSTR sFileName, bool bAfterStartup) {
 	if (m_pCurrentImage != NULL && m_pCurrentImage->IsAnimation()) {
 		StartAnimation();
 	}
-	m_startMouse.x = m_startMouse.y = -1;
-	m_sSaveDirectory = _T("");
+	m_state.m_startMouse.x = m_state.m_startMouse.y = -1;
+	m_state.m_sSaveDirectory = _T("");
 	MouseOff();
 	this->Invalidate(FALSE);
 }
 
 bool CMainDlg::SaveImage(bool bFullSize) {
-	if (m_bMovieMode) {
+	if (m_state.m_bMovieMode) {
 		return false;
 	}
 
 	MouseOn();
 
 	CString sCurrentFile;
-	if (m_sSaveDirectory.GetLength() == 0) {
+	if (m_state.m_sSaveDirectory.GetLength() == 0) {
 		sCurrentFile = CurrentFileName(false);
 	} else {
-		sCurrentFile = m_sSaveDirectory + CurrentFileName(true);
+		sCurrentFile = m_state.m_sSaveDirectory + CurrentFileName(true);
 	}
 	int nIndexPoint = sCurrentFile.ReverseFind(_T('.'));
 	if (nIndexPoint > 0) {
@@ -2204,7 +2212,7 @@ bool CMainDlg::SaveImage(bool bFullSize) {
 		sCurrentFile += _T("_proc");
 	}
 
-	CString sExtension = m_sSaveExtension;
+	CString sExtension = m_state.m_sSaveExtension;
 	if (sExtension.IsEmpty()) {
 		sExtension = CSettingsProvider::This().DefaultSaveFormat();
 	}
@@ -2220,7 +2228,7 @@ bool CMainDlg::SaveImage(bool bFullSize) {
 	} else if (sExtension.CompareNoCase(_T("tiff")) == 0 || sExtension.CompareNoCase(_T("tif")) == 0) {
 		fileDlg.m_ofn.nFilterIndex = 4;
 	} else if (sExtension.CompareNoCase(_T("webp")) == 0) {
-		fileDlg.m_ofn.nFilterIndex = m_bUseLosslessWEBP ? 6 : 5;
+		fileDlg.m_ofn.nFilterIndex = m_state.m_bUseLosslessWEBP ? 6 : 5;
 	} else if (sExtension.CompareNoCase(_T("qoi")) == 0) {
 		fileDlg.m_ofn.nFilterIndex = 7;
 	}
@@ -2228,17 +2236,17 @@ bool CMainDlg::SaveImage(bool bFullSize) {
 		fileDlg.m_ofn.lpstrTitle = CNLS::GetString(_T("Save as (in screen size/resolution)"));
 	}
 	if (IDOK == fileDlg.DoModal(m_hWnd)) {
-		m_sSaveDirectory = fileDlg.m_szFileName;
-		m_bUseLosslessWEBP = fileDlg.m_ofn.nFilterIndex == 6;
-		m_sSaveExtension = m_sSaveDirectory.Right(m_sSaveDirectory.GetLength() - m_sSaveDirectory.ReverseFind(_T('.')) - 1);
-		m_sSaveDirectory = m_sSaveDirectory.Left(m_sSaveDirectory.ReverseFind(_T('\\')) + 1);
+		m_state.m_sSaveDirectory = fileDlg.m_szFileName;
+		m_state.m_bUseLosslessWEBP = fileDlg.m_ofn.nFilterIndex == 6;
+		m_state.m_sSaveExtension = m_state.m_sSaveDirectory.Right(m_state.m_sSaveDirectory.GetLength() - m_state.m_sSaveDirectory.ReverseFind(_T('.')) - 1);
+		m_state.m_sSaveDirectory = m_state.m_sSaveDirectory.Left(m_state.m_sSaveDirectory.ReverseFind(_T('\\')) + 1);
 		return SaveImageNoPrompt(fileDlg.m_szFileName, bFullSize);
 	}
 	return false;
 }
 
 bool CMainDlg::SaveImageNoPrompt(LPCTSTR sFileName, bool bFullSize) {
-	if (m_bMovieMode) {
+	if (m_state.m_bMovieMode) {
 		return false;
 	}
 
@@ -2246,8 +2254,8 @@ bool CMainDlg::SaveImageNoPrompt(LPCTSTR sFileName, bool bFullSize) {
 
 	HCURSOR hOldCursor = ::SetCursor(::LoadCursor(NULL, IDC_WAIT));	
 
-	if (CSaveImage::SaveImage(sFileName, m_pCurrentImage, *m_pImageProcParams, 
-		CreateDefaultProcessingFlags(), bFullSize, m_bUseLosslessWEBP)) {
+	if (CSaveImage::SaveImage(sFileName, m_pCurrentImage, *m_state.m_pImageProcParams, 
+		CreateDefaultProcessingFlags(), bFullSize, m_state.m_bUseLosslessWEBP)) {
 		m_pFileList->Reload(); // maybe image is stored to current directory - needs reload
 		::SetCursor(hOldCursor);
 		Invalidate();
@@ -2261,7 +2269,7 @@ bool CMainDlg::SaveImageNoPrompt(LPCTSTR sFileName, bool bFullSize) {
 }
 
 void CMainDlg::BatchCopy() {
-	if (m_bMovieMode) {
+	if (m_state.m_bMovieMode) {
 		return;
 	}
 	MouseOn();
@@ -2272,7 +2280,7 @@ void CMainDlg::BatchCopy() {
 }
 
 void CMainDlg::SetAsDefaultViewer() {
-	if (m_bMovieMode) {
+	if (m_state.m_bMovieMode) {
 		return;
 	}
 	MouseOn();
@@ -2363,37 +2371,37 @@ void CMainDlg::ExecuteUserCommand(CUserCommand* pUserCommand) {
 }
 
 void CMainDlg::StartDragging(int nX, int nY, bool bDragWithZoomNavigator) {
-	m_startMouse.x = m_startMouse.y = -1;
-	m_bDragging = true;
+	m_state.m_startMouse.x = m_state.m_startMouse.y = -1;
+	m_state.m_bDragging = true;
 	if (bDragWithZoomNavigator) {
 		m_pZoomNavigatorCtl->StartDragging(nX, nY);
 	}
-	m_nCapturedX = nX;
-	m_nCapturedY = nY;
+	m_state.m_nCapturedX = nX;
+	m_state.m_nCapturedY = nY;
 	SetCursorForMoveSection();
 	m_pNavPanelCtl->StartNavPanelAnimation(true, true);
 }
 
 void CMainDlg::DoDragging() {
-	if (m_bDragging && m_pCurrentImage != NULL) {
-		int nXDelta = m_nMouseX - m_nCapturedX;
-		int nYDelta = m_nMouseY - m_nCapturedY;
-		if (!m_bDoDragging && (nXDelta != 0 || nYDelta != 0)) {
-			m_bDoDragging = true;
+	if (m_state.m_bDragging && m_pCurrentImage != NULL) {
+		int nXDelta = m_state.m_nMouseX - m_state.m_nCapturedX;
+		int nYDelta = m_state.m_nMouseY - m_state.m_nCapturedY;
+		if (!m_state.m_bDoDragging && (nXDelta != 0 || nYDelta != 0)) {
+			m_state.m_bDoDragging = true;
 		}
 		if (m_pZoomNavigatorCtl->IsDragging()) {
 			m_pZoomNavigatorCtl->DoDragging(nXDelta, nYDelta);
 		} else {
 			if (PerformPan(nXDelta, nYDelta, false)) {
-				m_nCapturedX = m_nMouseX;
-				m_nCapturedY = m_nMouseY;
+				m_state.m_nCapturedX = m_state.m_nMouseX;
+				m_state.m_nCapturedY = m_state.m_nMouseY;
 			}
 		}
 	}
 }
 
 void CMainDlg::EndDragging() {
-	if (!m_bDoDragging && !m_pZoomNavigatorCtl->IsPointInZoomNavigatorThumbnail(CPoint(m_nMouseX, m_nMouseY))) {
+	if (!m_state.m_bDoDragging && !m_pZoomNavigatorCtl->IsPointInZoomNavigatorThumbnail(CPoint(m_state.m_nMouseX, m_state.m_nMouseY))) {
 		if (!GetNavPanelCtl()->IsVisible()) {
 			MouseOn();
 			GetNavPanelCtl()->ShowNavPanelTemporary();
@@ -2401,13 +2409,13 @@ void CMainDlg::EndDragging() {
 			GetNavPanelCtl()->HideNavPanelTemporary();
 		}
 	}
-	m_bDragging = false;
-	m_bDoDragging = false;
+	m_state.m_bDragging = false;
+	m_state.m_bDoDragging = false;
 	m_pZoomNavigatorCtl->EndDragging();
 	if (m_pCurrentImage != NULL) {
 		m_pCurrentImage->VerifyDIBPixelsCreated();
 	}
-	if (m_DIBOffsets != CPoint(0, 0)) {
+	if (m_state.m_DIBOffsets != CPoint(0, 0)) {
 		Invalidate(FALSE);
 	} else {
 		this->InvalidateRect(m_pNavPanelCtl->PanelRect(), FALSE);
@@ -2422,8 +2430,8 @@ void CMainDlg::GotoImage(EImagePosition ePos) {
 void CMainDlg::GotoImage(EImagePosition ePos, int nFlags) {
 	// Timer handling for slideshows
 	if (ePos == POS_Next || ePos == POS_NextSlideShow) {
-		if (m_nCurrentTimeout > 0) {
-			StartSlideShowTimer(m_nCurrentTimeout);
+		if (m_state.m_nCurrentTimeout > 0) {
+			StartSlideShowTimer(m_state.m_nCurrentTimeout);
 		}
 		StopAnimation();
 	} else if (ePos != POS_NextAnimation) {
@@ -2492,7 +2500,7 @@ void CMainDlg::GotoImage(EImagePosition ePos, int nFlags) {
 	}
 
 	if (bCheckIfSameImage && (m_pFileList == pOldFileList && (nOldFrameIndex == nFrameIndex || bNoWrapAroundEdgeFrame) && !m_pFileList->ChangedSinceCheckpoint())) {
-		if (m_bMovieMode && m_bAutoExit) {
+		if (m_state.m_bMovieMode && m_bAutoExit) {
 			CleanupAndTerminate();
 		} else {
 			if (CSettingsProvider::This().FlashWindowAlert()) {
@@ -2514,8 +2522,8 @@ void CMainDlg::GotoImage(EImagePosition ePos, int nFlags) {
 	}
 
 	if (nFlags & KEEP_PARAMETERS) {
-		if (!(m_bUserZoom || IsAdjustWindowToImage())) {
-			m_dZoom = -1;
+		if (!(m_state.m_bUserZoom || IsAdjustWindowToImage())) {
+			m_state.m_dZoom = -1;
 		}
 	} else {
 		InitParametersForNewImage();
@@ -2555,7 +2563,7 @@ void CMainDlg::GotoImage(EImagePosition ePos, int nFlags) {
 
 	// if it is an animation (currently only animated GIF) start movie automatically
 	if (m_pCurrentImage != NULL && m_pCurrentImage->IsAnimation()) {
-		if (m_bIsAnimationPlaying) {
+		if (m_state.m_bIsAnimationPlaying) {
 			AdjustAnimationFrameTime();
 		} else {
 			StartAnimation();
@@ -2565,13 +2573,13 @@ void CMainDlg::GotoImage(EImagePosition ePos, int nFlags) {
 	// Sleep if a minimal display time is defined
 	double currentTime = Helpers::GetExactTickCount();
 	if (ePos == POS_Next || ePos == POS_Previous) {
-		double imageTime = currentTime - m_dLastImageDisplayTime;
+		double imageTime = currentTime - m_state.m_dLastImageDisplayTime;
 		if (minimalDisplayTime > 0 && (imageTime < minimalDisplayTime)) ::Sleep((int)(minimalDisplayTime - imageTime));
 	}
-	m_dLastImageDisplayTime = Helpers::GetExactTickCount();
+	m_state.m_dLastImageDisplayTime = Helpers::GetExactTickCount();
 
 	// Do that now when using a minimal display time, as it has been skipped in AfterNewImageLoaded() to avoid wrong display during the ::Sleep()
-	if (minimalDisplayTime > 0 && bSynchronize && !m_bIsAnimationPlaying) {
+	if (minimalDisplayTime > 0 && bSynchronize && !m_state.m_bIsAnimationPlaying) {
 		AdjustWindowToImage(false);
 	}
 
@@ -2590,58 +2598,58 @@ void CMainDlg::GotoImage(EImagePosition ePos, int nFlags) {
 
 void CMainDlg::ReloadImage(bool keepParameters, bool updateWindow) {
 	int flags = keepParameters ? KEEP_PARAMETERS : 0;
-	GotoImage(CMainDlg::POS_Current, updateWindow ? flags : flags | NO_UPDATE_WINDOW);
+	GotoImage(POS_Current, updateWindow ? flags : flags | NO_UPDATE_WINDOW);
 }
 
 void CMainDlg::AdjustLDC(int nMode, double dInc) {
 	if (nMode == BRIGHTEN_SHADOWS) {
-		m_pImageProcParams->LightenShadows = min(1.0, max(0.0, m_pImageProcParams->LightenShadows + dInc));
+		m_state.m_pImageProcParams->LightenShadows = min(1.0, max(0.0, m_state.m_pImageProcParams->LightenShadows + dInc));
 	} else {
-		m_pImageProcParams->DarkenHighlights = min(1.0, max(0.0, m_pImageProcParams->DarkenHighlights + dInc));
+		m_state.m_pImageProcParams->DarkenHighlights = min(1.0, max(0.0, m_state.m_pImageProcParams->DarkenHighlights + dInc));
 	}
 	this->Invalidate(FALSE);
 }
 
 void CMainDlg::AdjustGamma(double dFactor) {
-	m_pImageProcParams->Gamma *= dFactor;
-	m_pImageProcParams->Gamma = min(2.0, max(0.5, m_pImageProcParams->Gamma));
+	m_state.m_pImageProcParams->Gamma *= dFactor;
+	m_state.m_pImageProcParams->Gamma = min(2.0, max(0.5, m_state.m_pImageProcParams->Gamma));
 	this->Invalidate(FALSE);
 }
 
 void CMainDlg::AdjustContrast(double dInc) {
-	m_pImageProcParams->Contrast += dInc;
-	m_pImageProcParams->Contrast = min(0.5, max(-0.5, m_pImageProcParams->Contrast));
+	m_state.m_pImageProcParams->Contrast += dInc;
+	m_state.m_pImageProcParams->Contrast = min(0.5, max(-0.5, m_state.m_pImageProcParams->Contrast));
 	this->Invalidate(FALSE);
 }
 
 void CMainDlg::AdjustSharpen(double dInc) {
-	m_pImageProcParams->Sharpen += dInc;
-	m_pImageProcParams->Sharpen = min(0.5, max(0.0, m_pImageProcParams->Sharpen));
+	m_state.m_pImageProcParams->Sharpen += dInc;
+	m_state.m_pImageProcParams->Sharpen = min(0.5, max(0.0, m_state.m_pImageProcParams->Sharpen));
 	this->Invalidate(FALSE);
 }
 
 // returns true on success, false if nothing was done
 bool CMainDlg::PerformZoom(double dValue, bool bExponent, bool bZoomToMouse, bool bAdjustWindowToImage) {
-	double dOldZoom = m_dZoom;
-	m_bUserZoom = true;
-	m_isUserFitToScreen = false;
+	double dOldZoom = m_state.m_dZoom;
+	m_state.m_bUserZoom = true;
+	m_state.m_isUserFitToScreen = false;
 	if (bExponent) {
-		m_dZoom = m_dZoom * pow(m_dZoomMult, dValue);
+		m_state.m_dZoom = m_state.m_dZoom * pow(m_state.m_dZoomMult, dValue);
 	} else {
-		m_dZoom = dValue;
+		m_state.m_dZoom = dValue;
 	}
 
 	if (m_pCurrentImage == NULL) {
-		m_dZoom = max(Helpers::ZoomMin, min(Helpers::ZoomMax, m_dZoom));
+		m_state.m_dZoom = max(Helpers::ZoomMin, min(Helpers::ZoomMax, m_state.m_dZoom));
 		return true;
 	}
 
 	double dZoomMin = max(0.0001, min(Helpers::ZoomMin, GetZoomFactorForFitToScreen(false, false) * 0.5));
-	m_dZoom = max(dZoomMin, min(Helpers::ZoomMax, m_dZoom));
+	m_state.m_dZoom = max(dZoomMin, min(Helpers::ZoomMax, m_state.m_dZoom));
 
 	// always try to snap to 100%... aka if within 1% of 100%, snap exactly to it
-	if (abs(m_dZoom - 1.0) < 0.01) {
-		m_dZoom = 1.0;
+	if (abs(m_state.m_dZoom - 1.0) < 0.01) {
+		m_state.m_dZoom = 1.0;
 	}
 
 	// only pause on some percent if enabled
@@ -2649,30 +2657,30 @@ bool CMainDlg::PerformZoom(double dValue, bool bExponent, bool bZoomToMouse, boo
 	if (pauseAtZoom != 0) {
 		// snap to zoom factor... aka if within 1% of the set zoom factor, snap exactly to it
 		// skip it if the zoom factor is 100% since it's already checked above - save one expensive calculation of abs()
-		if (pauseAtZoom != 1 && abs(m_dZoom - pauseAtZoom) < 0.01) {
-			m_dZoom = pauseAtZoom;
+		if (pauseAtZoom != 1 && abs(m_state.m_dZoom - pauseAtZoom) < 0.01) {
+			m_state.m_dZoom = pauseAtZoom;
 		}
 
-		if ((dOldZoom - pauseAtZoom) * (m_dZoom - pauseAtZoom) <= 0 && m_bInZooming && !m_bZoomMode) {
+		if ((dOldZoom - pauseAtZoom) * (m_state.m_dZoom - pauseAtZoom) <= 0 && m_state.m_bInZooming && !m_state.m_bZoomMode) {
 			// make a stop at 100 % (or whatever % is configured)
-			m_dZoom = pauseAtZoom;
+			m_state.m_dZoom = pauseAtZoom;
 		}
 	}
 
 	// Never create images more than 65535 pixels wide or high - the basic processing cannot handle it
 	int nOldXSize = (int)(m_pCurrentImage->OrigWidth() * dOldZoom + 0.5);
 	int nOldYSize = (int)(m_pCurrentImage->OrigHeight() * dOldZoom + 0.5);
-	int nNewXSize = (int)(m_pCurrentImage->OrigWidth() * m_dZoom + 0.5);
-	int nNewYSize = (int)(m_pCurrentImage->OrigHeight() * m_dZoom + 0.5);
+	int nNewXSize = (int)(m_pCurrentImage->OrigWidth() * m_state.m_dZoom + 0.5);
+	int nNewYSize = (int)(m_pCurrentImage->OrigHeight() * m_state.m_dZoom + 0.5);
 	if (nNewXSize > 65535 || nNewYSize > 65535) {
 		double dFac = 65535.0/max(nNewXSize, nNewYSize);
-		m_dZoom = m_dZoom*dFac;
-		nNewXSize = (int)(m_pCurrentImage->OrigWidth() * m_dZoom + 0.5);
-		nNewYSize = (int)(m_pCurrentImage->OrigHeight() * m_dZoom + 0.5);
+		m_state.m_dZoom = m_state.m_dZoom*dFac;
+		nNewXSize = (int)(m_pCurrentImage->OrigWidth() * m_state.m_dZoom + 0.5);
+		nNewYSize = (int)(m_pCurrentImage->OrigHeight() * m_state.m_dZoom + 0.5);
 	}
 
 #ifdef DEBUG
-	CString a; a.Format(_T("dZoom dOldZoom: %f %f\n"), m_dZoom, dOldZoom);
+	CString a; a.Format(_T("dZoom dOldZoom: %f %f\n"), m_state.m_dZoom, dOldZoom);
 	::OutputDebugString(a);
 #endif
 
@@ -2689,7 +2697,7 @@ bool CMainDlg::PerformZoom(double dValue, bool bExponent, bool bZoomToMouse, boo
 		if (bExponent && dValue < 0) {
 			// zooming out
 			// NOTE: this gets triggered on pauseAtZoom
-			m_dZoom = dOldZoom;  // restore previous zoom value
+			m_state.m_dZoom = dOldZoom;  // restore previous zoom value
 		}
 		// zooming in does not require restoring the previous zoom value
 		// because the code which checks the 65535 will re-scale the zoom factor to ensure it never exceeds 65535
@@ -2700,22 +2708,22 @@ bool CMainDlg::PerformZoom(double dValue, bool bExponent, bool bZoomToMouse, boo
 
 	if (bZoomToMouse) {
 		// zoom to mouse
-		int nCenterX = m_bZoomMode ? m_nCapturedX : m_nMouseX;
-		int nCenterY = m_bZoomMode ? m_nCapturedY : m_nMouseY;
-		int nOldX = nOldXSize/2 - m_clientRect.Width()/2 + nCenterX - m_offsets.x;
-		int nOldY = nOldYSize/2 - m_clientRect.Height()/2 + nCenterY - m_offsets.y;
-		double dFac = m_dZoom/dOldZoom;
-		m_offsets.x = Helpers::RoundToInt(nNewXSize/2 - m_clientRect.Width()/2 + nCenterX - nOldX*dFac);
-		m_offsets.y = Helpers::RoundToInt(nNewYSize/2 - m_clientRect.Height()/2 + nCenterY - nOldY*dFac);
+		int nCenterX = m_state.m_bZoomMode ? m_state.m_nCapturedX : m_state.m_nMouseX;
+		int nCenterY = m_state.m_bZoomMode ? m_state.m_nCapturedY : m_state.m_nMouseY;
+		int nOldX = nOldXSize/2 - m_state.m_clientRect.Width()/2 + nCenterX - m_state.m_offsets.x;
+		int nOldY = nOldYSize/2 - m_state.m_clientRect.Height()/2 + nCenterY - m_state.m_offsets.y;
+		double dFac = m_state.m_dZoom/dOldZoom;
+		m_state.m_offsets.x = Helpers::RoundToInt(nNewXSize/2 - m_state.m_clientRect.Width()/2 + nCenterX - nOldX*dFac);
+		m_state.m_offsets.y = Helpers::RoundToInt(nNewYSize/2 - m_state.m_clientRect.Height()/2 + nCenterY - nOldY*dFac);
 	} else {
 		// zoom to center
-		m_offsets.x = (int) (m_offsets.x*m_dZoom/dOldZoom);
-		m_offsets.y = (int) (m_offsets.y*m_dZoom/dOldZoom);
+		m_state.m_offsets.x = (int) (m_state.m_offsets.x*m_state.m_dZoom/dOldZoom);
+		m_state.m_offsets.y = (int) (m_state.m_offsets.y*m_state.m_dZoom/dOldZoom);
 	}
 
-	m_bInZooming = true;
+	m_state.m_bInZooming = true;
 	StartLowQTimer(ZOOM_TIMEOUT);
-	if (fabs(dOldZoom - m_dZoom) > 0.0001 || m_bZoomMode) {
+	if (fabs(dOldZoom - m_state.m_dZoom) > 0.0001 || m_state.m_bZoomMode) {
 		this->Invalidate(FALSE);
 		InvalidateHelpDlg();
 		if (bAdjustWindowToImage) {
@@ -2727,14 +2735,14 @@ bool CMainDlg::PerformZoom(double dValue, bool bExponent, bool bZoomToMouse, boo
 }
 
 bool CMainDlg::PerformPan(int dx, int dy, bool bAbsolute) {
-	if ((m_virtualImageSize.cx > 0 && m_virtualImageSize.cx > m_clientRect.Width()) ||
-		(m_virtualImageSize.cy > 0 && m_virtualImageSize.cy > m_clientRect.Height())) {
+	if ((m_state.m_virtualImageSize.cx > 0 && m_state.m_virtualImageSize.cx > m_state.m_clientRect.Width()) ||
+		(m_state.m_virtualImageSize.cy > 0 && m_state.m_virtualImageSize.cy > m_state.m_clientRect.Height())) {
 		if (bAbsolute) {
-			m_offsets = CPoint(dx, dy);
+			m_state.m_offsets = CPoint(dx, dy);
 		} else {
-			m_offsets = CPoint(m_offsets.x + dx, m_offsets.y + dy);
+			m_state.m_offsets = CPoint(m_state.m_offsets.x + dx, m_state.m_offsets.y + dy);
 		}
-		m_bUserPan = true;
+		m_state.m_bUserPan = true;
 
 		this->Invalidate(FALSE);
 		return true;
@@ -2747,12 +2755,12 @@ void CMainDlg::ZoomToSelection() {
 	if (zoomRect.Width() > 0 && zoomRect.Height() > 0 && m_pCurrentImage != NULL) {
 		float fZoom;
 		CPoint offsets;
-		Helpers::GetZoomParameters(fZoom, offsets, m_pCurrentImage->OrigSize(), m_clientRect.Size(), zoomRect);
+		Helpers::GetZoomParameters(fZoom, offsets, m_pCurrentImage->OrigSize(), m_state.m_clientRect.Size(), zoomRect);
 		if (fZoom > 0) {
 			// if PerformZoom returns false, the zoom rect was invalid, don't move the offsets
-			if (PerformZoom(fZoom, false, m_bMouseOn, false)) {
-				m_offsets = offsets;
-				m_bUserPan = true;
+			if (PerformZoom(fZoom, false, m_state.m_bMouseOn, false)) {
+				m_state.m_offsets = offsets;
+				m_state.m_bUserPan = true;
 			}
 		}
 	}
@@ -2762,8 +2770,8 @@ double CMainDlg::GetZoomFactorForFitToScreen(bool bFillWithCrop, bool bAllowEnla
 	if (m_pCurrentImage != NULL) {
 		double dZoom;
 		Helpers::GetImageRect(m_pCurrentImage->OrigWidth(), m_pCurrentImage->OrigHeight(), 
-			m_clientRect.Width(), m_clientRect.Height(), true, bFillWithCrop, false, dZoom);
-		double dZoomMax = bAllowEnlarge ? Helpers::ZoomMax : max(1.0, m_dZoomAtResizeStart);
+			m_state.m_clientRect.Width(), m_state.m_clientRect.Height(), true, bFillWithCrop, false, dZoom);
+		double dZoomMax = bAllowEnlarge ? Helpers::ZoomMax : max(1.0, m_state.m_dZoomAtResizeStart);
 		return max(0.0001, min(dZoomMax, dZoom));
 	} else {
 		return 1.0;
@@ -2771,30 +2779,30 @@ double CMainDlg::GetZoomFactorForFitToScreen(bool bFillWithCrop, bool bAllowEnla
 }
 
 void CMainDlg::ResetZoomToFitScreen(bool bFillWithCrop, bool bAllowEnlarge, bool bAdjustWindowSize) {
-	m_isUserFitToScreen = false;
+	m_state.m_isUserFitToScreen = false;
 	if (m_pCurrentImage != NULL) {
-		if (bAdjustWindowSize && !m_bFullScreenMode && !IsZoomed() && m_bAutoFitWndToImage) {
-			m_dZoom = bAllowEnlarge ? Helpers::ZoomMax : 1;
-			CRect wndRect = Helpers::GetWindowRectMatchingImageSize(m_hWnd, CSize(MIN_WND_WIDTH, MIN_WND_HEIGHT), HUGE_SIZE, m_dZoom, m_pCurrentImage, false, true, m_bWindowBorderless);
-			if (m_dZoom <= 1) {
-				m_dZoom = -1;
+		if (bAdjustWindowSize && !m_state.m_bFullScreenMode && !IsZoomed() && m_state.m_bAutoFitWndToImage) {
+			m_state.m_dZoom = bAllowEnlarge ? Helpers::ZoomMax : 1;
+			CRect wndRect = Helpers::GetWindowRectMatchingImageSize(m_hWnd, CSize(MIN_WND_WIDTH, MIN_WND_HEIGHT), HUGE_SIZE, m_state.m_dZoom, m_pCurrentImage, false, true, m_state.m_bWindowBorderless);
+			if (m_state.m_dZoom <= 1) {
+				m_state.m_dZoom = -1;
 			}
-			m_bResizeForNewImage = true;
+			m_state.m_bResizeForNewImage = true;
 			this->SetWindowPos(HWND_TOP, wndRect.left, wndRect.top, wndRect.Width(), wndRect.Height(), SWP_NOZORDER | SWP_NOCOPYBITS);
-			this->GetClientRect(&m_clientRect);
-			m_bResizeForNewImage = false;
+			this->GetClientRect(&m_state.m_clientRect);
+			m_state.m_bResizeForNewImage = false;
 			this->Invalidate(FALSE);
 		} else {
-			double dOldZoom = m_dZoom;
-			m_dZoom = GetZoomFactorForFitToScreen(bFillWithCrop, bAllowEnlarge);
+			double dOldZoom = m_state.m_dZoom;
+			m_state.m_dZoom = GetZoomFactorForFitToScreen(bFillWithCrop, bAllowEnlarge);
 			if (bAllowEnlarge && !IsAdjustWindowToImage()) {
-				m_isUserFitToScreen = true;
-				m_dZoom = -1;
-				m_autoZoomFitToScreen = bFillWithCrop ? Helpers::ZM_FillScreen : Helpers::ZM_FitToScreen;
+				m_state.m_isUserFitToScreen = true;
+				m_state.m_dZoom = -1;
+				m_state.m_autoZoomFitToScreen = bFillWithCrop ? Helpers::ZM_FillScreen : Helpers::ZM_FitToScreen;
 			}
-			m_bUserZoom = m_dZoom > 1.0;
-			m_bUserPan = false;
-			if (fabs(dOldZoom - m_dZoom) > 0.01) {
+			m_state.m_bUserZoom = m_state.m_dZoom > 1.0;
+			m_state.m_bUserPan = false;
+			if (fabs(dOldZoom - m_state.m_dZoom) > 0.01) {
 				this->Invalidate(FALSE);
 			}
 		}
@@ -2802,15 +2810,15 @@ void CMainDlg::ResetZoomToFitScreen(bool bFillWithCrop, bool bAllowEnlarge, bool
 }
 
 void CMainDlg::ResetZoomTo100Percents(bool bZoomToMouse) {
-	if (m_pCurrentImage != NULL && fabs(m_dZoom - 1) > 0.01) {
+	if (m_pCurrentImage != NULL && fabs(m_state.m_dZoom - 1) > 0.01) {
 		// the current design (unless changed) cursor always shows in windowed mode, so always zoom to cursor when not fullscreen
-		PerformZoom(1.0, false, bZoomToMouse || !m_bFullScreenMode, true);
+		PerformZoom(1.0, false, bZoomToMouse || !m_state.m_bFullScreenMode, true);
 	}
 }
 
 CProcessParams CMainDlg::CreateProcessParams(bool bNoProcessingAfterLoad) {
-	int nClientWidth = m_clientRect.Width();
-	int nClientHeight = m_clientRect.Height();
+	int nClientWidth = m_state.m_clientRect.Width();
+	int nClientHeight = m_state.m_clientRect.Height();
 	if (nClientWidth == 0 && nClientHeight == 0) {
 		CRect rect = CMultiMonitorSupport::GetMonitorRect(m_hWnd);
 		nClientWidth = rect.Width();
@@ -2823,60 +2831,60 @@ CProcessParams CMainDlg::CreateProcessParams(bool bNoProcessingAfterLoad) {
 		nClientHeight = maxClientSize.cy;
 		eAutoZoomMode = Helpers::ZM_FitToScreenNoZoom;
 	}
-	if (m_bKeepParams) {
-		double dOldLightenShadows = m_pImageProcParamsKept->LightenShadows;
-		*m_pImageProcParamsKept = *m_pImageProcParams;
+	if (m_state.m_bKeepParams) {
+		double dOldLightenShadows = m_state.m_pImageProcParamsKept->LightenShadows;
+		*m_state.m_pImageProcParamsKept = *m_state.m_pImageProcParams;
 		// when last image was detected as sunset or nightshot, do not take this value for next image
-		if (m_bCurrentImageIsSpecialProcessing && m_pImageProcParams->LightenShadows == m_dCurrentInitialLightenShadows) {
-			m_pImageProcParamsKept->LightenShadows = dOldLightenShadows;
+		if (m_state.m_bCurrentImageIsSpecialProcessing && m_state.m_pImageProcParams->LightenShadows == m_state.m_dCurrentInitialLightenShadows) {
+			m_state.m_pImageProcParamsKept->LightenShadows = dOldLightenShadows;
 		}
-		m_eProcessingFlagsKept = CreateProcessingFlags(m_bHQResampling, m_bAutoContrast, false, m_bLDC, m_bKeepParams, m_bLandscapeMode);
-		m_dZoomKept = (m_bUserZoom || IsAdjustWindowToImage()) ? m_dZoom : -1;
-		m_offsetKept = m_bUserPan ? m_offsets : CPoint(0, 0);
-		if (m_isUserFitToScreen && !IsAdjustWindowToImage()) { eAutoZoomMode = m_autoZoomFitToScreen; }
+		m_state.m_eProcessingFlagsKept = CreateProcessingFlags(m_state.m_bHQResampling, m_state.m_bAutoContrast, false, m_state.m_bLDC, m_state.m_bKeepParams, m_state.m_bLandscapeMode);
+		m_state.m_dZoomKept = (m_state.m_bUserZoom || IsAdjustWindowToImage()) ? m_state.m_dZoom : -1;
+		m_state.m_offsetKept = m_state.m_bUserPan ? m_state.m_offsets : CPoint(0, 0);
+		if (m_state.m_isUserFitToScreen && !IsAdjustWindowToImage()) { eAutoZoomMode = m_state.m_autoZoomFitToScreen; }
 
 		return CProcessParams(nClientWidth, nClientHeight,
 			CMultiMonitorSupport::GetMonitorRect(m_hWnd).Size(),
 			CRotationParams(0),
-			m_nUserRotation,
-			m_dZoomKept,
+			m_state.m_nUserRotation,
+			m_state.m_dZoomKept,
 			eAutoZoomMode,
-			m_offsetKept,
-			_SetLandscapeModeParams(m_bLandscapeMode, *m_pImageProcParamsKept), 
-			SetProcessingFlag(_SetLandscapeModeFlags(m_eProcessingFlagsKept), PFLAG_NoProcessingAfterLoad, bNoProcessingAfterLoad));
+			m_state.m_offsetKept,
+			_SetLandscapeModeParams(m_state.m_bLandscapeMode, *m_state.m_pImageProcParamsKept), 
+			SetProcessingFlag(_SetLandscapeModeFlags(m_state.m_eProcessingFlagsKept), PFLAG_NoProcessingAfterLoad, bNoProcessingAfterLoad));
 	} else {
-		m_isUserFitToScreen = false;
+		m_state.m_isUserFitToScreen = false;
 		CSettingsProvider& sp = CSettingsProvider::This();
 		return CProcessParams(nClientWidth, nClientHeight, 
 			CMultiMonitorSupport::GetMonitorRect(m_hWnd).Size(),
 			CRotationParams(0), 0, -1, eAutoZoomMode, CPoint(0, 0),
-			_SetLandscapeModeParams(m_bLandscapeMode, GetDefaultProcessingParams()),
-			SetProcessingFlag(_SetLandscapeModeFlags(GetDefaultProcessingFlags(m_bLandscapeMode)), PFLAG_NoProcessingAfterLoad, bNoProcessingAfterLoad));
+			_SetLandscapeModeParams(m_state.m_bLandscapeMode, GetDefaultProcessingParams()),
+			SetProcessingFlag(_SetLandscapeModeFlags(GetDefaultProcessingFlags(m_state.m_bLandscapeMode)), PFLAG_NoProcessingAfterLoad, bNoProcessingAfterLoad));
 	}
 }
 
 void CMainDlg::ResetParamsToDefault() {
 	CSettingsProvider& sp = CSettingsProvider::This();
-	m_nRotation = 0;
-	m_nUserRotation = 0;
-	m_dZoom = m_dZoomMult = -1.0;
-	m_offsets = CPoint(0, 0);
-	m_bUserZoom = false;
-	m_bUserPan = false;
-	*m_pImageProcParams = GetDefaultProcessingParams();
-	InitFromProcessingFlags(GetDefaultProcessingFlags(m_bLandscapeMode), m_bHQResampling, m_bAutoContrast, m_bAutoContrastSection, m_bLDC, m_bLandscapeMode);
+	m_state.m_nRotation = 0;
+	m_state.m_nUserRotation = 0;
+	m_state.m_dZoom = m_state.m_dZoomMult = -1.0;
+	m_state.m_offsets = CPoint(0, 0);
+	m_state.m_bUserZoom = false;
+	m_state.m_bUserPan = false;
+	*m_state.m_pImageProcParams = GetDefaultProcessingParams();
+	InitFromProcessingFlags(GetDefaultProcessingFlags(m_state.m_bLandscapeMode), m_state.m_bHQResampling, m_state.m_bAutoContrast, m_state.m_bAutoContrastSection, m_state.m_bLDC, m_state.m_bLandscapeMode);
 }
 
 void CMainDlg::StartSlideShowTimer(int nMilliSeconds) {
-	m_nCurrentTimeout = nMilliSeconds;
+	m_state.m_nCurrentTimeout = nMilliSeconds;
 	::SetTimer(this->m_hWnd, SLIDESHOW_TIMER_EVENT_ID, nMilliSeconds, NULL);
 	m_pNavPanelCtl->EndNavPanelAnimation();
-	m_nLastSlideShowImageTickCount = ::GetTickCount();
+	m_state.m_nLastSlideShowImageTickCount = ::GetTickCount();
 }
 
 void CMainDlg::StopSlideShowTimer(void) {
-	if (m_nCurrentTimeout > 0) {
-		m_nCurrentTimeout = 0;
+	if (m_state.m_nCurrentTimeout > 0) {
+		m_state.m_nCurrentTimeout = 0;
 		::KillTimer(this->m_hWnd, SLIDESHOW_TIMER_EVENT_ID);
 	}
 }
@@ -2885,55 +2893,55 @@ void CMainDlg::StartMovieMode(double dFPS) {
 	// if more than this number of frames are requested per seconds, it is considered to be a movie
 	const double cdFPSMovie = 4.9;
 
-	m_dMovieFPS = dFPS;
+	m_state.m_dMovieFPS = dFPS;
 
 	// Save processing flags at the time movie mode starts
-	if (!m_bMovieMode) {
-		m_eProcFlagsBeforeMovie = CreateDefaultProcessingFlags(m_bKeepParams);
+	if (!m_state.m_bMovieMode) {
+		m_state.m_eProcFlagsBeforeMovie = CreateDefaultProcessingFlags(m_state.m_bKeepParams);
 	}
 	// Keep parameters during movie mode
-	if (!m_bKeepParams && dFPS > cdFPSMovie) {
+	if (!m_state.m_bKeepParams && dFPS > cdFPSMovie) {
 		ExecuteCommand(IDM_KEEP_PARAMETERS);
 	}
 	// Turn off high quality resamping and auto corrections when requested to play many frames per second
 	if (dFPS > cdFPSMovie) {
-		m_bProcFlagsTouched = true;
-		m_bHQResampling = false;
-		m_bAutoContrastSection = false;
-		m_bAutoContrast = false;
-		m_bLDC = false;
-		m_bLandscapeMode = false;
+		m_state.m_bProcFlagsTouched = true;
+		m_state.m_bHQResampling = false;
+		m_state.m_bAutoContrastSection = false;
+		m_state.m_bAutoContrast = false;
+		m_state.m_bLDC = false;
+		m_state.m_bLandscapeMode = false;
 	}
-	m_bMovieMode = true;
+	m_state.m_bMovieMode = true;
 	StartSlideShowTimer(Helpers::RoundToInt(1000.0/dFPS));
 	AfterNewImageLoaded(false, false, false);
 	Invalidate(FALSE);
 }
 
 void CMainDlg::StopMovieMode() {
-	if (m_bMovieMode) {
+	if (m_state.m_bMovieMode) {
 		// undo changes done on processing parameters due to movie mode
-		if (!GetProcessingFlag(m_eProcFlagsBeforeMovie, PFLAG_KeepParams)) {
-			if (m_bKeepParams) {
+		if (!GetProcessingFlag(m_state.m_eProcFlagsBeforeMovie, PFLAG_KeepParams)) {
+			if (m_state.m_bKeepParams) {
 				ExecuteCommand(IDM_KEEP_PARAMETERS);
 			}
 		}
-		if (m_bProcFlagsTouched) {
-			if (GetProcessingFlag(m_eProcFlagsBeforeMovie, PFLAG_AutoContrast)) {
-				m_bAutoContrast = true;
+		if (m_state.m_bProcFlagsTouched) {
+			if (GetProcessingFlag(m_state.m_eProcFlagsBeforeMovie, PFLAG_AutoContrast)) {
+				m_state.m_bAutoContrast = true;
 			}
-			if (GetProcessingFlag(m_eProcFlagsBeforeMovie, PFLAG_LDC)) {
-				m_bLDC = true;
+			if (GetProcessingFlag(m_state.m_eProcFlagsBeforeMovie, PFLAG_LDC)) {
+				m_state.m_bLDC = true;
 			}
-			if (GetProcessingFlag(m_eProcFlagsBeforeMovie, PFLAG_HighQualityResampling)) {
-				m_bHQResampling = true;
+			if (GetProcessingFlag(m_state.m_eProcFlagsBeforeMovie, PFLAG_HighQualityResampling)) {
+				m_state.m_bHQResampling = true;
 			}
-			if (GetProcessingFlag(m_eProcFlagsBeforeMovie, PFLAG_LandscapeMode)) {
-				m_bLandscapeMode = true;
+			if (GetProcessingFlag(m_state.m_eProcFlagsBeforeMovie, PFLAG_LandscapeMode)) {
+				m_state.m_bLandscapeMode = true;
 			}
 		}
-		m_bMovieMode = false;
-		m_bProcFlagsTouched = false;
+		m_state.m_bMovieMode = false;
+		m_state.m_bProcFlagsTouched = false;
 		StopSlideShowTimer();
 		AfterNewImageLoaded(false, false, false);
 		this->Invalidate(FALSE);
@@ -2941,30 +2949,30 @@ void CMainDlg::StopMovieMode() {
 }
 
 void CMainDlg::StartLowQTimer(int nTimeout) {
-	m_bTemporaryLowQ = true;
+	m_state.m_bTemporaryLowQ = true;
 	::KillTimer(this->m_hWnd, ZOOM_TIMER_EVENT_ID);
 	::SetTimer(this->m_hWnd, ZOOM_TIMER_EVENT_ID, nTimeout, NULL);
 }
 
 void CMainDlg::MouseOff() {
-	if (m_bMouseOn) {
-		if (m_nMouseY < m_clientRect.bottom - m_pImageProcPanelCtl->PanelRect().Height() && 
-			!m_bInTrackPopupMenu && !m_pNavPanelCtl->PanelRect().PtInRect(CPoint(m_nMouseX, m_nMouseY))) {
-			if (m_bFullScreenMode) {
+	if (m_state.m_bMouseOn) {
+		if (m_state.m_nMouseY < m_state.m_clientRect.bottom - m_pImageProcPanelCtl->PanelRect().Height() && 
+			!m_state.m_bInTrackPopupMenu && !m_pNavPanelCtl->PanelRect().PtInRect(CPoint(m_state.m_nMouseX, m_state.m_nMouseY))) {
+			if (m_state.m_bFullScreenMode) {
 				// cursor only hides when in full screen mode
 				while (::ShowCursor(FALSE) >= 0);
 			}
-			m_startMouse.x = m_startMouse.y = -1;
-			m_bMouseOn = false;
+			m_state.m_startMouse.x = m_state.m_startMouse.y = -1;
+			m_state.m_bMouseOn = false;
 		}
 		this->InvalidateRect(m_pNavPanelCtl->PanelRect(), FALSE);
 	}
 }
 
 void CMainDlg::MouseOn() {
-	if (!m_bMouseOn) {
+	if (!m_state.m_bMouseOn) {
 		::ShowCursor(TRUE);
-		m_bMouseOn = true;
+		m_state.m_bMouseOn = true;
 		if (m_pNavPanelCtl != NULL) { // can be called very early
 			this->InvalidateRect(m_pNavPanelCtl->PanelRect(), FALSE);
 		}
@@ -2972,30 +2980,30 @@ void CMainDlg::MouseOn() {
 }
 
 void CMainDlg::InitParametersForNewImage() {
-	if (!m_bKeepParams) {
+	if (!m_state.m_bKeepParams) {
 		ResetParamsToDefault();
-	} else if (!(m_bUserZoom || IsAdjustWindowToImage())) {
-		m_dZoom = -1;
+	} else if (!(m_state.m_bUserZoom || IsAdjustWindowToImage())) {
+		m_state.m_dZoom = -1;
 	}
 
-	m_bAutoContrastSection = false;
-	*m_pImageProcParams2 = GetNoProcessingParams();
-	m_eProcessingFlags2 = PFLAG_HighQualityResampling;
+	m_state.m_bAutoContrastSection = false;
+	*m_state.m_pImageProcParams2 = GetNoProcessingParams();
+	m_state.m_eProcessingFlags2 = PFLAG_HighQualityResampling;
 
-	if (!m_bIsAnimationPlaying) {
-		m_bInZooming = m_bTemporaryLowQ = m_bShowZoomFactor = false;
+	if (!m_state.m_bIsAnimationPlaying) {
+		m_state.m_bInZooming = m_state.m_bTemporaryLowQ = m_state.m_bShowZoomFactor = false;
 	}
 }
 
 void CMainDlg::ExchangeProcessingParams() {
-	bool bOldAutoContrastSection = m_bAutoContrastSection;
-	CImageProcessingParams tempParams = *m_pImageProcParams;
+	bool bOldAutoContrastSection = m_state.m_bAutoContrastSection;
+	CImageProcessingParams tempParams = *m_state.m_pImageProcParams;
 	EProcessingFlags tempFlags = CreateDefaultProcessingFlags();
-	*m_pImageProcParams = *m_pImageProcParams2;
-	InitFromProcessingFlags(m_eProcessingFlags2, m_bHQResampling, m_bAutoContrast, m_bAutoContrastSection, m_bLDC, m_bLandscapeMode);
-	*m_pImageProcParams2 = tempParams;
-	m_eProcessingFlags2 = tempFlags;
-	m_bAutoContrastSection = bOldAutoContrastSection; // this flag cannot be exchanged this way
+	*m_state.m_pImageProcParams = *m_state.m_pImageProcParams2;
+	InitFromProcessingFlags(m_state.m_eProcessingFlags2, m_state.m_bHQResampling, m_state.m_bAutoContrast, m_state.m_bAutoContrastSection, m_state.m_bLDC, m_state.m_bLandscapeMode);
+	*m_state.m_pImageProcParams2 = tempParams;
+	m_state.m_eProcessingFlags2 = tempFlags;
+	m_state.m_bAutoContrastSection = bOldAutoContrastSection; // this flag cannot be exchanged this way
 	this->Invalidate(FALSE);
 }
 
@@ -3003,7 +3011,7 @@ void CMainDlg::AfterNewImageLoaded(bool bSynchronize, bool bAfterStartup, bool n
 	UpdateWindowTitle();
 	InvalidateHelpDlg();
 	m_pDirectoryWatcher->SetCurrentFile(CurrentFileName(false));
-	if (!m_bIsAnimationPlaying) m_pNavPanelCtl->HideNavPanelTemporary();
+	if (!m_state.m_bIsAnimationPlaying) m_pNavPanelCtl->HideNavPanelTemporary();
 	m_pPanelMgr->AfterNewImageLoaded();
 	m_pCropCtl->AbortCropping();
 	if (m_pCurrentImage != NULL) m_pCropCtl->SetImageSize(m_pCurrentImage->OrigSize()); // inform CropCtl of the image size for CropImageAR
@@ -3011,67 +3019,67 @@ void CMainDlg::AfterNewImageLoaded(bool bSynchronize, bool bAfterStartup, bool n
 	if (bSynchronize) {
 		// after loading an image, the per image processing parameters must be synchronized with
 		// the current processing parameters
-		bool bLastWasSpecialProcessing = m_bCurrentImageIsSpecialProcessing;
-		bool bLastWasInParamDB = m_bCurrentImageInParamDB;
-		m_bCurrentImageInParamDB = false;
-		m_bCurrentImageIsSpecialProcessing = false;
+		bool bLastWasSpecialProcessing = m_state.m_bCurrentImageIsSpecialProcessing;
+		bool bLastWasInParamDB = m_state.m_bCurrentImageInParamDB;
+		m_state.m_bCurrentImageInParamDB = false;
+		m_state.m_bCurrentImageIsSpecialProcessing = false;
 		if (m_pCurrentImage != NULL) {
-			m_dCurrentInitialLightenShadows = m_pCurrentImage->GetInitialProcessParams().LightenShadows;
-			m_bCurrentImageInParamDB = m_pCurrentImage->IsInParamDB();
-			m_bCurrentImageIsSpecialProcessing = m_pCurrentImage->GetLightenShadowFactor() != 1.0f;
-			if (!m_bKeepParams) {
-				m_bHQResampling = GetProcessingFlag(m_pCurrentImage->GetInitialProcessFlags(), PFLAG_HighQualityResampling);
-				m_bAutoContrast = GetProcessingFlag(m_pCurrentImage->GetInitialProcessFlags(), PFLAG_AutoContrast);
-				m_bLDC = GetProcessingFlag(m_pCurrentImage->GetInitialProcessFlags(), PFLAG_LDC);
+			m_state.m_dCurrentInitialLightenShadows = m_pCurrentImage->GetInitialProcessParams().LightenShadows;
+			m_state.m_bCurrentImageInParamDB = m_pCurrentImage->IsInParamDB();
+			m_state.m_bCurrentImageIsSpecialProcessing = m_pCurrentImage->GetLightenShadowFactor() != 1.0f;
+			if (!m_state.m_bKeepParams) {
+				m_state.m_bHQResampling = GetProcessingFlag(m_pCurrentImage->GetInitialProcessFlags(), PFLAG_HighQualityResampling);
+				m_state.m_bAutoContrast = GetProcessingFlag(m_pCurrentImage->GetInitialProcessFlags(), PFLAG_AutoContrast);
+				m_state.m_bLDC = GetProcessingFlag(m_pCurrentImage->GetInitialProcessFlags(), PFLAG_LDC);
 
-				m_nRotation = m_pCurrentImage->GetInitialRotation();
-				m_dZoom = m_pCurrentImage->GetInititialZoom();
-				m_offsets = m_pCurrentImage->GetInitialOffsets();
+				m_state.m_nRotation = m_pCurrentImage->GetInitialRotation();
+				m_state.m_dZoom = m_pCurrentImage->GetInititialZoom();
+				m_state.m_offsets = m_pCurrentImage->GetInitialOffsets();
 
 				if (m_pCurrentImage->HasZoomStoredInParamDB()) {
-					m_bUserZoom = m_bUserPan = true;
+					m_state.m_bUserZoom = m_state.m_bUserPan = true;
 				}
 
-				*m_pImageProcParams = m_pCurrentImage->GetInitialProcessParams();
-			} else if (m_bCurrentImageIsSpecialProcessing && m_bKeepParams) {
+				*m_state.m_pImageProcParams = m_pCurrentImage->GetInitialProcessParams();
+			} else if (m_state.m_bCurrentImageIsSpecialProcessing && m_state.m_bKeepParams) {
 				// set this factor, no matter if we keep parameters
-				m_pImageProcParams->LightenShadows = m_pCurrentImage->GetInitialProcessParams().LightenShadows;
-			} else if (bLastWasSpecialProcessing && m_bKeepParams) {
+				m_state.m_pImageProcParams->LightenShadows = m_pCurrentImage->GetInitialProcessParams().LightenShadows;
+			} else if (bLastWasSpecialProcessing && m_state.m_bKeepParams) {
 				// take kept value when last was special processing as the special processing value is not usable
-				m_pImageProcParams->LightenShadows = m_pImageProcParamsKept->LightenShadows;
+				m_state.m_pImageProcParams->LightenShadows = m_state.m_pImageProcParamsKept->LightenShadows;
 			}
-			if (m_bKeepParams) {
-				m_nRotation = m_pCurrentImage->GetInitialRotation() + m_nUserRotation;
+			if (m_state.m_bKeepParams) {
+				m_state.m_nRotation = m_pCurrentImage->GetInitialRotation() + m_state.m_nUserRotation;
 			}
 		}
-		if (!bAfterStartup && !m_bIsAnimationPlaying && !noAdjustWindow) {
+		if (!bAfterStartup && !m_state.m_bIsAnimationPlaying && !noAdjustWindow) {
 			AdjustWindowToImage(false);
 		}
 	}
 }
 
 bool CMainDlg::IsAdjustWindowToImage() {
-	return !m_bFullScreenMode && !::IsZoomed(m_hWnd) && m_bAutoFitWndToImage;
+	return !m_state.m_bFullScreenMode && !::IsZoomed(m_hWnd) && m_state.m_bAutoFitWndToImage;
 }
 
 bool CMainDlg::IsImageExactlyFittingWindow() {
-	return (m_pCurrentImage != NULL) && m_pCurrentImage->DIBWidth() == m_clientRect.Width() && m_pCurrentImage->DIBHeight() == m_clientRect.Height();
+	return (m_pCurrentImage != NULL) && m_pCurrentImage->DIBWidth() == m_state.m_clientRect.Width() && m_pCurrentImage->DIBHeight() == m_state.m_clientRect.Height();
 }
 
 void CMainDlg::AdjustWindowToImage(bool bAfterStartup) {
 	if (IsAdjustWindowToImage() && (m_pCurrentImage != NULL || bAfterStartup)) {
 		// window size shall be adjusted to image size (at least keep aspect ratio)
-		double dZoom = m_dZoom;
-		CRect windowRect = Helpers::GetWindowRectMatchingImageSize(m_hWnd, CSize(MIN_WND_WIDTH, MIN_WND_HEIGHT), HUGE_SIZE, dZoom, m_pCurrentImage, bAfterStartup, dZoom < 0, m_bWindowBorderless);
+		double dZoom = m_state.m_dZoom;
+		CRect windowRect = Helpers::GetWindowRectMatchingImageSize(m_hWnd, CSize(MIN_WND_WIDTH, MIN_WND_HEIGHT), HUGE_SIZE, dZoom, m_pCurrentImage, bAfterStartup, dZoom < 0, m_state.m_bWindowBorderless);
 		CRect defaultRect = CMultiMonitorSupport::GetDefaultWindowRect();
 		if (bAfterStartup && CSettingsProvider::This().ExplicitWindowRect()) {
 			windowRect = CRect(defaultRect.TopLeft(), windowRect.Size());
 		}
-		m_bResizeForNewImage = true;
+		m_state.m_bResizeForNewImage = true;
 		this->Invalidate(FALSE);
 		this->SetWindowPos(HWND_TOP, windowRect.left, windowRect.top, windowRect.Width(), windowRect.Height(), SWP_NOZORDER | SWP_NOCOPYBITS);
-		this->GetClientRect(&m_clientRect);
-		m_bResizeForNewImage = false;
+		this->GetClientRect(&m_state.m_clientRect);
+		m_state.m_bResizeForNewImage = false;
 	}
 }
 
@@ -3081,34 +3089,34 @@ void CMainDlg::CheckIfApplyAutoFitWndToImage(bool bInInitDialog) {
 			if (!bInInitDialog) {
 				ExecuteCommand(IDM_FULL_SCREEN_MODE);
 			}
-			m_bFullScreenMode = true;
-			m_bTemporaryLowQ = false;
+			m_state.m_bFullScreenMode = true;
+			m_state.m_bTemporaryLowQ = false;
 			MouseOff();
 		} else {
-			m_bAutoFitWndToImage = true;
+			m_state.m_bAutoFitWndToImage = true;
 		}
 	}
 }
 
 void CMainDlg::SaveParameters() {
-	if (m_bMovieMode) {
+	if (m_state.m_bMovieMode) {
 		return;
 	}
 
-	EProcessingFlags eFlags = CreateDefaultProcessingFlags(m_bKeepParams);
-	CString sText = HelpersGUI::GetINIFileSaveConfirmationText(*m_pImageProcParams, eFlags,
+	EProcessingFlags eFlags = CreateDefaultProcessingFlags(m_state.m_bKeepParams);
+	CString sText = HelpersGUI::GetINIFileSaveConfirmationText(*m_state.m_pImageProcParams, eFlags,
 		m_pFileList->GetNavigationMode(), m_pFileList->GetSorting(), m_pFileList->IsSortedAscending(), GetAutoZoomMode(), m_pNavPanelCtl->IsActive(),
-		m_bShowFileName, m_pEXIFDisplayCtl->IsActive(), m_eTransitionEffect);
+		m_state.m_bShowFileName, m_pEXIFDisplayCtl->IsActive(), m_state.m_eTransitionEffect);
 
 	if (IDYES == this->MessageBox(sText, CNLS::GetString(_T("Confirm save default parameters")), MB_YESNO | MB_ICONQUESTION)) {
-		CSettingsProvider::This().SaveSettings(*m_pImageProcParams, eFlags, m_pFileList->GetNavigationMode(), m_pFileList->GetSorting(), m_pFileList->IsSortedAscending(),
-			m_eAutoZoomModeWindowed, m_eAutoZoomModeFullscreen, m_pNavPanelCtl->IsActive(), m_bShowFileName, m_pEXIFDisplayCtl->IsActive(), m_eTransitionEffect);
+		CSettingsProvider::This().SaveSettings(*m_state.m_pImageProcParams, eFlags, m_pFileList->GetNavigationMode(), m_pFileList->GetSorting(), m_pFileList->IsSortedAscending(),
+			m_state.m_eAutoZoomModeWindowed, m_state.m_eAutoZoomModeFullscreen, m_pNavPanelCtl->IsActive(), m_state.m_bShowFileName, m_pEXIFDisplayCtl->IsActive(), m_state.m_eTransitionEffect);
 	}
 }
 
 CRect CMainDlg::ScreenToDIB(const CSize& sizeDIB, const CRect& rect) {
-	int nOffsetX = (sizeDIB.cx - m_clientRect.Width())/2;
-	int nOffsetY = (sizeDIB.cy - m_clientRect.Height())/2;
+	int nOffsetX = (sizeDIB.cx - m_state.m_clientRect.Width())/2;
+	int nOffsetY = (sizeDIB.cy - m_state.m_clientRect.Height())/2;
 
 	CRect rectDIB = CRect(rect.left + nOffsetX, rect.top + nOffsetY, rect.right + nOffsetX, rect.bottom + nOffsetY);
 	
@@ -3121,8 +3129,8 @@ bool CMainDlg::ScreenToImage(float & fX, float & fY) {
 	if (m_pCurrentImage == NULL) {
 		return false;
 	}
-	int nOffsetX = (m_pCurrentImage->DIBWidth() - m_clientRect.Width())/2;
-	int nOffsetY = (m_pCurrentImage->DIBHeight() - m_clientRect.Height())/2;
+	int nOffsetX = (m_pCurrentImage->DIBWidth() - m_state.m_clientRect.Width())/2;
+	int nOffsetY = (m_pCurrentImage->DIBHeight() - m_state.m_clientRect.Height())/2;
 
 	fX += nOffsetX;
 	fY += nOffsetY;
@@ -3138,8 +3146,8 @@ bool CMainDlg::ImageToScreen(float & fX, float & fY) {
 	}
 	m_pCurrentImage->OrigToDIB(fX, fY);
 
-	int nOffsetX = (m_pCurrentImage->DIBWidth() - m_clientRect.Width())/2;
-	int nOffsetY = (m_pCurrentImage->DIBHeight() - m_clientRect.Height())/2;
+	int nOffsetX = (m_pCurrentImage->DIBWidth() - m_state.m_clientRect.Width())/2;
+	int nOffsetY = (m_pCurrentImage->DIBHeight() - m_state.m_clientRect.Height())/2;
 
 	fX -= nOffsetX;
 	fY -= nOffsetY;
@@ -3166,39 +3174,39 @@ LPCTSTR CMainDlg::CurrentFileName(bool bFileTitle) {
 
 void CMainDlg::SetCursorForMoveSection() {
 	if (!m_pCropCtl->IsCropping()) {
-		if (m_pZoomNavigatorCtl->IsPointInZoomNavigatorThumbnail(CPoint(m_nMouseX, m_nMouseY)) || m_bDragging) {
+		if (m_pZoomNavigatorCtl->IsPointInZoomNavigatorThumbnail(CPoint(m_state.m_nMouseX, m_state.m_nMouseY)) || m_state.m_bDragging) {
 			::SetCursor(::LoadCursor(NULL, IDC_SIZEALL));
-			m_bPanMouseCursorSet = true;
-		} else if (m_bPanMouseCursorSet) {
+			m_state.m_bPanMouseCursorSet = true;
+		} else if (m_state.m_bPanMouseCursorSet) {
 			::SetCursor(::LoadCursor(NULL, IDC_ARROW));
-			m_bPanMouseCursorSet = false;
+			m_state.m_bPanMouseCursorSet = false;
 		}
 	}
 }
 
 void CMainDlg::ToggleMonitor() {
-	if (CMultiMonitorSupport::IsMultiMonitorSystem() && !m_bSpanVirtualDesktop) {
+	if (CMultiMonitorSupport::IsMultiMonitorSystem() && !m_state.m_bSpanVirtualDesktop) {
 		int nMaxMonitorIdx = ::GetSystemMetrics(SM_CMONITORS);
-		if (m_nMonitor == -1) {
+		if (m_state.m_nMonitor == -1) {
 			// index unknown, search
 			for (int i = 0; i < nMaxMonitorIdx; i++) {
-				if (m_monitorRect == CMultiMonitorSupport::GetMonitorRect(i)) {
-					m_nMonitor = i;
+				if (m_state.m_monitorRect == CMultiMonitorSupport::GetMonitorRect(i)) {
+					m_state.m_nMonitor = i;
 					break;
 				}
 			}
 		}
-		m_dZoom = -1.0;
+		m_state.m_dZoom = -1.0;
 		this->Invalidate(FALSE);
-		m_nMonitor = (m_nMonitor + 1) % nMaxMonitorIdx;
-		m_monitorRect = CMultiMonitorSupport::GetMonitorRect(m_nMonitor);
-		SetWindowPos(HWND_TOP, &m_monitorRect, SWP_NOZORDER);
-		this->GetClientRect(&m_clientRect);
+		m_state.m_nMonitor = (m_state.m_nMonitor + 1) % nMaxMonitorIdx;
+		m_state.m_monitorRect = CMultiMonitorSupport::GetMonitorRect(m_state.m_nMonitor);
+		SetWindowPos(HWND_TOP, &m_state.m_monitorRect, SWP_NOZORDER);
+		this->GetClientRect(&m_state.m_clientRect);
 	}
 }
 
 CRect CMainDlg::GetZoomTextRect(CRect imageProcessingArea) {
-	int nZoomTextRectBottomOffset = (m_clientRect.Width() < HelpersGUI::ScaleToScreen(800)) ? 25 : ZOOM_TEXT_RECT_OFFSET;
+	int nZoomTextRectBottomOffset = (m_state.m_clientRect.Width() < HelpersGUI::ScaleToScreen(800)) ? 25 : ZOOM_TEXT_RECT_OFFSET;
 	int nStartX = imageProcessingArea.right - HelpersGUI::ScaleToScreen(ZOOM_TEXT_RECT_WIDTH + ZOOM_TEXT_RECT_OFFSET);
 	if (m_pImageProcPanelCtl->IsVisible()) {
 		nStartX = max(nStartX, m_pImageProcPanelCtl->GetUnsharpMaskButtonRect().right);
@@ -3276,10 +3284,10 @@ bool CMainDlg::PrepareForModalPanel() {
 }
 
 int CMainDlg::TrackPopupMenu(CPoint pos, HMENU hMenu) {
-	m_bInTrackPopupMenu = true;
+	m_state.m_bInTrackPopupMenu = true;
 	int nMenuCmd = ::TrackPopupMenu(hMenu, TPM_LEFTALIGN | TPM_RIGHTBUTTON | TPM_NONOTIFY | TPM_RETURNCMD, 
 		pos.x, pos.y, 0, this->m_hWnd, NULL);
-	m_bInTrackPopupMenu = false;
+	m_state.m_bInTrackPopupMenu = false;
 	return nMenuCmd;
 }
 
@@ -3299,10 +3307,10 @@ int CMainDlg::GetLoadErrorAfterOpenFile() {
 void CMainDlg::PrefetchDIB(const CRect& clientRect) {
 	if (m_pCurrentImage == NULL) return;
 
-	CSize newSize = Helpers::GetVirtualImageSize(m_pCurrentImage->OrigSize(), clientRect.Size(), GetAutoZoomMode(), m_dZoom);
+	CSize newSize = Helpers::GetVirtualImageSize(m_pCurrentImage->OrigSize(), clientRect.Size(), GetAutoZoomMode(), m_state.m_dZoom);
 	CSize clippedSize(min(clientRect.Width(), newSize.cx), min(clientRect.Height(), newSize.cy));
-	CPoint offsetsInImage = m_pCurrentImage->ConvertOffset(newSize, clippedSize, Helpers::LimitOffsets(m_offsets, clientRect.Size(), newSize));
-	m_pCurrentImage->GetDIB(newSize, clippedSize, offsetsInImage, *m_pImageProcParams, CreateDefaultProcessingFlags());
+	CPoint offsetsInImage = m_pCurrentImage->ConvertOffset(newSize, clippedSize, Helpers::LimitOffsets(m_state.m_offsets, clientRect.Size(), newSize));
+	m_pCurrentImage->GetDIB(newSize, clippedSize, offsetsInImage, *m_state.m_pImageProcParams, CreateDefaultProcessingFlags());
 }
 
 double CMainDlg::GetZoomMultiplier(CJPEGImage* pImage, const CRect& clientRect) {
@@ -3316,7 +3324,7 @@ double CMainDlg::GetZoomMultiplier(CJPEGImage* pImage, const CRect& clientRect) 
 }
 
 EProcessingFlags CMainDlg::CreateDefaultProcessingFlags(bool bKeepParams) {
-	return CreateProcessingFlags(m_bHQResampling, m_bAutoContrast, m_bAutoContrastSection, m_bLDC, bKeepParams, m_bLandscapeMode);
+	return CreateProcessingFlags(m_state.m_bHQResampling, m_state.m_bAutoContrast, m_state.m_bAutoContrastSection, m_state.m_bLDC, bKeepParams, m_state.m_bLandscapeMode);
 }
 
 bool CMainDlg::HandleMouseButtonByKeymap(int nMouseButtonCode, bool bExecuteCommand) {
@@ -3337,15 +3345,15 @@ bool CMainDlg::HandleMouseButtonByKeymap(int nMouseButtonCode, bool bExecuteComm
 }
 
 bool CMainDlg::UseSlideShowTransitionEffect() {
-	return m_bFullScreenMode && m_nCurrentTimeout >= 1000 && m_eTransitionEffect != Helpers::TE_None;
+	return m_state.m_bFullScreenMode && m_state.m_nCurrentTimeout >= 1000 && m_state.m_eTransitionEffect != Helpers::TE_None;
 }
 
 void CMainDlg::AnimateTransition() {
 
-	int nFrameTimeMs = (m_eTransitionEffect >= Helpers::TE_RollLR || m_eTransitionEffect <= Helpers::TE_ScrollBT) ? 10 : 20;
+	int nFrameTimeMs = (m_state.m_eTransitionEffect >= Helpers::TE_RollLR || m_state.m_eTransitionEffect <= Helpers::TE_ScrollBT) ? 10 : 20;
 
 	// paint to memory DC
-	int nW = m_clientRect.Width(), nH = m_clientRect.Height();
+	int nW = m_state.m_clientRect.Width(), nH = m_state.m_clientRect.Height();
 	CDC paintDC(::GetDC(m_hWnd));
 	CDC memDC;
 	memDC.CreateCompatibleDC(paintDC);
@@ -3354,7 +3362,7 @@ void CMainDlg::AnimateTransition() {
 	memDC.SelectBitmap(memDCBitmap);
 	PaintToDC(memDC);
 
-	int nSteps = max(1, (m_nTransitionTime + 20) / nFrameTimeMs);
+	int nSteps = max(1, (m_state.m_nTransitionTime + 20) / nFrameTimeMs);
 
 	BLENDFUNCTION blendFunc;
 	memset(&blendFunc, 0, sizeof(blendFunc));
@@ -3364,7 +3372,7 @@ void CMainDlg::AnimateTransition() {
 
 	DWORD lastTime = ::GetTickCount();
 	for (int i = 0; i <= nSteps; i++) {
-		switch (m_eTransitionEffect)
+		switch (m_state.m_eTransitionEffect)
 		{
 		case Helpers::TE_Blend:
 			{
@@ -3385,8 +3393,8 @@ void CMainDlg::AnimateTransition() {
 				float fFactor = (float)(i + 1) / (nSteps + 1);
 				int nFracHeight = (int)(nH * fFactor + 0.5f);
 				int nFracWidth = (int)(nW * fFactor + 0.5f);
-				int nStartX = (m_eTransitionEffect == Helpers::TE_SlideLR) ? nFracWidth - nW : (m_eTransitionEffect == Helpers::TE_SlideRL) ? nW - nFracWidth : 0;
-				int nStartY = (m_eTransitionEffect == Helpers::TE_SlideTB) ? nFracHeight - nH : (m_eTransitionEffect == Helpers::TE_SlideBT) ? nH - nFracHeight : 0;
+				int nStartX = (m_state.m_eTransitionEffect == Helpers::TE_SlideLR) ? nFracWidth - nW : (m_state.m_eTransitionEffect == Helpers::TE_SlideRL) ? nW - nFracWidth : 0;
+				int nStartY = (m_state.m_eTransitionEffect == Helpers::TE_SlideTB) ? nFracHeight - nH : (m_state.m_eTransitionEffect == Helpers::TE_SlideBT) ? nH - nFracHeight : 0;
 				paintDC.BitBlt(nStartX, nStartY, nW, nH, memDC, 0, 0, SRCCOPY);
 				break;
 			}
@@ -3397,11 +3405,11 @@ void CMainDlg::AnimateTransition() {
 			{
 				float fFactor = (float)(i + 1) / (nSteps + 1);
 				int nFracHeight = (int)(nH * fFactor + 0.5f);
-				int nClipH = (m_eTransitionEffect == Helpers::TE_RollLR || m_eTransitionEffect == Helpers::TE_RollRL) ? nH : 1 + nH / (nSteps + 1);
+				int nClipH = (m_state.m_eTransitionEffect == Helpers::TE_RollLR || m_state.m_eTransitionEffect == Helpers::TE_RollRL) ? nH : 1 + nH / (nSteps + 1);
 				int nFracWidth = (int)(nW * fFactor + 0.5f);
-				int nClipW = (m_eTransitionEffect == Helpers::TE_RollTB || m_eTransitionEffect == Helpers::TE_RollBT) ? nW : 1 + nW / (nSteps + 1);
-				int nClipX = (m_eTransitionEffect == Helpers::TE_RollLR) ? nFracWidth - nClipW : (m_eTransitionEffect == Helpers::TE_RollRL) ? nW - nFracWidth : 0;
-				int nClipY = (m_eTransitionEffect == Helpers::TE_RollTB) ? nFracHeight - nClipH : (m_eTransitionEffect == Helpers::TE_RollBT) ? nH - nFracHeight : 0;
+				int nClipW = (m_state.m_eTransitionEffect == Helpers::TE_RollTB || m_state.m_eTransitionEffect == Helpers::TE_RollBT) ? nW : 1 + nW / (nSteps + 1);
+				int nClipX = (m_state.m_eTransitionEffect == Helpers::TE_RollLR) ? nFracWidth - nClipW : (m_state.m_eTransitionEffect == Helpers::TE_RollRL) ? nW - nFracWidth : 0;
+				int nClipY = (m_state.m_eTransitionEffect == Helpers::TE_RollTB) ? nFracHeight - nClipH : (m_state.m_eTransitionEffect == Helpers::TE_RollBT) ? nH - nFracHeight : 0;
 				CRgn region;
 				region.CreateRectRgn(nClipX, nClipY, nClipX + nClipW, nClipY + nClipH);
 				paintDC.SelectClipRgn(region);
@@ -3418,14 +3426,14 @@ void CMainDlg::AnimateTransition() {
 				int nScrollW, nScrollH;
 				int nStartX, nStartY;
 				int nStartClipX, nStartClipY, nEndClipX, nEndClipY;
-				if (m_eTransitionEffect == Helpers::TE_ScrollLR) {
+				if (m_state.m_eTransitionEffect == Helpers::TE_ScrollLR) {
 					nScrollW = (int)(nW * fFactor + 0.5f) - (int)(nW * fFactorLast + 0.5f);
 					nScrollH = 0;
 					nStartX = (int)(nW * fFactor + 0.5f) - nW;
 					nStartY = 0;
 					nStartClipX = nStartClipY = 0;
 					nEndClipX = nScrollW; nEndClipY = nH;
-				} else if (m_eTransitionEffect == Helpers::TE_ScrollRL) {
+				} else if (m_state.m_eTransitionEffect == Helpers::TE_ScrollRL) {
 					nScrollW = - ((int)(nW * fFactor + 0.5f) - (int)(nW * fFactorLast + 0.5f));
 					nScrollH = 0;
 					nStartX = nW - (int)(nW * fFactor + 0.5f);
@@ -3433,7 +3441,7 @@ void CMainDlg::AnimateTransition() {
 					nStartClipX = nW + nScrollW;
 					nStartClipY = 0;
 					nEndClipX = nW; nEndClipY = nH;
-				} else if (m_eTransitionEffect == Helpers::TE_ScrollTB) {
+				} else if (m_state.m_eTransitionEffect == Helpers::TE_ScrollTB) {
 					nScrollW = 0;
 					nScrollH = (int)(nH * fFactor + 0.5f) - (int)(nH * fFactorLast + 0.5f);
 					nStartX = 0;
@@ -3482,64 +3490,64 @@ void CMainDlg::CleanupAndTerminate() {
 }
 	
 void CMainDlg::StartAnimation() {
-	if (m_bIsAnimationPlaying) {
+	if (m_state.m_bIsAnimationPlaying) {
 		return;
 	}
-	m_eProcFlagsBeforeMovie = CreateDefaultProcessingFlags(m_bKeepParams);
-	m_bKeepParametersBeforeAnimation = IsKeepParams();
-	if (!m_bKeepParametersBeforeAnimation) {
+	m_state.m_eProcFlagsBeforeMovie = CreateDefaultProcessingFlags(m_state.m_bKeepParams);
+	m_state.m_bKeepParametersBeforeAnimation = IsKeepParams();
+	if (!m_state.m_bKeepParametersBeforeAnimation) {
 		ExecuteCommand(IDM_KEEP_PARAMETERS);
 	}
-	m_bAutoContrastSection = false;
-	m_bAutoContrast = false;
-	m_bLDC = false;
-	m_bLandscapeMode = false;
-	m_bIsAnimationPlaying = true;
+	m_state.m_bAutoContrastSection = false;
+	m_state.m_bAutoContrast = false;
+	m_state.m_bLDC = false;
+	m_state.m_bLandscapeMode = false;
+	m_state.m_bIsAnimationPlaying = true;
 	int nNewFrameTime = max(10, m_pCurrentImage->FrameTimeMs());
 	::SetTimer(this->m_hWnd, ANIMATION_TIMER_EVENT_ID, nNewFrameTime, NULL);
 	m_pNavPanelCtl->EndNavPanelAnimation();
-	m_nLastSlideShowImageTickCount = ::GetTickCount();
-	m_nLastAnimationOffset = 0;
-	m_nExpectedNextAnimationTickCount = ::GetTickCount() + nNewFrameTime;
+	m_state.m_nLastSlideShowImageTickCount = ::GetTickCount();
+	m_state.m_nLastAnimationOffset = 0;
+	m_state.m_nExpectedNextAnimationTickCount = ::GetTickCount() + nNewFrameTime;
 }
 
 void CMainDlg::AdjustAnimationFrameTime() {
 	// restart timer with new frame time
 	::KillTimer(this->m_hWnd, ANIMATION_TIMER_EVENT_ID);
-	m_nLastAnimationOffset += ::GetTickCount() - m_nExpectedNextAnimationTickCount;
-	m_nLastAnimationOffset = min(m_nLastAnimationOffset, max(100, m_pCurrentImage->FrameTimeMs())); // prevent offset from getting too big
-	int nNewFrameTime = max(10, m_pCurrentImage->FrameTimeMs() - max(0, m_nLastAnimationOffset));
-	m_nExpectedNextAnimationTickCount = ::GetTickCount() + max(10, m_pCurrentImage->FrameTimeMs());
+	m_state.m_nLastAnimationOffset += ::GetTickCount() - m_state.m_nExpectedNextAnimationTickCount;
+	m_state.m_nLastAnimationOffset = min(m_state.m_nLastAnimationOffset, max(100, m_pCurrentImage->FrameTimeMs())); // prevent offset from getting too big
+	int nNewFrameTime = max(10, m_pCurrentImage->FrameTimeMs() - max(0, m_state.m_nLastAnimationOffset));
+	m_state.m_nExpectedNextAnimationTickCount = ::GetTickCount() + max(10, m_pCurrentImage->FrameTimeMs());
 	::SetTimer(this->m_hWnd, ANIMATION_TIMER_EVENT_ID, nNewFrameTime, NULL);
 }
 
 void CMainDlg::StopAnimation() {
-	if (!m_bIsAnimationPlaying) {
+	if (!m_state.m_bIsAnimationPlaying) {
 		return;
 	}
-	if (IsKeepParams() != m_bKeepParametersBeforeAnimation) {
+	if (IsKeepParams() != m_state.m_bKeepParametersBeforeAnimation) {
 		ExecuteCommand(IDM_KEEP_PARAMETERS);
 	}
-	if (GetProcessingFlag(m_eProcFlagsBeforeMovie, PFLAG_AutoContrast)) {
-		m_bAutoContrast = true;
+	if (GetProcessingFlag(m_state.m_eProcFlagsBeforeMovie, PFLAG_AutoContrast)) {
+		m_state.m_bAutoContrast = true;
 	}
-	if (GetProcessingFlag(m_eProcFlagsBeforeMovie, PFLAG_LDC)) {
-		m_bLDC = true;
+	if (GetProcessingFlag(m_state.m_eProcFlagsBeforeMovie, PFLAG_LDC)) {
+		m_state.m_bLDC = true;
 	}
-	if (GetProcessingFlag(m_eProcFlagsBeforeMovie, PFLAG_LandscapeMode)) {
-		m_bLandscapeMode = true;
+	if (GetProcessingFlag(m_state.m_eProcFlagsBeforeMovie, PFLAG_LandscapeMode)) {
+		m_state.m_bLandscapeMode = true;
 	}
 	::KillTimer(this->m_hWnd, ANIMATION_TIMER_EVENT_ID);
-	m_bIsAnimationPlaying = false;
+	m_state.m_bIsAnimationPlaying = false;
 }
 
 void CMainDlg::ToggleAlwaysOnTop() {
 	// toggle the member variable and call the SetWindowPos to set
-	m_bAlwaysOnTop = !m_bAlwaysOnTop;
+	m_state.m_bAlwaysOnTop = !m_state.m_bAlwaysOnTop;
 
 	// SetWindowPos - https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setwindowpos
 	this->SetWindowPos(
-		m_bAlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST,
+		m_state.m_bAlwaysOnTop ? HWND_TOPMOST : HWND_NOTOPMOST,
 		0, 0, 0, 0,
 		SWP_NOMOVE | SWP_NOSIZE  // causes SetWindowPos to ignore the parameters for top/left/width/height
 	);

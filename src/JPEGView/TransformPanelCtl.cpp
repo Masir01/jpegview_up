@@ -1,6 +1,6 @@
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 #include "resource.h"
-#include "MainDlg.h"
+#include "IMainView.h"
 #include "TransformPanelCtl.h"
 #include "TransformPanel.h"
 #include "NavigationPanelCtl.h"
@@ -11,7 +11,7 @@
 #include "KeyMap.h"
 #include "SettingsProvider.h"
 
-CTransformPanelCtl::CTransformPanelCtl(CMainDlg* pMainDlg, CPanel* pImageProcPanel, CTransformPanel* pTransformPanel) : CPanelController(pMainDlg, true) {
+CTransformPanelCtl::CTransformPanelCtl(IMainView* pMainDlg, CPanel* pImageProcPanel, CTransformPanel* pTransformPanel) : CPanelController(pMainDlg, true) {
 	m_bVisible = false;
 	m_bShowGrid = CSettingsProvider::This().RTShowGridLines();
 	m_bAutoCrop = CSettingsProvider::This().RTAutoCrop();

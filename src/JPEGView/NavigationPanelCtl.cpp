@@ -1,6 +1,6 @@
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 #include "resource.h"
-#include "MainDlg.h"
+#include "IMainView.h"
 #include "JPEGImage.h"
 #include "NavigationPanelCtl.h"
 #include "NavigationPanel.h"
@@ -26,7 +26,7 @@ static int GetDeleteCommandId() {
 	}
 }
 
-CNavigationPanelCtl::CNavigationPanelCtl(CMainDlg* pMainDlg, CPanel* pImageProcPanel, bool* pFullScreenMode) : CPanelController(pMainDlg, false) {
+CNavigationPanelCtl::CNavigationPanelCtl(IMainView* pMainDlg, CPanel* pImageProcPanel, bool* pFullScreenMode) : CPanelController(pMainDlg, false) {
 	m_bEnabled = CSettingsProvider::This().ShowNavPanel();
 	m_nMouseX = m_nMouseY = 0;
 	m_bMouseInNavPanel = false;
@@ -36,24 +36,24 @@ CNavigationPanelCtl::CNavigationPanelCtl(CMainDlg* pMainDlg, CPanel* pImageProcP
 	m_nBlendInNavPanelCountdown = 0;
 	m_pMemDCAnimation = NULL;
 	m_hOffScreenBitmapAnimation = NULL;
-	m_pPanel = m_pNavPanel = new CNavigationPanel(pMainDlg->m_hWnd, this, pImageProcPanel, pMainDlg->GetKeyMap(), pFullScreenMode, &(CMainDlg::IsCurrentImageFitToScreen), pMainDlg);
-	m_pNavPanel->GetBtnHome()->SetButtonPressedHandler(&OnGotoImage, this, CMainDlg::POS_First);
-	m_pNavPanel->GetBtnPrev()->SetButtonPressedHandler(&OnGotoImage, this, CMainDlg::POS_Previous);
-	m_pNavPanel->GetBtnNext()->SetButtonPressedHandler(&OnGotoImage, this, CMainDlg::POS_Next);
-	m_pNavPanel->GetBtnEnd()->SetButtonPressedHandler(&OnGotoImage, this, CMainDlg::POS_Last);
+	m_pPanel = m_pNavPanel = new CNavigationPanel(pMainDlg->GetHWND(), this, pImageProcPanel, pMainDlg->GetKeyMap(), pFullScreenMode, &(IsCurrentImageFitToScreen), pMainDlg);
+	m_pNavPanel->GetBtnHome()->SetButtonPressedHandler(&OnGotoImage, this, POS_First);
+	m_pNavPanel->GetBtnPrev()->SetButtonPressedHandler(&OnGotoImage, this, POS_Previous);
+	m_pNavPanel->GetBtnNext()->SetButtonPressedHandler(&OnGotoImage, this, POS_Next);
+	m_pNavPanel->GetBtnEnd()->SetButtonPressedHandler(&OnGotoImage, this, POS_Last);
 	if (CSettingsProvider::This().AllowFileDeletion()) {
-		m_pNavPanel->GetBtnDelete()->SetButtonPressedHandler(&CMainDlg::OnExecuteCommand, pMainDlg, GetDeleteCommandId());
+		m_pNavPanel->GetBtnDelete()->SetButtonPressedHandler(&OnExecuteCommand, pMainDlg, GetDeleteCommandId());
 	}
-	m_pNavPanel->GetBtnZoomMode()->SetButtonPressedHandler(&CMainDlg::OnExecuteCommand, pMainDlg, IDM_ZOOM_MODE, pMainDlg->IsInZoomMode());
+	m_pNavPanel->GetBtnZoomMode()->SetButtonPressedHandler(&OnExecuteCommand, pMainDlg, IDM_ZOOM_MODE, pMainDlg->IsInZoomMode());
 	m_pNavPanel->GetBtnFitToScreen()->SetButtonPressedHandler(&OnToggleZoomFit, this);
 	m_pNavPanel->GetBtnWindowMode()->SetButtonPressedHandler(&OnToggleWindowMode, this);
 	m_pNavPanel->GetBtnRotateCW()->SetButtonPressedHandler(&OnRotate, this, IDM_ROTATE_90);
 	m_pNavPanel->GetBtnRotateCCW()->SetButtonPressedHandler(&OnRotate, this, IDM_ROTATE_270);
-	m_pNavPanel->GetBtnRotateFree()->SetButtonPressedHandler(&CMainDlg::OnExecuteCommand, pMainDlg, IDM_ROTATE);
-	m_pNavPanel->GetBtnPerspectiveCorrection()->SetButtonPressedHandler(&CMainDlg::OnExecuteCommand, pMainDlg, IDM_PERSPECTIVE);
-	m_pNavPanel->GetBtnKeepParams()->SetButtonPressedHandler(&CMainDlg::OnExecuteCommand, pMainDlg, IDM_KEEP_PARAMETERS, pMainDlg->IsKeepParams());
-	m_pNavPanel->GetBtnLandscapeMode()->SetButtonPressedHandler(&CMainDlg::OnExecuteCommand, pMainDlg, IDM_LANDSCAPE_MODE, pMainDlg->IsLandscapeMode());
-	m_pNavPanel->GetBtnShowInfo()->SetButtonPressedHandler(&CMainDlg::OnExecuteCommand, pMainDlg, IDM_SHOW_FILEINFO, pMainDlg->GetEXIFDisplayCtl()->IsActive());
+	m_pNavPanel->GetBtnRotateFree()->SetButtonPressedHandler(&OnExecuteCommand, pMainDlg, IDM_ROTATE);
+	m_pNavPanel->GetBtnPerspectiveCorrection()->SetButtonPressedHandler(&OnExecuteCommand, pMainDlg, IDM_PERSPECTIVE);
+	m_pNavPanel->GetBtnKeepParams()->SetButtonPressedHandler(&OnExecuteCommand, pMainDlg, IDM_KEEP_PARAMETERS, pMainDlg->IsKeepParams());
+	m_pNavPanel->GetBtnLandscapeMode()->SetButtonPressedHandler(&OnExecuteCommand, pMainDlg, IDM_LANDSCAPE_MODE, pMainDlg->IsLandscapeMode());
+	m_pNavPanel->GetBtnShowInfo()->SetButtonPressedHandler(&OnExecuteCommand, pMainDlg, IDM_SHOW_FILEINFO, pMainDlg->GetEXIFDisplayCtl()->IsActive());
 }
 
 CNavigationPanelCtl::~CNavigationPanelCtl() {
@@ -334,7 +334,7 @@ void CNavigationPanelCtl::MoveMouseCursorToButton(CButtonCtrl & sender, const CR
 void CNavigationPanelCtl::OnGotoImage(void* pContext, int nParameter, CButtonCtrl & sender) {
 	CNavigationPanelCtl* pThis = (CNavigationPanelCtl*)pContext;
 	CRect oldRect = pThis->GetPanel()->PanelRect();
-	pThis->m_pMainDlg->GotoImage((CMainDlg::EImagePosition)nParameter);
+	pThis->m_pMainDlg->GotoImage((EImagePosition)nParameter);
 	pThis->MoveMouseCursorToButton(sender, oldRect);
 }
 
@@ -347,7 +347,7 @@ void CNavigationPanelCtl::OnRotate(void* pContext, int nParameter, CButtonCtrl &
 
 void CNavigationPanelCtl::OnToggleZoomFit(void* pContext, int nParameter, CButtonCtrl & sender) {
 	CNavigationPanelCtl* pThis = (CNavigationPanelCtl*)pContext;
-	if (CMainDlg::IsCurrentImageFitToScreen(pThis->m_pMainDlg)) {
+	if (IsCurrentImageFitToScreen(pThis->m_pMainDlg)) {
 		pThis->m_pMainDlg->ResetZoomTo100Percents(pThis->m_pMainDlg->IsMouseOn());
 	} else {
 		pThis->m_pMainDlg->ResetZoomToFitScreen(false, true, true);

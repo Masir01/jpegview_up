@@ -1,6 +1,6 @@
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 #include "resource.h"
-#include "MainDlg.h"
+#include "IMainView.h"
 #include "JPEGImage.h"
 #include "TiltCorrectionPanelCtl.h"
 #include "TiltCorrectionPanel.h"
@@ -12,8 +12,8 @@ static int roundToInt(float value) {
 	return (value > 0) ? (int)(value + 0.5f) : (int)(value - 0.5f);
 }
 
-CTiltCorrectionPanelCtl::CTiltCorrectionPanelCtl(CMainDlg* pMainDlg, CPanel* pImageProcPanel) 
-: CTransformPanelCtl(pMainDlg, pImageProcPanel, new CTiltCorrectionPanel(pMainDlg->m_hWnd, this, pImageProcPanel)) {
+CTiltCorrectionPanelCtl::CTiltCorrectionPanelCtl(IMainView* pMainDlg, CPanel* pImageProcPanel) 
+: CTransformPanelCtl(pMainDlg, pImageProcPanel, new CTiltCorrectionPanel(pMainDlg->GetHWND(), this, pImageProcPanel)) {
 	m_pTransformPanel->GetTextHint()->SetText(
 		CString(CNLS::GetString(_T("Click and drag the mouse vertically to correct image tilt."))) + _T("\n") + 
 		CNLS::GetString(_T("Drag at the left or right border for asymmetric correction.")));

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "PanelController.h"
 
@@ -10,7 +10,7 @@ class CImageProcPanelCtl : public CPanelController
 {
 public:
 	// The given image processing parameters are modified by this panel, the same applied to the given boolean values
-	CImageProcPanelCtl(CMainDlg* pMainDlg, CImageProcessingParams* pParams, bool* pEnableLDC, bool* pEnableContrastCorr);
+	CImageProcPanelCtl(IMainView* pMainDlg, CImageProcessingParams* pParams, bool* pEnableLDC, bool* pEnableContrastCorr);
 	virtual ~CImageProcPanelCtl();
 
 	virtual float DimFactor() { return 0.5f; }

@@ -1,16 +1,16 @@
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 #include "resource.h"
-#include "MainDlg.h"
+#include "IMainView.h"
 #include "WndButtonPanelCtl.h"
 #include "WndButtonPanel.h"
 
-CWndButtonPanelCtl::CWndButtonPanelCtl(CMainDlg* pMainDlg, CPanel* pImageProcPanel) : CPanelController(pMainDlg, false) {
+CWndButtonPanelCtl::CWndButtonPanelCtl(IMainView* pMainDlg, CPanel* pImageProcPanel) : CPanelController(pMainDlg, false) {
 	m_bVisible = false;
 	m_nOldMouseY = 0;
 	m_pPanel = m_pWndButtonPanel = new CWndButtonPanel(pMainDlg->GetHWND(), this, pImageProcPanel);
-	m_pWndButtonPanel->GetBtnMinimize()->SetButtonPressedHandler(&(CMainDlg::OnExecuteCommand), pMainDlg, IDM_MINIMIZE);
-	m_pWndButtonPanel->GetBtnRestore()->SetButtonPressedHandler(&(CMainDlg::OnExecuteCommand), pMainDlg, IDM_FULL_SCREEN_MODE);
-	m_pWndButtonPanel->GetBtnClose()->SetButtonPressedHandler(&(CMainDlg::OnExecuteCommand), pMainDlg, IDM_EXIT);;
+	m_pWndButtonPanel->GetBtnMinimize()->SetButtonPressedHandler(&(OnExecuteCommand), pMainDlg, IDM_MINIMIZE);
+	m_pWndButtonPanel->GetBtnRestore()->SetButtonPressedHandler(&(OnExecuteCommand), pMainDlg, IDM_FULL_SCREEN_MODE);
+	m_pWndButtonPanel->GetBtnClose()->SetButtonPressedHandler(&(OnExecuteCommand), pMainDlg, IDM_EXIT);;
 }
 
 CWndButtonPanelCtl::~CWndButtonPanelCtl() {

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "PanelController.h"
 
@@ -9,7 +9,7 @@ class CNavigationPanelCtl : public CPanelController
 {
 public:
 	// Sets the pFullScreenMode when corresponding button is pressed
-	CNavigationPanelCtl(CMainDlg* pMainDlg, CPanel* pImageProcPanel, bool* pFullScreenMode);
+	CNavigationPanelCtl(IMainView* pMainDlg, CPanel* pImageProcPanel, bool* pFullScreenMode);
 	virtual ~CNavigationPanelCtl();
 
 	// Current blending factor with background, 1 -> fully visible, 0 -> invisible

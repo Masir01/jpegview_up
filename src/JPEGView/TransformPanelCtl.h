@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "PanelController.h"
 #include "ProcessParams.h"
@@ -9,7 +9,7 @@ class CTransformPanel;
 class CTransformPanelCtl : public CPanelController
 {
 public:
-	CTransformPanelCtl(CMainDlg* pMainDlg, CPanel* pImageProcPanel, CTransformPanel* pTransformPanel);
+	CTransformPanelCtl(IMainView* pMainDlg, CPanel* pImageProcPanel, CTransformPanel* pTransformPanel);
 	virtual ~CTransformPanelCtl();
 
 	virtual float DimFactor() { return 0.5f; }

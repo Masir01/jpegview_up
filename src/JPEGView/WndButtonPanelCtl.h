@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "PanelController.h"
 
@@ -8,7 +8,7 @@ class CWndButtonPanel;
 class CWndButtonPanelCtl : public CPanelController
 {
 public:
-	CWndButtonPanelCtl(CMainDlg* pMainDlg, CPanel* pImageProcPanel);
+	CWndButtonPanelCtl(IMainView* pMainDlg, CPanel* pImageProcPanel);
 	virtual ~CWndButtonPanelCtl();
 
 	virtual float DimFactor() { return 0.1f; }

@@ -1,6 +1,6 @@
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 #include "resource.h"
-#include "MainDlg.h"
+#include "IMainView.h"
 #include "JPEGImage.h"
 #include "CropCtl.h"
 #include "PanelMgr.h"
@@ -45,7 +45,7 @@ static bool PointDifferenceSmall(const CPoint& p1, const CPoint& p2) {
 	return abs(p1.x - p2.x) < 2 && abs(p1.y - p2.y) < 2;
 }
 
-CCropCtl::CCropCtl(CMainDlg* pMainDlg) {
+CCropCtl::CCropCtl(IMainView* pMainDlg) {
 	m_pMainDlg = pMainDlg;
 	m_bCropping = false;
 	m_bDoCropping = false;

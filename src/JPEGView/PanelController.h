@@ -1,8 +1,8 @@
-#pragma once
+﻿#pragma once
 
 #include "Panel.h"
 
-class CMainDlg;
+class IMainView;
 class CJPEGImage;
 
 // Abstract base class for the panel controllers
@@ -13,7 +13,7 @@ class CPanelController : public INotifiyMouseCapture
 public:
 	// Binds controller with main dialog. A modal panel means that no other modal panel can be active at the same time.
 	// The image processing panel, navigation panel and window buttons are also disabled for a modal panel.
-	CPanelController(CMainDlg* pMainDlg, bool bIsModal);
+	CPanelController(IMainView* pMainDlg, bool bIsModal);
 	virtual ~CPanelController() {}
 
 	bool IsModal() { return m_bIsModal; }
@@ -54,7 +54,7 @@ protected:
 	// Implementation of INotifiyMouseCapture, called by CPanel
 	virtual void MouseCapturedOrReleased(bool bCaptured, CUICtrl* pCtrl);
 
-	CMainDlg* m_pMainDlg;
+	IMainView* m_pMainDlg;
 	CPanel* m_pPanel;
 	bool m_bIsModal;
 };

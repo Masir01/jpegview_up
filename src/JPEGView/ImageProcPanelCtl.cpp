@@ -1,6 +1,6 @@
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 #include "resource.h"
-#include "MainDlg.h"
+#include "IMainView.h"
 #include "JPEGImage.h"
 #include "JPEGProvider.h"
 #include "PanelMgr.h"
@@ -19,15 +19,15 @@
 #include "Helpers.h"
 #include "NLS.h"
 
-CImageProcPanelCtl::CImageProcPanelCtl(CMainDlg* pMainDlg, CImageProcessingParams* pParams, bool* pEnableLDC, bool* pEnableContrastCorr) 
+CImageProcPanelCtl::CImageProcPanelCtl(IMainView* pMainDlg, CImageProcessingParams* pParams, bool* pEnableLDC, bool* pEnableContrastCorr) 
 : CPanelController(pMainDlg, false) {
 	m_bEnabled = CSettingsProvider::This().ShowBottomPanel();
 	m_bVisible = false;
 	m_nOldMouseY = 0;
 	m_pPanel = m_pImageProcPanel = new CImageProcessingPanel(pMainDlg->GetHWND(), this, pParams, pEnableLDC, pEnableContrastCorr);
 	m_pImageProcPanel->GetBtnUnsharpMask()->SetButtonPressedHandler(&OnUnsharpMask, this);
-	m_pImageProcPanel->GetBtnSaveTo()->SetButtonPressedHandler(&(CMainDlg::OnExecuteCommand), pMainDlg, IDM_SAVE_PARAM_DB);
-	m_pImageProcPanel->GetBtnRemoveFrom()->SetButtonPressedHandler(&(CMainDlg::OnExecuteCommand), pMainDlg, IDM_CLEAR_PARAM_DB);
+	m_pImageProcPanel->GetBtnSaveTo()->SetButtonPressedHandler(&(OnExecuteCommand), pMainDlg, IDM_SAVE_PARAM_DB);
+	m_pImageProcPanel->GetBtnRemoveFrom()->SetButtonPressedHandler(&(OnExecuteCommand), pMainDlg, IDM_CLEAR_PARAM_DB);
 	m_pImageProcPanel->GetTextFilename()->SetTextChangedHandler(&OnRenameFile, this);
 }
 

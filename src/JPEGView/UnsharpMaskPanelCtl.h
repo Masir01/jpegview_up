@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "PanelController.h"
 #include "ProcessParams.h"
@@ -9,7 +9,7 @@ class CUnsharpMaskPanel;
 class CUnsharpMaskPanelCtl : public CPanelController
 {
 public:
-	CUnsharpMaskPanelCtl(CMainDlg* pMainDlg, CPanel* pImageProcPanel);
+	CUnsharpMaskPanelCtl(IMainView* pMainDlg, CPanel* pImageProcPanel);
 	virtual ~CUnsharpMaskPanelCtl();
 
 	virtual float DimFactor() { return 0.5f; }

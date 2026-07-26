@@ -1,6 +1,6 @@
 ﻿#include "StdAfx.h"
 #include "resource.h"
-#include "MainDlg.h"
+#include "IMainView.h"
 #include "JPEGImage.h"
 #include "RotationPanelCtl.h"
 #include "RotationPanel.h"
@@ -8,8 +8,8 @@
 #include "Helpers.h"
 #include <math.h>
 
-CRotationPanelCtl::CRotationPanelCtl(CMainDlg* pMainDlg, CPanel* pImageProcPanel) 
-: CTransformPanelCtl(pMainDlg, pImageProcPanel, new CRotationPanel(pMainDlg->m_hWnd, this, pImageProcPanel)) {
+CRotationPanelCtl::CRotationPanelCtl(IMainView* pMainDlg, CPanel* pImageProcPanel) 
+: CTransformPanelCtl(pMainDlg, pImageProcPanel, new CRotationPanel(pMainDlg->GetHWND(), this, pImageProcPanel)) {
 
 	m_bOriginalShowGrid = m_bShowGrid;
 	m_bRotationModeAssisted = false;

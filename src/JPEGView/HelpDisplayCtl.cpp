@@ -1,6 +1,6 @@
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 #include "resource.h"
-#include "MainDlg.h"
+#include "IMainView.h"
 #include "HelpDisplayCtl.h"
 #include "HelpDisplay.h"
 #include "NLS.h"
@@ -13,7 +13,7 @@
 #include "SettingsProvider.h"
 #include "KeyMap.h"
 
-CHelpDisplayCtl::CHelpDisplayCtl(CMainDlg* pMainDlg, CDC& dc, const CImageProcessingParams* pImageProcParams) {
+CHelpDisplayCtl::CHelpDisplayCtl(IMainView* pMainDlg, CDC& dc, const CImageProcessingParams* pImageProcParams) {
 	m_pMainDlg = pMainDlg;
 	m_pImageProcParams = pImageProcParams;
 	m_pHelpDisplay = new CHelpDisplay(dc);

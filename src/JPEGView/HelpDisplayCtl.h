@@ -1,6 +1,6 @@
-#pragma once
+﻿#pragma once
 
-class CMainDlg;
+class IMainView;
 class CHelpDisplay;
 class CImageProcessingParams;
 
@@ -8,7 +8,7 @@ class CImageProcessingParams;
 // This is not a CPanelController because the help display is not a CPanel (not painted to offscreen bitmap)
 class CHelpDisplayCtl {
 public:
-	CHelpDisplayCtl(CMainDlg* pMainDlg, CDC& dc, const CImageProcessingParams* pImageProcParams);
+	CHelpDisplayCtl(IMainView* pMainDlg, CDC& dc, const CImageProcessingParams* pImageProcParams);
 	virtual ~CHelpDisplayCtl();
 
 	CRect PanelRect() { return m_panelRect; }
@@ -19,7 +19,7 @@ public:
 private:
 	const CImageProcessingParams* m_pImageProcParams;
 	CHelpDisplay* m_pHelpDisplay;
-	CMainDlg* m_pMainDlg;
+	IMainView* m_pMainDlg;
 	CRect m_panelRect;
 	CRect m_helpDisplayRect;
 

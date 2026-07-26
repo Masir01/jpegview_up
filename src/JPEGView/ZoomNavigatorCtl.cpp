@@ -1,13 +1,13 @@
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 #include "resource.h"
-#include "MainDlg.h"
+#include "IMainView.h"
 #include "JPEGImage.h"
 #include "ZoomNavigatorCtl.h"
 #include "NavigationPanelCtl.h"
 #include "SettingsProvider.h"
 #include "Panel.h"
 
-CZoomNavigatorCtl::CZoomNavigatorCtl(CMainDlg* pMainDlg, CPanel* pImageProcPanel, CPanel* pNavigationPanel) {
+CZoomNavigatorCtl::CZoomNavigatorCtl(IMainView* pMainDlg, CPanel* pImageProcPanel, CPanel* pNavigationPanel) {
 	m_pMainDlg = pMainDlg;
 	m_pImageProcPanel = pImageProcPanel;
 	m_pNavigationPanel = pNavigationPanel;

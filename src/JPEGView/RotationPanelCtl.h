@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "TransformPanelCtl.h"
 #include "ProcessParams.h"
@@ -7,7 +7,7 @@
 class CRotationPanelCtl : public CTransformPanelCtl
 {
 public:
-	CRotationPanelCtl(CMainDlg* pMainDlg, CPanel* pImageProcPanel);
+	CRotationPanelCtl(IMainView* pMainDlg, CPanel* pImageProcPanel);
 
 	virtual void OnPostPaintMainDlg(HDC hPaintDC);
 

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "PanelController.h"
 
@@ -8,7 +8,7 @@ class CEXIFDisplay;
 class CEXIFDisplayCtl : public CPanelController
 {
 public:
-	CEXIFDisplayCtl(CMainDlg* pMainDlg, CPanel* pImageProcPanel);
+	CEXIFDisplayCtl(IMainView* pMainDlg, CPanel* pImageProcPanel);
 	virtual ~CEXIFDisplayCtl();
 
 	virtual float DimFactor() { return 0.5f; }

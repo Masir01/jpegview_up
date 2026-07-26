@@ -1,6 +1,6 @@
 ﻿#include "StdAfx.h"
 #include "resource.h"
-#include "MainDlg.h"
+#include "IMainView.h"
 #include "JPEGImage.h"
 #include "EXIFDisplayCtl.h"
 #include "EXIFDisplay.h"
@@ -48,11 +48,11 @@ static CString CreateGPSURL(GPSCoordinate* latitude, GPSCoordinate* longitude) {
 	return mapProvider;
 }
 
-CEXIFDisplayCtl::CEXIFDisplayCtl(CMainDlg* pMainDlg, CPanel* pImageProcPanel) : CPanelController(pMainDlg, false) {
+CEXIFDisplayCtl::CEXIFDisplayCtl(IMainView* pMainDlg, CPanel* pImageProcPanel) : CPanelController(pMainDlg, false) {
 	m_bVisible = CSettingsProvider::This().ShowFileInfo();
 	m_nFileNameHeight = 0;
 	m_pImageProcPanel = pImageProcPanel;
-	m_pPanel = m_pEXIFDisplay = new CEXIFDisplay(pMainDlg->m_hWnd, this);
+	m_pPanel = m_pEXIFDisplay = new CEXIFDisplay(pMainDlg->GetHWND(), this);
 	m_pEXIFDisplay->GetControl<CButtonCtrl*>(CEXIFDisplay::ID_btnShowHideHistogram)->SetButtonPressedHandler(&OnShowHistogram, this);
 	CButtonCtrl* pCloseBtn = m_pEXIFDisplay->GetControl<CButtonCtrl*>(CEXIFDisplay::ID_btnClose);
 	pCloseBtn->SetButtonPressedHandler(&OnClose, this);

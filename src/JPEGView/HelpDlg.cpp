@@ -1,7 +1,7 @@
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 #include "HelpDlg.h"
 #include "NLS.h"
-#include "MainDlg.h"
+#include "IMainView.h"
 #include "HelpDisplayCtl.h"
 #include "MultiMonitorSupport.h"
 
@@ -9,7 +9,7 @@
 // Class implementation
 ///////////////////////////////////////////////////////////////////////////////////
 
-CHelpDlg::CHelpDlg(CMainDlg* pOwner) {
+CHelpDlg::CHelpDlg(IMainView* pOwner) {
 	m_pOwner = pOwner;
 	m_isDestoyed = false;
 }

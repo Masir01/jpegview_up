@@ -1,4 +1,4 @@
-// Main dialog of JPEGView
+﻿// Main dialog of JPEGView
 /////////////////////////////////////////////////////////////////////////////
 
 #pragma once
@@ -6,6 +6,8 @@
 #include "MessageDef.h"
 #include "ProcessParams.h"
 #include "Helpers.h"
+#include "IMainView.h"
+#include "AppState.h"
 #include "CropCtl.h"
 
 class CFileList;
@@ -35,24 +37,15 @@ enum EMouseEvent;
 
 // The main dialog is a full screen modal dialog with no border and no window title.
 // This dialog is the main window of the JPEGView application.
-class CMainDlg : public CDialogImpl<CMainDlg>
+class CMainDlg : public CDialogImpl<CMainDlg>, public IMainView
 {
+	// Free button-callback helpers (see IMainView.h) need access to private state/methods
+	friend void OnExecuteCommand(void* pContext, int nParameter, CButtonCtrl& sender);
+	friend bool IsCurrentImageFitToScreen(void* pContext);
 public:
 	enum { IDD = IDD_MAINDLG };
 
-	// Used in GotoImage() call
-	enum EImagePosition {
-		POS_First,
-		POS_Last,
-		POS_Next,
-		POS_NextSlideShow,
-		POS_NextAnimation,
-		POS_Previous,
-		POS_Current,
-		POS_Clipboard,
-		POS_Toggle,
-		POS_AwayFromCurrent
-	};
+
 
 	CMainDlg(bool bForceFullScreen);
 	~CMainDlg();
@@ -140,31 +133,31 @@ public:
 
 	// Called by the different controller classes
 	HWND GetHWND() { return m_hWnd; }
-	bool IsShowFileName() { return m_bShowFileName; }
-	bool IsInMovieMode() { return m_bMovieMode; }
-	bool IsInZoomMode() { return m_bZoomModeOnLeftMouse; }
-	bool IsPlayingAnimation() { return m_bIsAnimationPlaying; }
-	bool IsFullScreenMode() { return m_bFullScreenMode; }
-	bool IsLandscapeMode() { return m_bLandscapeMode; }
-	bool IsHQResampling() { return m_bHQResampling; }
-	bool IsAutoContrast() { return m_bAutoContrast; }
-	bool IsAutoContrastSection() { return m_bAutoContrastSection; }
-	bool IsLDC() { return m_bLDC; }
-	bool IsKeepParams() { return m_bKeepParams; }
-	bool IsSpanVirtualDesktop() { return m_bSpanVirtualDesktop; }
+	bool IsShowFileName() { return m_state.m_bShowFileName; }
+	bool IsInMovieMode() { return m_state.m_bMovieMode; }
+	bool IsInZoomMode() { return m_state.m_bZoomModeOnLeftMouse; }
+	bool IsPlayingAnimation() { return m_state.m_bIsAnimationPlaying; }
+	bool IsFullScreenMode() { return m_state.m_bFullScreenMode; }
+	bool IsLandscapeMode() { return m_state.m_bLandscapeMode; }
+	bool IsHQResampling() { return m_state.m_bHQResampling; }
+	bool IsAutoContrast() { return m_state.m_bAutoContrast; }
+	bool IsAutoContrastSection() { return m_state.m_bAutoContrastSection; }
+	bool IsLDC() { return m_state.m_bLDC; }
+	bool IsKeepParams() { return m_state.m_bKeepParams; }
+	bool IsSpanVirtualDesktop() { return m_state.m_bSpanVirtualDesktop; }
 	bool IsCropping() { return m_pCropCtl->IsCropping(); }
 	bool IsDoCropping() { return m_pCropCtl->IsDoCropping(); }
-	bool IsDoDragging() { return m_bDoDragging; }
-	bool IsInZooming() { return m_bInZooming; }
-	bool IsShowZoomFactor() { return m_bShowZoomFactor; }
-	bool IsPanMouseCursorSet() { return m_bPanMouseCursorSet; }
-	bool IsMouseOn() { return m_bMouseOn; }
-	bool IsWindowBorderless() { return m_bWindowBorderless; }
-	bool IsAlwaysOnTop() { return m_bAlwaysOnTop; }
+	bool IsDoDragging() { return m_state.m_bDoDragging; }
+	bool IsInZooming() { return m_state.m_bInZooming; }
+	bool IsShowZoomFactor() { return m_state.m_bShowZoomFactor; }
+	bool IsPanMouseCursorSet() { return m_state.m_bPanMouseCursorSet; }
+	bool IsMouseOn() { return m_state.m_bMouseOn; }
+	bool IsWindowBorderless() { return m_state.m_bWindowBorderless; }
+	bool IsAlwaysOnTop() { return m_state.m_bAlwaysOnTop; }
 
-	CPoint GetMousePos() { return CPoint(m_nMouseX, m_nMouseY); }
-	double GetZoom() { return m_dZoom; }
-	int GetRotation() { return m_nRotation; }
+	CPoint GetMousePos() { return CPoint(m_state.m_nMouseX, m_state.m_nMouseY); }
+	double GetZoom() { return m_state.m_dZoom; }
+	int GetRotation() { return m_state.m_nRotation; }
 	CJPEGImage* GetCurrentImage() { return m_pCurrentImage; }
 	CPanelMgr* GetPanelMgr() { return m_pPanelMgr; }
 	LPCTSTR CurrentFileName(bool bFileTitle);
@@ -179,17 +172,17 @@ public:
 	CWndButtonPanelCtl* GetWndButtonPanelCtl() { return m_pWndButtonPanelCtl; }
 	CInfoButtonPanelCtl* GetInfoButtonPanelCtl() { return m_pInfoButtonPanelCtl; }
 	CCropCtl* GetCropCtl() { return m_pCropCtl; }
-	const CRect& ClientRect() { return m_clientRect; }
-	const CRect& WindowRectOnClose() { return m_windowRectOnClose; } // only valid after having closed the window
-	const CRect& MonitorRect() { return m_monitorRect; }
-	const CSize& VirtualImageSize() { return m_virtualImageSize; }
+	const CRect& ClientRect() { return m_state.m_clientRect; }
+	const CRect& WindowRectOnClose() { return m_state.m_windowRectOnClose; } // only valid after having closed the window
+	const CRect& MonitorRect() { return m_state.m_monitorRect; }
+	const CSize& VirtualImageSize() { return m_state.m_virtualImageSize; }
 	CJPEGProvider* GetJPEGProvider() { return m_pJPEGProvider; }
 	CKeyMap* GetKeyMap() { return m_pKeyMap; }
-	CPoint GetDIBOffset() { return m_DIBOffsets; }
+	CPoint GetDIBOffset() { return m_state.m_DIBOffsets; }
 	double GetZoomMultiplier(CJPEGImage* pImage, const CRect& clientRect);
-	Helpers::EAutoZoomMode GetAutoZoomMode() { return m_bFullScreenMode ? m_eAutoZoomModeFullscreen : m_eAutoZoomModeWindowed; }
-	CPoint GetOffsets() { return m_offsets; }
-	CImageProcessingParams* GetImageProcessingParams() { return m_pImageProcParams; }
+	Helpers::EAutoZoomMode GetAutoZoomMode() { return m_state.m_bFullScreenMode ? m_state.m_eAutoZoomModeFullscreen : m_state.m_eAutoZoomModeWindowed; }
+	CPoint GetOffsets() { return m_state.m_offsets; }
+	CImageProcessingParams* GetImageProcessingParams() { return m_state.m_pImageProcParams; }
 	EProcessingFlags CreateDefaultProcessingFlags(bool bKeepParams = false);
 	void DisplayErrors(CJPEGImage* pCurrentImage, const CRect& clientRect, CDC& dc);
 	void DisplayFileName(const CRect& imageProcessingArea, CDC& dc, double realizedZoom);
@@ -215,14 +208,18 @@ public:
 	void AdjustWindowToImage(bool bAfterStartup);
 	bool IsAdjustWindowToImage();
 	bool IsImageExactlyFittingWindow();
-	Helpers::ETransitionEffect GetTransitionEffect() { return m_eTransitionEffect; }
-	int GetTransitionTime() { return m_nTransitionTime; }
-	bool IsInSlideShowWithTransition() { return m_bMovieMode && UseSlideShowTransitionEffect(); }
+	Helpers::ETransitionEffect GetTransitionEffect() { return m_state.m_eTransitionEffect; }
+	int GetTransitionTime() { return m_state.m_nTransitionTime; }
+	bool IsInSlideShowWithTransition() { return m_state.m_bMovieMode && UseSlideShowTransitionEffect(); }
 
-	// Called by button clicked handlers - must be static
-	// pContext is a pointer to the main dialog
-	static void OnExecuteCommand(void* pContext, int nParameter, CButtonCtrl & sender);
-	static bool IsCurrentImageFitToScreen(void* pContext);
+	// CWindow pass-through methods so controllers can call window methods via IMainView*
+	void Invalidate(BOOL bErase = TRUE);
+	void InvalidateRect(LPCRECT lpRect, BOOL bErase = TRUE);
+	HDC GetDC();
+	int ReleaseDC(HDC hDC);
+	BOOL ScreenToClient(LPPOINT lpPoint);
+	BOOL ClientToScreen(LPPOINT lpPoint);
+	BOOL UpdateWindow();
 
 private:
 
@@ -238,80 +235,10 @@ private:
 	bool m_bExceptionErrorLastImage; // true if the last image could not be requested because of an unhandled exception
 	int m_nLastLoadError; // one of HelpersGUI::EFileLoadError
 	
-	// Current parameter set
-	int m_nRotation; // this can only be 0, 90, 180 or 270
-	int m_nUserRotation; // Rotation delta from user, can only be 0, 90, 180 or 270
-	bool m_bUserZoom;
-	bool m_bUserPan; // user has zoomed and panned away from default values
-	bool m_bResizeForNewImage;
-	double m_dZoom, m_dRealizedZoom;
-	double m_dStartZoom; // zoom when start zoomin in zoom mode
-	double m_dZoomAtResizeStart; // zoom factor when user started resizing JPEGView main window
-	double m_dZoomMult;
-	bool m_bZoomMode;
-	bool m_bZoomModeOnLeftMouse;
-	Helpers::EAutoZoomMode m_eAutoZoomModeWindowed;
-	Helpers::EAutoZoomMode m_eAutoZoomModeFullscreen;
-	Helpers::EAutoZoomMode m_autoZoomFitToScreen;
-	bool m_isUserFitToScreen;
+	// Application state (extracted from CMainDlg to reduce coupling; see AppState.h)
+	CAppState m_state;
 
-	CImageProcessingParams* m_pImageProcParams;
-	bool m_bHQResampling;
-	bool m_bAutoContrast;
-	bool m_bAutoContrastSection;
-	bool m_bLDC;
-	bool m_bLandscapeMode;
-	bool m_bKeepParams;
-
-	// used to enable switch between two sets of parameters with CTRL-A
-	CImageProcessingParams* m_pImageProcParams2;
-	EProcessingFlags m_eProcessingFlags2;
-
-	// set of parameters used when m_bKeepParams is true
-	CImageProcessingParams* m_pImageProcParamsKept;
-	EProcessingFlags m_eProcessingFlagsKept;
-	double m_dZoomKept;
-	CPoint m_offsetKept;
-	bool m_bCurrentImageInParamDB;
-	bool m_bCurrentImageIsSpecialProcessing;
-	double m_dCurrentInitialLightenShadows;
-
-	bool m_bDragging;
-	bool m_bDoDragging;
-	bool m_bMovieMode;
-	double m_dMovieFPS;
-	bool m_bProcFlagsTouched;
-	EProcessingFlags m_eProcFlagsBeforeMovie;
-	bool m_bInTrackPopupMenu;
-	CPoint m_offsets; // Note: These offsets are center of image based
-	CPoint m_DIBOffsets;
-	int m_nCapturedX, m_nCapturedY;
-	int m_nMouseX, m_nMouseY;
-	bool m_bDefaultSelectionMode;
-	bool m_bShowFileName;
-	bool m_bFullScreenMode;
-	bool m_bAutoFitWndToImage;
-	bool m_bLockPaint;
-	int m_nCurrentTimeout;
-	POINT m_startMouse;
-	CSize m_virtualImageSize;
-	bool m_bInZooming;
-	bool m_bTemporaryLowQ;
-	bool m_bShowZoomFactor;
-	bool m_bSpanVirtualDesktop;
-	bool m_bPanMouseCursorSet;
-	bool m_bMouseOn;
-	bool m_bKeepParametersBeforeAnimation;
-	bool m_bIsAnimationPlaying;
-	int m_nLastAnimationOffset;
-	int m_nExpectedNextAnimationTickCount;
-	int m_nMonitor;
-	WINDOWPLACEMENT m_storedWindowPlacement;
-	CRect m_monitorRect;
-	CRect m_clientRect;
-	CRect m_windowRectOnClose;
-	CString m_sSaveDirectory;
-	CString m_sSaveExtension;
+	// Owned sub-objects (services and controllers) - kept in CMainDlg
 	CCropCtl* m_pCropCtl;
 	CZoomNavigatorCtl* m_pZoomNavigatorCtl;
 	CImageProcPanelCtl* m_pImageProcPanelCtl;
@@ -326,15 +253,6 @@ private:
 	CKeyMap* m_pKeyMap;
 	CPrintImage* m_pPrintImage;
 	CHelpDlg* m_pHelpDlg;
-	Helpers::ETransitionEffect m_eTransitionEffect;
-	int m_nTransitionTime;
-	DWORD m_nLastSlideShowImageTickCount;
-	bool m_bUseLosslessWEBP;
-	bool m_isBeforeFileSelected;
-	double m_dLastImageDisplayTime;
-	bool m_bWindowBorderless;
-	bool m_bAlwaysOnTop;
-	bool m_bSelectZoom;  // keeps track of select-to-zoom mode when CTRL+SHIFT+LMouse
 
 	void ExploreFile();
 	bool OpenFileWithDialog(bool bFullScreen, bool bAfterStartup);

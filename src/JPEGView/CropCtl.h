@@ -1,6 +1,6 @@
-#pragma once
+﻿#pragma once
 
-class CMainDlg;
+class IMainView;
 
 // Implements cropping functionality. Binds to main dialog.
 class CCropCtl {
@@ -25,7 +25,7 @@ public:
 		CM_FixedAspectRatioImage
 	};
 public:
-	CCropCtl(CMainDlg* pMainDlg);
+	CCropCtl(IMainView* pMainDlg);
 
 	bool IsCropping() { return m_bCropping; } // during cropping
 	bool IsDoCropping() { return m_bDoCropping; } // during cropping and cropping rectangle visible
@@ -65,7 +65,7 @@ public:
 	int ShowCropContextMenu();
 
 private:
-	CMainDlg* m_pMainDlg;
+	IMainView* m_pMainDlg;
 	CPoint m_cropStart;
 	CPoint m_cropEnd;
 	bool m_bCropping;

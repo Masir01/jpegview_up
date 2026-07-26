@@ -1,15 +1,15 @@
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 #include "resource.h"
-#include "MainDlg.h"
+#include "IMainView.h"
 #include "InfoButtonPanelCtl.h"
 #include "InfoButtonPanel.h"
 #include "EXIFDisplayCtl.h"
 
-CInfoButtonPanelCtl::CInfoButtonPanelCtl(CMainDlg* pMainDlg, CPanel* pImageProcPanel) : CPanelController(pMainDlg, false) {
+CInfoButtonPanelCtl::CInfoButtonPanelCtl(IMainView* pMainDlg, CPanel* pImageProcPanel) : CPanelController(pMainDlg, false) {
 	m_bVisible = false;
 	m_nOldMouseY = 0;
 	m_pPanel = m_pInfoButtonPanel = new CInfoButtonPanel(pMainDlg->GetHWND(), this, pImageProcPanel);
-	m_pInfoButtonPanel->GetBtnInfo()->SetButtonPressedHandler(&CMainDlg::OnExecuteCommand, pMainDlg, IDM_SHOW_FILEINFO);
+	m_pInfoButtonPanel->GetBtnInfo()->SetButtonPressedHandler(&OnExecuteCommand, pMainDlg, IDM_SHOW_FILEINFO);
 }
 
 CInfoButtonPanelCtl::~CInfoButtonPanelCtl() {

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "TransformPanelCtl.h"
 #include "ProcessParams.h"
@@ -7,7 +7,7 @@
 class CTiltCorrectionPanelCtl : public CTransformPanelCtl
 {
 public:
-	CTiltCorrectionPanelCtl(CMainDlg* pMainDlg, CPanel* pImageProcPanel);
+	CTiltCorrectionPanelCtl(IMainView* pMainDlg, CPanel* pImageProcPanel);
 
 	// Gets a rotated DIB with the current rotation angle(GetLQRotationAngle) using point sampling
 	// The returned DIB has size clippingSize.

@@ -1,9 +1,10 @@
-#pragma once
+﻿#pragma once
 
 #include "ProcessParams.h"
 #include "ZoomNavigator.h"
+#include "GUIControls.h" // for EMouseEvent used in OnMouseLButton()
 
-class CMainDlg;
+class IMainView;
 class CPanel;
 
 // Implements functionality of the zoom navigator.
@@ -11,7 +12,7 @@ class CPanel;
 class CZoomNavigatorCtl
 {
 public:
-	CZoomNavigatorCtl(CMainDlg* pMainDlg, CPanel* pImageProcPanel, CPanel* pNavigationPanel);
+	CZoomNavigatorCtl(IMainView* pMainDlg, CPanel* pImageProcPanel, CPanel* pNavigationPanel);
 
 	bool IsVisible();
 	bool IsActive();
@@ -40,7 +41,7 @@ public:
 	static CRectF GetVisibleRect(CSize sizeFull, CSize sizeClipped, CPoint offset);
 
 private:
-	CMainDlg* m_pMainDlg;
+	IMainView* m_pMainDlg;
 	CPanel* m_pImageProcPanel;
 	CPanel* m_pNavigationPanel;
 	bool m_bDragging;

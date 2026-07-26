@@ -1,10 +1,10 @@
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 #include "PanelController.h"
 #include "resource.h"
-#include "MainDlg.h"
+#include "IMainView.h"
 #include "PanelMgr.h"
 
-CPanelController::CPanelController(CMainDlg* pMainDlg, bool bIsModal) { 
+CPanelController::CPanelController(IMainView* pMainDlg, bool bIsModal) { 
 	m_pMainDlg = pMainDlg;
 	m_bIsModal = bIsModal;
 	m_pPanel = NULL;

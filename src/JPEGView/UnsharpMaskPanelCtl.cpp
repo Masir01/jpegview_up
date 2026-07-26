@@ -1,6 +1,6 @@
-#include "StdAfx.h"
+﻿#include "StdAfx.h"
 #include "resource.h"
-#include "MainDlg.h"
+#include "IMainView.h"
 #include "JPEGImage.h"
 #include "UnsharpMaskPanelCtl.h"
 #include "UnsharpMaskPanel.h"
@@ -9,7 +9,7 @@
 #include "SettingsProvider.h"
 #include "NLS.h"
 
-CUnsharpMaskPanelCtl::CUnsharpMaskPanelCtl(CMainDlg* pMainDlg, CPanel* pImageProcPanel) : CPanelController(pMainDlg, true) {
+CUnsharpMaskPanelCtl::CUnsharpMaskPanelCtl(IMainView* pMainDlg, CPanel* pImageProcPanel) : CPanelController(pMainDlg, true) {
 	m_bVisible = false;
 	m_bOldShowNavPanel = false;
 	m_dAlternateUSMAmount = 0;

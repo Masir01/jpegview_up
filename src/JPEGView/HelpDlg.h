@@ -1,11 +1,11 @@
-// Help dialog
+﻿// Help dialog
 /////////////////////////////////////////////////////////////////////////////
 
 #pragma once
 
 #include "resource.h"
 
-class CMainDlg;
+class IMainView;
 
 // Dialog to show help screen for JPEGView
 class CHelpDlg : public CDialogImpl<CHelpDlg>, public CScrollImpl<CHelpDlg>
@@ -51,10 +51,10 @@ public:
 	bool IsDestroyed() { return m_isDestoyed; }
 	void DestroyDialog();
 
-	CHelpDlg(CMainDlg* pOwner);
+	CHelpDlg(IMainView* pOwner);
 	~CHelpDlg();
 
 private:
-	CMainDlg* m_pOwner;
+	IMainView* m_pOwner;
 	bool m_isDestoyed;
 };
