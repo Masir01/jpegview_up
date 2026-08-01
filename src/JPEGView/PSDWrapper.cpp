@@ -327,12 +327,8 @@ CJPEGImage* PsdReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory)
 				unsigned rchannel;
 				if (nColorMode == MODE_Lab) {
 					rchannel = channel;
-				} else if (nChannels == 1) {
-					rchannel = 0;                       // grayscale
-				} else if (channel == nChannels - 1) {
-					rchannel = nChannels - 1;           // alpha kept at last position (BGRA)
 				} else {
-					rchannel = (nChannels <= 3 ? (nChannels - 1) : 2) - channel;  // R->2,G->1,B->0 in BGR(A)
+					rchannel = (-channel - 2) % nChannels;
 				}
 				for (unsigned row = 0; row < nHeight; row++) {
 					p = pOffset;
@@ -393,12 +389,8 @@ CJPEGImage* PsdReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory)
 				unsigned rchannel;
 				if (nColorMode == MODE_Lab) {
 					rchannel = channel;
-				} else if (nChannels == 1) {
-					rchannel = 0;                       // grayscale
-				} else if (channel == nChannels - 1) {
-					rchannel = nChannels - 1;           // alpha kept at last position (BGRA)
 				} else {
-					rchannel = (nChannels <= 3 ? (nChannels - 1) : 2) - channel;  // R->2,G->1,B->0 in BGR(A)
+					rchannel = (-channel - 2) % nChannels;
 				}
 				for (unsigned row = 0; row < nHeight; row++) {
 					for (unsigned count = 0; count < nWidth; count++) {
