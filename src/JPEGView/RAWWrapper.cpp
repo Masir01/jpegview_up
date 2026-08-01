@@ -25,8 +25,14 @@ CJPEGImage* RawReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory, bool b
 			// Fast preview: decode at 1/2 dimensions (1/4 pixels), major speedup on large RAW.
 			RawProcessor.imgdata.params.half_size = 1;
 		}
-		RawProcessor.get_mem_image_format(&width, &height, &colors, &bps);
 		RawProcessor.imgdata.params.output_bps = 8;
+
+		// Must unpack and process first to get accurate info (fixes e.g. Kodak K25)
+		if (RawProcessor.unpack() != LIBRAW_SUCCESS || RawProcessor.dcraw_process() != LIBRAW_SUCCESS) {
+			return NULL;
+		}
+
+		RawProcessor.get_mem_image_format(&width, &height, &colors, &bps);
 
 		if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
 			return NULL;
@@ -34,10 +40,6 @@ CJPEGImage* RawReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory, bool b
 
 		if ((double)width * height > MAX_IMAGE_PIXELS) {
 			bOutOfMemory = true;
-			return NULL;
-		}
-
-		if (RawProcessor.unpack() != LIBRAW_SUCCESS || RawProcessor.dcraw_process() != LIBRAW_SUCCESS) {
 			return NULL;
 		}
 

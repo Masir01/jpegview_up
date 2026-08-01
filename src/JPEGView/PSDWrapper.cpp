@@ -51,6 +51,8 @@
 #include "SettingsProvider.h"
 
 
+#define PSD_HEADER_SIZE 26
+
 // Throw exception if bShouldThrow is true. Setting a breakpoint in here is useful for debugging
 static inline void ThrowIf(bool bShouldThrow) {
 	if (bShouldThrow) {
@@ -62,6 +64,13 @@ static inline void ThrowIf(bool bShouldThrow) {
 static inline void ReadFromFile(void* dst, HANDLE file, DWORD sz) {
 	unsigned int nNumBytesRead;
 	ThrowIf(!(::ReadFile(file, dst, sz, (LPDWORD)&nNumBytesRead, NULL) && nNumBytesRead == sz));
+}
+
+// Read and return an unsigned 64-bit int from file
+static inline unsigned long long ReadUInt64FromFile(HANDLE file) {
+	unsigned long long val;
+	ReadFromFile(&val, file, 8);
+	return _byteswap_uint64(val);
 }
 
 // Read and return an unsigned int from file
@@ -79,7 +88,7 @@ static inline unsigned short ReadUShortFromFile(HANDLE file) {
 }
 
 // Read and return an unsigned char from file
-static inline unsigned short ReadUCharFromFile(HANDLE file) {
+static inline unsigned char ReadUCharFromFile(HANDLE file) {
 	unsigned char val;
 	ReadFromFile(&val, file, 1);
 	return val;
@@ -87,12 +96,19 @@ static inline unsigned short ReadUCharFromFile(HANDLE file) {
 
 // Move file pointer by offset from current position
 static inline void SeekFile(HANDLE file, LONG offset) {
-	ThrowIf(::SetFilePointer(file, offset, NULL, 1) == INVALID_SET_FILE_POINTER);
+	ThrowIf(::SetFilePointer(file, offset, NULL, FILE_CURRENT) == INVALID_SET_FILE_POINTER);
 }
 
 // Move file pointer to offset from beginning of file
 static inline void SeekFileFromStart(HANDLE file, LONG offset) {
-	ThrowIf(::SetFilePointer(file, offset, NULL, 0) == INVALID_SET_FILE_POINTER);
+	ThrowIf(::SetFilePointer(file, offset, NULL, FILE_BEGIN) == INVALID_SET_FILE_POINTER);
+}
+
+// Get current position in the file
+static inline unsigned int TellFile(HANDLE file) {
+	unsigned int ret = ::SetFilePointer(file, 0, NULL, FILE_CURRENT);
+	ThrowIf(ret == INVALID_SET_FILE_POINTER);
+	return ret;
 }
 
 CJPEGImage* PsdReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory)
@@ -110,8 +126,7 @@ CJPEGImage* PsdReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory)
 	void* transform = NULL;
 	CJPEGImage* Image = NULL;
 	try {
-		unsigned int nFileSize = 0;
-		nFileSize = ::GetFileSize(hFile, NULL);
+		long long nFileSize = Helpers::GetFileSize(hFile);
 		ThrowIf(nFileSize > MAX_PSD_FILE_SIZE);
 
 		// Skip file signature
@@ -119,7 +134,7 @@ CJPEGImage* PsdReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory)
 
 		// Read version: 1 for PSD, 2 for PSB
 		unsigned short nVersion = ReadUShortFromFile(hFile);
-		ThrowIf(nVersion != 1);
+		ThrowIf(nVersion != 1 && nVersion != 2);
 
 		// Check reserved bytes
 		char pReserved[6];
@@ -135,7 +150,7 @@ CJPEGImage* PsdReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory)
 		if ((double)nHeight * nWidth > MAX_IMAGE_PIXELS) {
 			bOutOfMemory = true;
 		}
-		ThrowIf(bOutOfMemory || nHeight > MAX_IMAGE_DIMENSION || nWidth > MAX_IMAGE_DIMENSION);
+		ThrowIf(bOutOfMemory || max(nHeight, nWidth) > MAX_IMAGE_DIMENSION || !min(nHeight, nWidth));
 
 		// PSD can have bit depths of 1, 2, 4, 8, 16, 32
 		unsigned short nBitDepth = ReadUShortFromFile(hFile);
@@ -154,10 +169,9 @@ CJPEGImage* PsdReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory)
 				nChannels = min(nRealChannels, 1);
 				break;
 			case MODE_Multichannel:
-			case MODE_Lab:
-				// I couldn't get the conversion from LabA to BGRA to work properly
 				nChannels = min(nRealChannels, 3);
 				break;
+			case MODE_Lab:
 			case MODE_RGB:
 			case MODE_CMYK:
 				nChannels = min(nRealChannels, 4);
@@ -175,7 +189,8 @@ CJPEGImage* PsdReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory)
 		// Read resource section size
 		unsigned int nResourceSectionSize = ReadUIntFromFile(hFile);
 
-		bool bUseAlpha = false;
+		// This default value should detect alpha channels for PSDs created by programs which don't save alpha identifiers (e.g. Krita, GIMP)
+		bool bUseAlpha = nChannels == 4;
 
 		for (;;) {
 			// Resource block signature
@@ -191,7 +206,8 @@ CJPEGImage* PsdReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory)
 			unsigned short nResourceID = ReadUShortFromFile(hFile);
 
 			// Skip Pascal string (padded to be even length)
-			while (ReadUShortFromFile(hFile));
+			unsigned char nStringSize = ReadUCharFromFile(hFile);
+			SeekFile(hFile, nStringSize | 1);
 
 			// Resource size
 			unsigned int nResourceSize = ReadUIntFromFile(hFile);
@@ -209,7 +225,8 @@ CJPEGImage* PsdReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory)
 					}
 					break;
 				case 0x041D: // 0x041D 1053 (Photoshop 6.0) Alpha Identifiers. 4 bytes of length, followed by 4 bytes each for every alpha identifier.
-					if (nChannels == 4) {
+					if (bUseAlpha) {
+						bUseAlpha = false;
 						int i = 0;
 						while (i < nResourceSize / 4) {
 							i++;
@@ -248,20 +265,26 @@ CJPEGImage* PsdReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory)
 		}
 		
 		// Go back to start of file
-		SeekFileFromStart(hFile, 26 + 4 + nColorDataSize + 4 + nResourceSectionSize);
+		SeekFileFromStart(hFile, PSD_HEADER_SIZE + 4 + nColorDataSize + 4 + nResourceSectionSize);
 
 		// Skip Layer and Mask Info section
-		unsigned int nLayerSize = ReadUIntFromFile(hFile);
-		ReadUIntFromFile(hFile);
+		unsigned long long nLayerSize;
+		if (nVersion == 2) {
+			nLayerSize = ReadUInt64FromFile(hFile);
+		} else {
+			nLayerSize = ReadUIntFromFile(hFile);
+		}
+		unsigned char nLayerSizeBytes = 4 * nVersion;
+		SeekFile(hFile, nLayerSizeBytes);
 		short nLayerCount = ReadUShortFromFile(hFile);
 		bUseAlpha = bUseAlpha && (nLayerCount <= 0);
-		SeekFile(hFile, nLayerSize - 6);
+		SeekFile(hFile, nLayerSize - 2 - nLayerSizeBytes);
 
 		// Compression. 0 = Raw Data, 1 = RLE compressed, 2 = ZIP without prediction, 3 = ZIP with prediction.
 		unsigned short nCompressionMethod = ReadUShortFromFile(hFile);
 		ThrowIf(nCompressionMethod != COMPRESSION_RLE && nCompressionMethod != COMPRESSION_None);
 
-		unsigned int nImageDataSize = nFileSize - (26 + 4 + nColorDataSize + 4 + nResourceSectionSize + 4 + nLayerSize + 2);
+		unsigned int nImageDataSize = nFileSize - TellFile(hFile);
 		pBuffer = new(std::nothrow) char[nImageDataSize];
 		if (pBuffer == NULL) {
 			bOutOfMemory = true;
@@ -274,9 +297,9 @@ CJPEGImage* PsdReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory)
 		}
 
 		// Apply ICC Profile
-		if (nChannels >= 3) {
+		if (nChannels == 3 || nChannels == 4) {
 			if (nColorMode == MODE_Lab) {
-				transform = ICCProfileTransform::CreateLabTransform(nChannels == 4 ? ICCProfileTransform::FORMAT_ALab : ICCProfileTransform::FORMAT_Lab);
+				transform = ICCProfileTransform::CreateLabTransform(nChannels == 4 ? ICCProfileTransform::FORMAT_LabA : ICCProfileTransform::FORMAT_Lab);
 				if (transform == NULL) {
 					// If we can't convert Lab to sRGB then just use the Lightness channel as grayscale
 					nChannels = min(nChannels, 1);
@@ -298,7 +321,8 @@ CJPEGImage* PsdReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory)
 		unsigned char* p = (unsigned char*)pBuffer;
 		if (nCompressionMethod == COMPRESSION_RLE) {
 			// Skip byte counts for scanlines
-			p += nHeight * nRealChannels * 2;
+			p += nHeight * nRealChannels * 2 * nVersion;
+			unsigned char* pOffset = p;
 			for (unsigned channel = 0; channel < nChannels; channel++) {
 				unsigned rchannel;
 				if (nColorMode == MODE_Lab) {
@@ -307,6 +331,8 @@ CJPEGImage* PsdReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory)
 					rchannel = (-channel - 2) % nChannels;
 				}
 				for (unsigned row = 0; row < nHeight; row++) {
+					p = pOffset;
+
 					for (unsigned count = 0; count < nWidth; ) {
 						unsigned char c;
 						ThrowIf(p >= (unsigned char*)pBuffer + nImageDataSize);
@@ -343,6 +369,19 @@ CJPEGImage* PsdReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory)
 
 						count += c;
 					}
+
+					if (nVersion == 2) {
+						pOffset += _byteswap_ulong(*(unsigned int*)(pBuffer + (channel * nHeight + row) * 4));
+					} else {
+						pOffset += _byteswap_ushort(*(unsigned short*)(pBuffer + (channel * nHeight + row) * 2));
+					}
+#ifdef DEBUG
+					if (p != pOffset) {
+						WCHAR buf[100];
+						swprintf(buf, _T("Misaligned scan line bytes (%+d) for channel %d row %d\n"), p - pOffset, channel, row);
+						::OutputDebugString(buf);
+					}
+#endif
 				}
 			}
 		} else { // No compression
@@ -412,8 +451,8 @@ CJPEGImage* PsdReader::ReadThumb(LPCTSTR strFileName, bool& bOutOfMemory)
 	TJSAMP eChromoSubSampling;
 
 	try {
-		// Skip file signature
-		SeekFile(hFile, 26);
+		// Skip file header
+		SeekFile(hFile, PSD_HEADER_SIZE);
 
 		// Skip color mode data
 		unsigned int nColorDataSize = ReadUIntFromFile(hFile);
@@ -436,7 +475,8 @@ CJPEGImage* PsdReader::ReadThumb(LPCTSTR strFileName, bool& bOutOfMemory)
 			unsigned short nResourceID = ReadUShortFromFile(hFile);
 
 			// Skip Pascal string (padded to be even length)
-			while (ReadUShortFromFile(hFile));
+			unsigned char nStringSize = ReadUCharFromFile(hFile);
+			SeekFile(hFile, nStringSize | 1);
 
 			// Resource size
 			unsigned int nResourceSize = ReadUIntFromFile(hFile);
