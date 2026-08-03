@@ -39,3 +39,4 @@ ipch/
 .vscode
 extras/scripts/build-libwebp.bat
 extras/scripts/build-libheif_libavif.bat
+.codebuddy/memory
