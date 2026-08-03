@@ -138,6 +138,9 @@ public:
 	// Deletes the file (to recycle bin)
 	bool DeleteFile(LPCTSTR fileNameWithPath) const;
 
+	// Removes a single file from the in-memory list without re-scanning the directory
+	void RemoveFile(LPCTSTR fileName);
+
 	// Returns if the current file exists and can be opened for reading
 	bool CanOpenCurrentFileForReading() const;
 

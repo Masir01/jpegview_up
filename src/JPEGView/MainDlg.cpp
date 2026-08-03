@@ -1446,12 +1446,21 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 					IDYES == ::MessageBox(m_hWnd, CString(CNLS::GetString(_T("Do you really want to delete the current image file on disk?"))) + _T("\n") + currentFileName, CNLS::GetString(_T("Confirm")), MB_YESNOCANCEL | MB_ICONWARNING)) {
 					CFileList* fileListOfDeletedImage = m_pFileList;
 					GotoImage(POS_AwayFromCurrent, NO_REQUEST);
+
 					if (m_pFileList->DeleteFile(currentFileName)) {
-						fileListOfDeletedImage->Reload(NULL, false);
-						m_pFileList->DeleteHistory(true);
-						Invalidate();
-						GotoImage(POS_Current);
-					} else {
+					fileListOfDeletedImage->RemoveFile(currentFileName);   // in-place removal: instant, no directory rescan
+					m_pFileList->DeleteHistory(true);
+					Invalidate();
+					GotoImage(POS_Current);                                // lands on next valid image immediately
+					// The directory watcher fires on the deletion (FILE_NOTIFY_CHANGE_FILE_NAME) and
+					// asynchronously rescans to pick up new files. Rely on it instead of starting a
+					// second async scan here: two overlapping scans collide in CancelScan(), which
+					// blocks the UI thread (WaitForSingleObject, up to 5 s) and freezes paging.
+					// Only rescan explicitly when auto-reload via the watcher is disabled.
+					if (!CSettingsProvider::This().ReloadWhenDisplayedImageChanged()) {
+						fileListOfDeletedImage->Reload(NULL, false, m_hWnd);
+					}
+				} else {
 						Invalidate();
 						if (m_pFileList->Current() == NULL) GotoImage(POS_First);
 						else GotoImage(POS_Previous);

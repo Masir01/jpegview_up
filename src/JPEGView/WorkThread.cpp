@@ -84,7 +84,7 @@ void CWorkThread::ThreadFunc(void* arg) {
 	// so they do not preempt the UI thread during zoom/pan/navigation. Only the
 	// CPU scheduling priority is lowered; the I/O priority (disk reads) stays
 	// unchanged, so image load speed is not affected.
-	::SetThreadPriority(::GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+	::SetThreadPriority(::GetCurrentThread(), THREAD_PRIORITY_NORMAL);
 	if (thisPtr->m_bCoInitialize) {
 		::CoInitialize(NULL);
 	}

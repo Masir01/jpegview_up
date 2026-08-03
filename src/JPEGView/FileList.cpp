@@ -357,6 +357,33 @@ bool CFileList::DeleteFile(LPCTSTR fileNameWithPath) const {
 	return false;
 }
 
+void CFileList::RemoveFile(LPCTSTR fileName) {
+	// Remove a single file from the in-memory list without re-scanning the directory.
+	// Used after deleting the current image so navigation no longer hits the deleted entry
+	// and GotoImage(POS_Current) lands on a valid neighbor immediately. New files added by
+	// other processes are picked up later by the asynchronous Reload / directory watcher.
+	CString sName = fileName;
+	int nStart = sName.ReverseFind(_T('\\')) + 1;
+	CString sTitle = (LPCTSTR)sName + nStart;
+
+	CString sCurrentFile = (m_iter != m_fileList.end()) ? m_iter->GetName() : CString();
+
+	for (std::vector<CFileDesc>::iterator iter = m_fileList.begin(); iter != m_fileList.end(); ) {
+		if (_tcsicmp(iter->GetTitle(), sTitle) == 0) {
+			iter = m_fileList.erase(iter);
+		} else {
+			++iter;
+		}
+	}
+
+	if (sCurrentFile.IsEmpty()) {
+		m_iter = m_fileList.end();
+	} else {
+		m_iter = FindFile(sCurrentFile);
+	}
+	m_iterStart = m_bWrapAroundFolder ? m_iter : m_fileList.begin();
+}
+
 void CFileList::FileHasRenamed(LPCTSTR sOldFileName, LPCTSTR sNewFileName) {
 	if (_tcsicmp(sOldFileName, m_sInitialFile) == 0) {
 		m_sInitialFile = sNewFileName;
