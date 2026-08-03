@@ -113,7 +113,17 @@ IF ERRORLEVEL 1 (
 
 echo.
 echo ============================================================
-echo  Step 9: Copying header files
+echo  Step 9: Building DirectXTex (DDS format support)
+echo ============================================================
+call "%SCRIPT_DIR%build-DirectXTex.bat"
+IF ERRORLEVEL 1 (
+    echo [ERROR] DirectXTex build failed
+    exit /b 1
+)
+
+echo.
+echo ============================================================
+echo  Step 10: Copying header files
 echo ============================================================
 
 echo Copying libjpeg-turbo headers...

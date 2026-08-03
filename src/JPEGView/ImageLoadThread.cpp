@@ -21,6 +21,7 @@
 #include "WEBPWrapper.h"
 #include "QOIWrapper.h"
 #include "PSDWrapper.h"
+#include "DDSWrapper.h"
 #include "MaxImageDef.h"
 
 
@@ -92,6 +93,10 @@ static EImageFormat GetImageFormat(LPCTSTR sFileName) {
 		return IF_QOI;
 	} else if (header[0] == '8' && header[1] == 'B' && header[2] == 'P' && header[3] == 'S') {
 		return IF_PSD;
+#ifdef _WIN64
+	} else if (header[0] == 'D' && header[1] == 'D' && header[2] == 'S' && header[3] == ' ') {
+		return IF_DDS;
+#endif
 	}
 
 	// default fallback if no matches based on magic bytes
@@ -355,6 +360,12 @@ void CImageLoadThread::ProcessRequest(CRequestBase& request) {
 			InvalidateDecoderCaches(false, IF_Unknown);
 			ProcessReadWICRequest(&rq);
 			break;
+#ifdef _WIN64
+		case IF_DDS:
+			InvalidateDecoderCaches(false, IF_Unknown);
+			ProcessReadDDSRequest(&rq);
+			break;
+#endif
 		default:
 			// try with GDI+
 			InvalidateDecoderCaches(true, IF_Unknown);
@@ -940,6 +951,12 @@ void CImageLoadThread::ProcessReadPSDRequest(CRequest* request) {
 	}
 }
 
+#endif
+
+#ifdef _WIN64
+void CImageLoadThread::ProcessReadDDSRequest(CRequest* request) {
+	request->Image = DDSReader::ReadImage(request->FileName, request->OutOfMemory);
+}
 #endif
 
 void CImageLoadThread::ProcessReadQOIRequest(CRequest* request) {
