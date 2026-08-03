@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <set>
 #include "Helpers.h"
 
 class CDirectoryWatcher;
@@ -184,6 +185,12 @@ private:
 	std::vector<CFileDesc> m_scanResult;
 	HANDLE m_hCancelEvent;
 	HANDLE m_hScanThread;
+
+	// Files deleted in-place via RemoveFile() since the last directory scan completed.
+	// Used to strip phantom entries that an async (potentially stale) directory scan may
+	// re-introduce into m_fileList after a rapid multi-delete. Keyed by full path so it
+	// never affects files with the same title in other folders.
+	std::set<CString> m_deletedFiles;
 
 	void MoveIterToLast();
 	void NextInFolder();

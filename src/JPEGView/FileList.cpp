@@ -368,6 +368,10 @@ void CFileList::RemoveFile(LPCTSTR fileName) {
 
 	CString sCurrentFile = (m_iter != m_fileList.end()) ? m_iter->GetName() : CString();
 
+	// Remember the deleted file so an (possibly stale) async directory scan triggered by the
+	// directory watcher cannot re-introduce it as a phantom entry into the live list.
+	m_deletedFiles.insert(fileName);
+
 	for (std::vector<CFileDesc>::iterator iter = m_fileList.begin(); iter != m_fileList.end(); ) {
 		if (_tcsicmp(iter->GetTitle(), sTitle) == 0) {
 			iter = m_fileList.erase(iter);
@@ -1146,7 +1150,21 @@ void CFileList::OnScanCompleted() {
 	CString sCurrentFile = (m_iter != m_fileList.end()) ? m_iter->GetName() : m_sInitialFile;
 	
 	m_fileList.swap(m_scanResult);
-	
+
+	// A directory-watcher scan may have captured a stale snapshot taken before the deletions
+	// completed, re-introducing just-deleted files as phantom entries. Drop them now so
+	// navigation never lands on a file that no longer exists on disk.
+	if (!m_deletedFiles.empty()) {
+		for (std::vector<CFileDesc>::iterator iter = m_fileList.begin(); iter != m_fileList.end(); ) {
+			if (m_deletedFiles.find(iter->GetName()) != m_deletedFiles.end()) {
+				iter = m_fileList.erase(iter);
+			} else {
+				++iter;
+			}
+		}
+		m_deletedFiles.clear();
+	}
+
 	m_iter = FindFile(sCurrentFile);
 	m_iterStart = m_bWrapAroundFolder ? m_iter : m_fileList.begin();
 	
