@@ -769,8 +769,9 @@ LRESULT CMainDlg::OnLButtonDown(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam,
 				m_state.m_bZoomMode = true;
 				m_state.m_dStartZoom = m_state.m_dZoom;
 				m_state.m_nCapturedX = m_state.m_nMouseX; m_state.m_nCapturedY = m_state.m_nMouseY;
-			} else if ((bCtrl || bHandleByCropping || (!bDraggingRequired && m_state.m_bDefaultSelectionMode)) && !bTransformPanelShown) {
+			} else if ((bCtrl || bHandleByCropping || (!bDraggingRequired && m_state.m_bDefaultSelectionMode) || CSettingsProvider::This().SelectionZoomMode()) && !bTransformPanelShown) {
 				// always go into selection/crop when in the right state and CTRL held down, otherwise it depends on the DefaultSelectionMode setting
+				// SelectionZoomMode also forces selection entry for continuous zoom chaining
 				m_state.m_bSelectZoom = bShift;  // if shift, go into select-to-zoom mode (no crop popup)
 				m_pCropCtl->StartCropping(pointClicked.x, pointClicked.y);
 			} else if (bDraggingRequired && !bTransformPanelShown) {
@@ -798,15 +799,17 @@ LRESULT CMainDlg::OnLButtonUp(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, B
 			const int MIN_SEL_ZOOM_SIZE = 12;
 			CRect screenRect = m_pCropCtl->GetScreenCropRect();
 			if (screenRect.Width() < MIN_SEL_ZOOM_SIZE || screenRect.Height() < MIN_SEL_ZOOM_SIZE) {
-				bSelectZoom = false;
+				// selection too small for zoom: cancel silently, no crop menu
+				m_state.m_bSelectZoom = false;
+				m_pCropCtl->AbortCropping();
+			} else {
+				m_pCropCtl->EndCropping(false);
+				m_state.m_bSelectZoom = false;
+				ZoomToSelection();
+				m_pCropCtl->AbortCropping();
 			}
-		}
-		m_pCropCtl->EndCropping(!bSelectZoom);
-		if (bSelectZoom) {
-			// select to zoom
-			m_state.m_bSelectZoom = false;
-			ZoomToSelection();
-			m_pCropCtl->AbortCropping();
+		} else {
+			m_pCropCtl->EndCropping(true);
 		}
 	} else {
 		m_pPanelMgr->OnMouseLButton(MouseEvent_BtnUp, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
