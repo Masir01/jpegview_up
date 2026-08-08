@@ -64,6 +64,9 @@ public:
 	// Returns the executed menu command ID, zero if none
 	int ShowCropContextMenu();
 
+	// Crop rectangle in screen coordinates (client area)
+	CRect GetScreenCropRect();
+
 private:
 	IMainView* m_pMainDlg;
 	CPoint m_cropStart;
@@ -89,7 +92,6 @@ private:
 	void UpdateCroppingRect(int nX, int nY, HDC hPaintDC, bool bShow);
 	void PaintCropRect(HDC hPaintDC);
 	void InvalidateSceenCropRect();
-	CRect GetScreenCropRect();
 	CPoint ScreenToImage(int nX, int nY);
 	CPoint PreserveAspectRatio(CPoint cropStart, CPoint cropEnd, bool adjustWidth, bool bCalculateEnd);
 	void NormalizeCroppingRect();

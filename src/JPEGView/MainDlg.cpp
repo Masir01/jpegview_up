@@ -792,8 +792,17 @@ LRESULT CMainDlg::OnLButtonUp(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, B
 	} else if (m_state.m_bDragging) {
 		EndDragging();
 	} else if (m_pCropCtl->IsCropping()) {
-		m_pCropCtl->EndCropping(!(m_state.m_bSelectZoom || CSettingsProvider::This().SelectionZoomMode()));
-		if (m_state.m_bSelectZoom || CSettingsProvider::This().SelectionZoomMode()) {
+		bool bSelectZoom = (m_state.m_bSelectZoom || CSettingsProvider::This().SelectionZoomMode());
+		if (bSelectZoom) {
+			// Require minimum selection size to prevent accidental single-point zoom
+			const int MIN_SEL_ZOOM_SIZE = 12;
+			CRect screenRect = m_pCropCtl->GetScreenCropRect();
+			if (screenRect.Width() < MIN_SEL_ZOOM_SIZE || screenRect.Height() < MIN_SEL_ZOOM_SIZE) {
+				bSelectZoom = false;
+			}
+		}
+		m_pCropCtl->EndCropping(!bSelectZoom);
+		if (bSelectZoom) {
 			// select to zoom
 			m_state.m_bSelectZoom = false;
 			ZoomToSelection();
