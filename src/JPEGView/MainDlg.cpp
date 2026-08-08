@@ -792,8 +792,8 @@ LRESULT CMainDlg::OnLButtonUp(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, B
 	} else if (m_state.m_bDragging) {
 		EndDragging();
 	} else if (m_pCropCtl->IsCropping()) {
-		m_pCropCtl->EndCropping(!m_state.m_bSelectZoom);
-		if (m_state.m_bSelectZoom) {
+		m_pCropCtl->EndCropping(!(m_state.m_bSelectZoom || CSettingsProvider::This().SelectionZoomMode()));
+		if (m_state.m_bSelectZoom || CSettingsProvider::This().SelectionZoomMode()) {
 			// select to zoom
 			m_state.m_bSelectZoom = false;
 			ZoomToSelection();

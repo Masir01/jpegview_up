@@ -236,6 +236,11 @@ ExchangeXButtons=true
 ; Set this to false to only use selection mode when CTRL is pressed
 DefaultSelectionMode=true
 
+; Selection mode behavior when releasing the left mouse button after drawing a selection rectangle:
+; false = crop mode (default): a crop popup menu appears
+; true  = zoom mode: the selected area is zoomed to fill the entire window
+SelectionZoomMode=false
+
 ; Zoom speed with mouse wheel, 1.0 means default speed, smaller values slower zoom, larger faster zoom
 MouseWheelZoomSpeed=1.0
 
