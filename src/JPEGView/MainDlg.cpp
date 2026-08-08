@@ -769,7 +769,7 @@ LRESULT CMainDlg::OnLButtonDown(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam,
 				m_state.m_bZoomMode = true;
 				m_state.m_dStartZoom = m_state.m_dZoom;
 				m_state.m_nCapturedX = m_state.m_nMouseX; m_state.m_nCapturedY = m_state.m_nMouseY;
-			} else if ((bCtrl || bHandleByCropping || (!bDraggingRequired && m_state.m_bDefaultSelectionMode) || CSettingsProvider::This().SelectionZoomMode()) && !bTransformPanelShown) {
+			} else if ((bCtrl || bHandleByCropping || (!bDraggingRequired && m_state.m_bDefaultSelectionMode) || (CSettingsProvider::This().SelectionZoomMode() && m_state.m_dZoom < 1.0)) && !bTransformPanelShown) {
 				// always go into selection/crop when in the right state and CTRL held down, otherwise it depends on the DefaultSelectionMode setting
 				// SelectionZoomMode also forces selection entry for continuous zoom chaining
 				m_state.m_bSelectZoom = bShift;  // if shift, go into select-to-zoom mode (no crop popup)
@@ -2778,6 +2778,17 @@ void CMainDlg::ZoomToSelection() {
 		CPoint offsets;
 		Helpers::GetZoomParameters(fZoom, offsets, m_pCurrentImage->OrigSize(), m_state.m_clientRect.Size(), zoomRect);
 		if (fZoom > 0) {
+			if (fZoom > 1.0f) {
+				// Limit selection zoom to 100% (1:1).  For higher zoom use Ctrl+MouseWheel.
+				fZoom = 1.0f;
+				CSize imageSize = m_pCurrentImage->OrigSize();
+				int nZoomRectMidX = (zoomRect.right + zoomRect.left) / 2;
+				int nZoomRectMidY = (zoomRect.bottom + zoomRect.top) / 2;
+				offsets = CPoint(
+					Helpers::RoundToInt(imageSize.cx * 0.5 - nZoomRectMidX),
+					Helpers::RoundToInt(imageSize.cy * 0.5 - nZoomRectMidY)
+				);
+			}
 			// if PerformZoom returns false, the zoom rect was invalid, don't move the offsets
 			if (PerformZoom(fZoom, false, m_state.m_bMouseOn, false)) {
 				m_state.m_offsets = offsets;
