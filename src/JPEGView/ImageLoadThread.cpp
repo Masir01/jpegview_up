@@ -466,6 +466,29 @@ void CImageLoadThread::InvalidateDecoderCaches(bool bKeepGdiCache, EImageFormat 
 	}
 }
 
+// Common post-processing: AlphaBlend BGRA pixels, construct CJPEGImage, free EXIF.
+// pEXIFData is consumed (freed and set to NULL). The caller still owns pPixelData
+// (which CJPEGImage takes over via its constructor).
+static CJPEGImage* WrapDecodedPixelsToImage(
+	void* pPixelData, int nWidth, int nHeight, int nBPP,
+	void*& pEXIFData, EImageFormat eFormat,
+	bool bHasAnimation, int nFrameIndex, int nFrameCount, int nFrameTimeMs)
+{
+	if (nBPP == 4) {
+		uint32* pImage32 = (uint32*)pPixelData;
+		for (int i = 0; i < nWidth * nHeight; i++)
+			*pImage32++ = Helpers::AlphaBlendBackground(*pImage32, CSettingsProvider::This().ColorTransparency());
+	}
+
+	CJPEGImage* pImage = new CJPEGImage(nWidth, nHeight, pPixelData, pEXIFData, nBPP, 0,
+		eFormat, bHasAnimation, nFrameIndex, nFrameCount, nFrameTimeMs);
+
+	free(pEXIFData);
+	pEXIFData = NULL;
+
+	return pImage;
+}
+
 void CImageLoadThread::ProcessReadJPEGRequest(CRequest * request) {
 	HANDLE hFile = ::CreateFile(request->FileName, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
 	if (hFile == INVALID_HANDLE_VALUE) {
@@ -617,16 +640,11 @@ void CImageLoadThread::ProcessReadWEBPRequest(CRequest * request) {
 			void* pEXIFData;
 			uint8* pPixelData = (uint8*)WebpReaderWriter::ReadImage(nWidth, nHeight, nBPP, bHasAnimation, nFrameCount, nFrameTimeMs, pEXIFData, request->OutOfMemory, pBuffer, nFileSize);
 			if (pPixelData && nBPP == 4) {
-				// Multiply alpha value into each AABBGGRR pixel
-				uint32* pImage32 = (uint32*)pPixelData;
-				for (int i = 0; i < nWidth * nHeight; i++)
-					*pImage32++ = Helpers::AlphaBlendBackground(*pImage32, CSettingsProvider::This().ColorTransparency());
-
 				if (bHasAnimation) {
 					m_sLastWebpFileName = sFileName;
 				}
-				request->Image = new CJPEGImage(nWidth, nHeight, pPixelData, pEXIFData, nBPP, 0, IF_WEBP, bHasAnimation, request->FrameIndex, nFrameCount, nFrameTimeMs);
-				free(pEXIFData);
+				request->Image = WrapDecodedPixelsToImage(pPixelData, nWidth, nHeight, nBPP, pEXIFData,
+					IF_WEBP, bHasAnimation, request->FrameIndex, nFrameCount, nFrameTimeMs);
 			}
 			else {
 				delete[] pPixelData;
@@ -702,12 +720,8 @@ void CImageLoadThread::ProcessReadPNGRequest(CRequest* request) {
 			if (pPixelData != NULL) {
 				if (bHasAnimation)
 					m_sLastPngFileName = sFileName;
-				// Multiply alpha value into each AABBGGRR pixel
-				uint32* pImage32 = (uint32*)pPixelData;
-				for (int i = 0; i < nWidth * nHeight; i++)
-					*pImage32++ = Helpers::AlphaBlendBackground(*pImage32, CSettingsProvider::This().ColorTransparency());
-
-				request->Image = new CJPEGImage(nWidth, nHeight, pPixelData, pEXIFData, 4, 0, IF_PNG, bHasAnimation, request->FrameIndex, nFrameCount, nFrameTimeMs);
+				request->Image = WrapDecodedPixelsToImage(pPixelData, nWidth, nHeight, nBPP, pEXIFData,
+					IF_PNG, bHasAnimation, request->FrameIndex, nFrameCount, nFrameTimeMs);
 			} else {
 				DeleteCachedPngDecoder();
 				
@@ -787,13 +801,8 @@ void CImageLoadThread::ProcessReadJXLRequest(CRequest* request) {
 			if (pPixelData != NULL) {
 				if (bHasAnimation)
 					m_sLastJxlFileName = sFileName;
-				// Multiply alpha value into each AABBGGRR pixel
-				uint32* pImage32 = (uint32*)pPixelData;
-				for (int i = 0; i < nWidth * nHeight; i++)
-					*pImage32++ = Helpers::AlphaBlendBackground(*pImage32, CSettingsProvider::This().ColorTransparency());
-
-				request->Image = new CJPEGImage(nWidth, nHeight, pPixelData, pEXIFData, 4, 0, IF_JXL, bHasAnimation, request->FrameIndex, nFrameCount, nFrameTimeMs);
-				free(pEXIFData);
+				request->Image = WrapDecodedPixelsToImage(pPixelData, nWidth, nHeight, nBPP, pEXIFData,
+					IF_JXL, bHasAnimation, request->FrameIndex, nFrameCount, nFrameTimeMs);
 			} else {
 				DeleteCachedJxlDecoder();
 			}
@@ -861,13 +870,8 @@ void CImageLoadThread::ProcessReadAVIFRequest(CRequest* request) {
 			if (pPixelData != NULL) {
 				if (bHasAnimation)
 					m_sLastAvifFileName = sFileName;
-				// Multiply alpha value into each AABBGGRR pixel
-				uint32* pImage32 = (uint32*)pPixelData;
-				for (int i = 0; i < nWidth * nHeight; i++)
-					*pImage32++ = Helpers::AlphaBlendBackground(*pImage32, CSettingsProvider::This().ColorTransparency());
-
-				request->Image = new CJPEGImage(nWidth, nHeight, pPixelData, pEXIFData, 4, 0, IF_AVIF, bHasAnimation, request->FrameIndex, nFrameCount, nFrameTimeMs);
-				free(pEXIFData);
+				request->Image = WrapDecodedPixelsToImage(pPixelData, nWidth, nHeight, nBPP, pEXIFData,
+					IF_AVIF, bHasAnimation, request->FrameIndex, nFrameCount, nFrameTimeMs);
 				bSuccess = true;
 			} else {
 				DeleteCachedAvifDecoder();
@@ -921,13 +925,8 @@ void CImageLoadThread::ProcessReadHEIFRequest(CRequest* request) {
 			void* pEXIFData;
 			uint8* pPixelData = (uint8*)HeifReader::ReadImage(nWidth, nHeight, nBPP, nFrameCount, pEXIFData, request->OutOfMemory, request->FrameIndex, pBuffer, nFileSize);
 			if (pPixelData != NULL) {
-				// Multiply alpha value into each AABBGGRR pixel
-				uint32* pImage32 = (uint32*)pPixelData;
-				for (int i = 0; i < nWidth * nHeight; i++)
-					*pImage32++ = Helpers::AlphaBlendBackground(*pImage32, CSettingsProvider::This().ColorTransparency());
-
-				request->Image = new CJPEGImage(nWidth, nHeight, pPixelData, pEXIFData, nBPP, 0, IF_HEIF, false, request->FrameIndex, nFrameCount, nFrameTimeMs);
-				free(pEXIFData);
+				request->Image = WrapDecodedPixelsToImage(pPixelData, nWidth, nHeight, nBPP, pEXIFData,
+					IF_HEIF, false, request->FrameIndex, nFrameCount, nFrameTimeMs);
 			}
 		}
 	} catch(const heif::Error& he) {
@@ -986,13 +985,9 @@ void CImageLoadThread::ProcessReadQOIRequest(CRequest* request) {
 			int nWidth, nHeight, nBPP;
 			void* pPixelData = QoiReaderWriter::ReadImage(nWidth, nHeight, nBPP, request->OutOfMemory, pBuffer, nFileSize);
 			if (pPixelData != NULL) {
-				if (nBPP == 4) {
-					// Multiply alpha value into each AABBGGRR pixel
-					uint32* pImage32 = (uint32*)pPixelData;
-					for (int i = 0; i < nWidth * nHeight; i++)
-						*pImage32++ = Helpers::AlphaBlendBackground(*pImage32, CSettingsProvider::This().ColorTransparency());
-				}
-				request->Image = new CJPEGImage(nWidth, nHeight, pPixelData, NULL, nBPP, 0, IF_QOI, false, 0, 1, 0);
+				void* pEXIFData = NULL;
+				request->Image = WrapDecodedPixelsToImage(pPixelData, nWidth, nHeight, nBPP, pEXIFData,
+					IF_QOI, false, 0, 1, 0);
 			}
 		}
 	} catch (...) {
