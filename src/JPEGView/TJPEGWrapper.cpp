@@ -22,6 +22,51 @@ static tjscalingfactor FindDownscaleFactor(int nWidth, int nHeight, int nMaxDeno
 	return sf;
 }
 
+// Detects lossless JPEG streams (SOF3/SOF7/SOF11/SOF15) by scanning the marker segments.
+// libjpeg-turbo ignores scaling factors for lossless JPEGs, so an oversized lossless image
+// cannot be downscale-decoded. It must be classified as "too large" up front instead of
+// letting the decoder fail with a generic "decode error" message.
+static bool IsLosslessJPEG(const unsigned char* pBuffer, int sizebytes) {
+	if (pBuffer == NULL || sizebytes < 4) {
+		return false;
+	}
+	int nPos = 0;
+	while (nPos + 1 < sizebytes) {
+		if (pBuffer[nPos] != 0xFF) {
+			break; // entropy-coded data reached (or corrupt marker)
+		}
+		unsigned char nMarker = pBuffer[nPos + 1];
+		if (nMarker == 0xFF) { // fill byte
+			nPos++;
+			continue;
+		}
+		// Markers without a length field: TEM, RST0-7, SOI, EOI
+		if (nMarker == 0x01 || nMarker == 0xD8 || nMarker == 0xD9 || (nMarker >= 0xD0 && nMarker <= 0xD7)) {
+			if (nMarker == 0xD9) {
+				break; // EOI reached without a SOF marker
+			}
+			nPos += 2;
+			continue;
+		}
+		if (nMarker == 0xDA) {
+			break; // SOS: entropy-coded data follows
+		}
+		// Lossless frame markers (SOF3, SOF7, SOF11, SOF15)
+		if (nMarker == 0xC3 || nMarker == 0xC7 || nMarker == 0xCB || nMarker == 0xCF) {
+			return true;
+		}
+		if (nPos + 3 >= sizebytes) {
+			break;
+		}
+		int nSegLen = (pBuffer[nPos + 2] << 8) | pBuffer[nPos + 3];
+		if (nSegLen < 2) {
+			break; // corrupt marker length
+		}
+		nPos += 2 + nSegLen;
+	}
+	return false;
+}
+
 void * TurboJpeg::ReadImage(int &width,
 					   int &height,
 					   int &nchannels,
@@ -67,7 +112,10 @@ void * TurboJpeg::ReadImage(int &width,
 		if (abs((double)width * height) > MAX_IMAGE_PIXELS ||
 			width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
 			// Oversized image. Either downscale-decode it (when enabled) or refuse to load.
-			if (CSettingsProvider::This().OversizedDownscaleDecode()) {
+			// Lossless JPEGs ignore the scaling factor in libjpeg-turbo and would fail with a
+			// generic decode error; classify them as "too large" instead.
+			if (CSettingsProvider::This().OversizedDownscaleDecode() &&
+				!IsLosslessJPEG((const unsigned char*)buffer, sizebytes)) {
 				int nMaxDenom = CSettingsProvider::This().OversizedDownscaleMaxFactor();
 				scalingFactor = FindDownscaleFactor(width, height, nMaxDenom);
 				if (scalingFactor.num != scalingFactor.denom) {

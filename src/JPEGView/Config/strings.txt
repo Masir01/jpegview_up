@@ -299,6 +299,7 @@ Save cropped image
 Save processed image to JPEG file (original size)	
 Save processed image to JPEG file (screen size)	
 Save to	
+Saving is disabled for downscaled previews	
 Scaling mode:	
 Screen Pixels	
 Scroll from bottom	
@@ -348,6 +349,7 @@ The directory '%s' does not contain any image files!
 The file '%s' could not be copied!	
 The file '%s' could not be read!	
 The file '%s' could not be renamed!	
+The image is loaded at reduced resolution (1/%d) to save memory. Saving it would permanently lose the original resolution, so saving is disabled.	
 The file '%s' does not contain a list of file names!	
 The file is read-only!	
 The following file extensions cannot be unregistered because they have been registered in the 'local machine' registry area.	

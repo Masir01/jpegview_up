@@ -2214,8 +2214,26 @@ void CMainDlg::OpenFile(LPCTSTR sFileName, bool bAfterStartup) {
 	this->Invalidate(FALSE);
 }
 
+// A downscaled preview only holds 1/N of the original resolution.
+// Saving it would permanently discard the original data, so saving is blocked.
+bool CMainDlg::IsDownscaledSaveBlocked() {
+	if (m_pCurrentImage == NULL || m_pCurrentImage->GetDownsampleFactor() <= 1) {
+		return false;
+	}
+	CString sMessage;
+	sMessage.Format(CNLS::GetString(_T("The image is loaded at reduced resolution (1/%d) to save memory. Saving it would permanently lose the original resolution, so saving is disabled.")),
+		m_pCurrentImage->GetDownsampleFactor());
+	::MessageBox(m_hWnd, sMessage, CNLS::GetString(_T("Saving is disabled for downscaled previews")), MB_ICONWARNING | MB_OK);
+	return true;
+}
+
 bool CMainDlg::SaveImage(bool bFullSize) {
 	if (m_state.m_bMovieMode) {
+		return false;
+	}
+
+	// Never save a downscaled preview: the original resolution is not available anymore.
+	if (IsDownscaledSaveBlocked()) {
 		return false;
 	}
 
@@ -2268,6 +2286,11 @@ bool CMainDlg::SaveImage(bool bFullSize) {
 
 bool CMainDlg::SaveImageNoPrompt(LPCTSTR sFileName, bool bFullSize) {
 	if (m_state.m_bMovieMode) {
+		return false;
+	}
+
+	// Never save a downscaled preview: the original resolution is not available anymore.
+	if (IsDownscaledSaveBlocked()) {
 		return false;
 	}
 

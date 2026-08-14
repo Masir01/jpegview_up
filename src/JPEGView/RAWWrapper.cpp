@@ -69,6 +69,7 @@ CJPEGImage* RawReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory, bool b
 			Image = new CJPEGImage(width, height, pPixelData, NULL, colors, 0, IF_CameraRAW, false, 0, 1, 0, NULL, false, metadata);
 	} else if (RawProcessor.is_jpeg_thumb()) {
 		TJSAMP eChromoSubSampling;
+		int nScaleDenom = 1;
 		if (RawProcessor.unpack_thumb() != LIBRAW_SUCCESS) {
 			return NULL;
 		}
@@ -76,7 +77,7 @@ CJPEGImage* RawReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory, bool b
 		if (thumb == NULL) {
 			return NULL;
 		}
-		pPixelData = (unsigned char*)TurboJpeg::ReadImage(width, height, colors, eChromoSubSampling, bOutOfMemory, thumb->data, thumb->data_size);
+		pPixelData = (unsigned char*)TurboJpeg::ReadImage(width, height, colors, eChromoSubSampling, bOutOfMemory, thumb->data, thumb->data_size, &nScaleDenom);
 		if (pPixelData != NULL && (colors == 3 || colors == 1))
 		{
 			CRawMetadata* metadata = new CRawMetadata(RawProcessor.imgdata.idata.make, RawProcessor.imgdata.idata.model, RawProcessor.imgdata.other.timestamp,
@@ -88,6 +89,7 @@ CJPEGImage* RawReader::ReadImage(LPCTSTR strFileName, bool& bOutOfMemory, bool b
 			Image = new CJPEGImage(width, height, pPixelData, NULL /* Helpers::FindEXIFBlock(thumb->data, thumb->data_size) */, colors,
 				Helpers::CalculateJPEGFileHash(thumb->data, thumb->data_size), IF_JPEG_Embedded, false, 0, 1, 0, NULL, false, metadata);
 
+			Image->SetDownsampleFactor(nScaleDenom);
 			Image->SetJPEGComment(Helpers::GetJPEGComment(thumb->data, thumb->data_size));
 			Image->SetJPEGChromoSampling(eChromoSubSampling);
 		}

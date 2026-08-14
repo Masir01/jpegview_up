@@ -300,6 +300,7 @@ Save cropped image	保存裁剪后的图片
 Save processed image to JPEG file (original size)	保存处理后的图片为JPEG文件（原始大小）
 Save processed image to JPEG file (screen size)	保存处理后的图片为JPEG文件（屏幕大小）
 Save to	保存
+Saving is disabled for downscaled previews	降采样预览禁止保存
 Scaling mode:	放大模式：
 Screen Pixels	屏幕像素
 Scroll from bottom	从下侧滚动
@@ -354,6 +355,7 @@ The file is read-only!	只读文件！
 The following file extensions cannot be unregistered because they have been registered in the 'local machine' registry area.	无法注册以下文件扩展名，因为在“本机”注册表区域中已注册它们。
 The following image extensions are protected by the operating system.	以下图片扩展名被操作系统保护。
 The imported param DB contains entries already present in active param DB.	导入的参数数据库包含已经存在于活动参数数据库的项目。
+The image is loaded at reduced resolution (1/%d) to save memory. Saving it would permanently lose the original resolution, so saving is disabled.	图像以降低的分辨率（1/%d）加载以节省内存。保存将永久丢失原始分辨率，因此已禁止保存。
 The new size is too large - width or height is larger than 65535 or total number of pixels is too large!	新的图片大小太大-宽度或高度大于65536或是总像素数太大！
 The old parameter DB file '%s' could not be renamed during conversion to new format!	在转换为新的格式的过程中无法重命名旧的参数数据库文件'%s'！
 The operation failed because not enough memory is available!	操作失败，没有足够的可用内存！

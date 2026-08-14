@@ -10653,12 +10653,14 @@ void CLASS jpeg_thumb(CJPEGImage** Image, bool& bOutOfMemory)
 
     int nWidth, nHeight, nBPP;
     TJSAMP eChromoSubSampling;
-    void* pPixelData = TurboJpeg::ReadImage(nWidth, nHeight, nBPP, eChromoSubSampling, bOutOfMemory, thumb, thumb_length);
+    int nScaleDenom = 1;
+    void* pPixelData = TurboJpeg::ReadImage(nWidth, nHeight, nBPP, eChromoSubSampling, bOutOfMemory, thumb, thumb_length, &nScaleDenom);
 
     if (pPixelData != NULL && (nBPP == 3 || nBPP == 1))
     {
         *Image = new CJPEGImage(nWidth, nHeight, pPixelData, Helpers::FindEXIFBlock(thumb, thumb_length), nBPP,
             Helpers::CalculateJPEGFileHash(thumb, thumb_length), IF_JPEG_Embedded, false, 0, 1, 0, NULL, false, CreateRawMetadata());
+        (*Image)->SetDownsampleFactor(nScaleDenom);
         (*Image)->SetJPEGComment(Helpers::GetJPEGComment(thumb, thumb_length));
         (*Image)->SetJPEGChromoSampling(eChromoSubSampling);
     }

@@ -448,6 +448,7 @@ CJPEGImage* PsdReader::ReadThumb(LPCTSTR strFileName, bool& bOutOfMemory)
 	CJPEGImage* Image = NULL;
 	int nWidth, nHeight, nChannels;
 	int nJpegSize;
+	int nScaleDenom = 1;
 	TJSAMP eChromoSubSampling;
 
 	try {
@@ -505,7 +506,7 @@ CJPEGImage* PsdReader::ReadThumb(LPCTSTR strFileName, bool& bOutOfMemory)
 					SeekFile(hFile, -nResourceSize);
 
 
-					pPixelData = TurboJpeg::ReadImage(nWidth, nHeight, nChannels, eChromoSubSampling, bOutOfMemory, pBuffer, nJpegSize);
+					pPixelData = TurboJpeg::ReadImage(nWidth, nHeight, nChannels, eChromoSubSampling, bOutOfMemory, pBuffer, nJpegSize, &nScaleDenom);
 					break;
 
 				case 0x0422: // 0x0422 1058 (Photoshop 7.0) EXIF data 1. See http://www.kodak.com/global/plugins/acrobat/en/service/digCam/exifStandard2.pdf
@@ -529,6 +530,7 @@ CJPEGImage* PsdReader::ReadThumb(LPCTSTR strFileName, bool& bOutOfMemory)
 		if (pPixelData != NULL) {
 			Image = new CJPEGImage(nWidth, nHeight, pPixelData, pEXIFData,
 				nChannels, Helpers::CalculateJPEGFileHash(pBuffer, nJpegSize), IF_JPEG_Embedded, false, 0, 1, 0);
+			Image->SetDownsampleFactor(nScaleDenom);
 			Image->SetJPEGComment(Helpers::GetJPEGComment(pBuffer, nJpegSize));
 			Image->SetJPEGChromoSampling(eChromoSubSampling);
 		}

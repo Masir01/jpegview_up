@@ -241,6 +241,7 @@ private:
 	void OpenFile(LPCTSTR sFileName, bool bAfterStartup);
 	bool SaveImage(bool bFullSize);
 	bool SaveImageNoPrompt(LPCTSTR sFileName, bool bFullSize);
+	bool IsDownscaledSaveBlocked();
 	void BatchCopy();
 	void SetAsDefaultViewer();
 	void HandleUserCommands(uint32 virtualKeyCode);
