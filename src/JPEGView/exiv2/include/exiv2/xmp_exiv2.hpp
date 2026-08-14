@@ -1,0 +1,437 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+#ifndef EXIV2_XMP_EXIV2_HPP
+#define EXIV2_XMP_EXIV2_HPP
+
+// *****************************************************************************
+#include "exiv2lib_export.h"
+
+// included header files
+#include "datasets.hpp"
+#include "metadatum.hpp"
+#include "properties.hpp"
+
+#include <atomic>
+#include <map>
+
+// *****************************************************************************
+// namespace extensions
+namespace Exiv2 {
+// *****************************************************************************
+// class declarations
+class ExifData;
+class XmpKey;
+
+// *****************************************************************************
+// class definitions
+
+/*!
+  @brief Information related to an XMP property. An XMP metadatum consists
+         of an XmpKey and a Value and provides methods to manipulate these.
+ */
+class EXIV2API Xmpdatum : public Metadatum {
+ public:
+  //! @name Creators
+  //@{
+  /*!
+    @brief Constructor for new tags created by an application. The
+           %Xmpdatum is created from a key / value pair. %Xmpdatum
+           copies (clones) the value if one is provided. Alternatively, a
+           program can create an 'empty' %Xmpdatum with only a key and
+           set the value using setValue().
+
+    @param key The key of the %Xmpdatum.
+    @param pValue Pointer to a %Xmpdatum value.
+    @throw Error if the key cannot be parsed and converted
+           to a known schema namespace prefix and property name.
+   */
+  explicit Xmpdatum(const XmpKey& key, const Value* pValue = nullptr);
+  //! Copy constructor
+  Xmpdatum(const Xmpdatum& rhs);
+  //! Destructor
+  ~Xmpdatum() override;
+  //@}
+
+  //! @name Manipulators
+  //@{
+  //! Assignment operator
+  Xmpdatum& operator=(const Xmpdatum& rhs);
+  /*!
+    @brief Assign std::string \em value to the %Xmpdatum.
+           Calls setValue(const std::string&).
+   */
+  template <typename T>
+  Xmpdatum& operator=(const T& value);
+  /*!
+    @brief Assign Value \em value to the %Xmpdatum.
+           Calls setValue(const Value*).
+   */
+  void setValue(const Value* pValue) override;
+  /*!
+    @brief Set the value to the string \em value. Uses Value::read(const
+           std::string&).  If the %Xmpdatum does not have a Value yet,
+           then a %Value of the correct type for this %Xmpdatum is
+           created. If the key is unknown, a XmpTextValue is used as
+           default. Return 0 if the value was read successfully.
+   */
+  int setValue(const std::string& value) override;
+  //@}
+
+  //! @name Accessors
+  //@{
+  //! Not implemented. Calling this method will raise an exception.
+  size_t copy(byte* buf, ByteOrder byteOrder) const override;
+  std::ostream& write(std::ostream& os, const ExifData* pMetadata = nullptr) const override;
+  /*!
+    @brief Return the key of the Xmpdatum. The key is of the form
+           '<b>Xmp</b>.prefix.property'. Note however that the
+           key is not necessarily unique, i.e., an XmpData object may
+           contain multiple metadata with the same key.
+   */
+  [[nodiscard]] std::string key() const override;
+  [[nodiscard]] const char* familyName() const override;
+  //! Return the (preferred) schema namespace prefix.
+  [[nodiscard]] std::string groupName() const override;
+  //! Return the property name.
+  [[nodiscard]] std::string tagName() const override;
+  [[nodiscard]] std::string tagLabel() const override;
+  [[nodiscard]] std::string tagDesc() const override;
+  //! Properties don't have a tag number. Return 0.
+  [[nodiscard]] uint16_t tag() const override;
+  [[nodiscard]] TypeId typeId() const override;
+  [[nodiscard]] const char* typeName() const override;
+  // Todo: Remove this method from the baseclass
+  //! The Exif typeSize doesn't make sense here. Return 0.
+  [[nodiscard]] size_t typeSize() const override;
+  [[nodiscard]] size_t count() const override;
+  [[nodiscard]] size_t size() const override;
+  [[nodiscard]] std::string toString() const override;
+  [[nodiscard]] std::string toString(size_t n) const override;
+  [[nodiscard]] int64_t toInt64(size_t n = 0) const override;
+  [[nodiscard]] float toFloat(size_t n = 0) const override;
+  [[nodiscard]] Rational toRational(size_t n = 0) const override;
+  [[nodiscard]] std::unique_ptr<Value> getValue() const override;
+  [[nodiscard]] const Value& value() const override;
+  //@}
+
+ private:
+  // Pimpl idiom
+  struct Impl;
+  std::unique_ptr<Impl> p_;
+
+};  // class Xmpdatum
+
+//! Container type to hold all metadata
+using XmpMetadata = std::vector<Xmpdatum>;
+
+/*!
+  @brief A container for XMP data. This is a top-level class of
+         the %Exiv2 library.
+
+  Provide high-level access to the XMP data of an image:
+  - read XMP information from an XML block
+  - access metadata through keys and standard C++ iterators
+  - add, modify and delete metadata
+  - serialize XMP data to an XML block
+*/
+class EXIV2API XmpData {
+ public:
+  //! Default constructor
+  XmpData() = default;
+
+  //! XmpMetadata iterator type
+  using iterator = XmpMetadata::iterator;
+  //! XmpMetadata const iterator type
+  using const_iterator = XmpMetadata::const_iterator;
+
+  //! @name Manipulators
+  //@{
+  /*!
+    @brief Returns a reference to the %Xmpdatum that is associated with a
+           particular \em key. If %XmpData does not already contain such
+           an %Xmpdatum, operator[] adds object \em Xmpdatum(key).
+
+    @note  Since operator[] might insert a new element, it can't be a const
+           member function.
+   */
+  Xmpdatum& operator[](const std::string& key);
+  /*!
+    @brief Add an %Xmpdatum from the supplied key and value pair. This
+           method copies (clones) the value.
+    @return 0 if successful.
+   */
+  int add(const XmpKey& key, const Value* value);
+  /*!
+    @brief Add a copy of the Xmpdatum to the XMP metadata.
+    @return 0 if successful.
+   */
+  int add(const Xmpdatum& xmpDatum);
+  /*
+  @brief Delete the Xmpdatum at iterator position pos, return the
+          position of the next Xmpdatum.
+
+  @note  Iterators into the metadata, including pos, are potentially
+          invalidated by this call.
+  @brief Delete the Xmpdatum at iterator position pos and update pos
+  */
+  iterator erase(XmpData::iterator pos);
+  /*!
+    @brief Delete the Xmpdatum at iterator position pos and update pos
+           erases all following keys from the same family
+           See: https://github.com/Exiv2/exiv2/issues/521
+   */
+  void eraseFamily(XmpData::iterator& pos);
+  //! Delete all Xmpdatum instances resulting in an empty container.
+  void clear();
+  //! Sort metadata by key
+  void sortByKey();
+  //! Begin of the metadata
+  iterator begin();
+  //! End of the metadata
+  iterator end();
+  /*!
+    @brief Find the first Xmpdatum with the given key, return an iterator
+           to it.
+   */
+  iterator findKey(const XmpKey& key);
+  //@}
+
+  //! @name Accessors
+  //@{
+  //! Begin of the metadata
+  [[nodiscard]] const_iterator begin() const;
+  //! End of the metadata
+  [[nodiscard]] const_iterator end() const;
+  /*!
+    @brief Find the first Xmpdatum with the given key, return a const
+           iterator to it.
+   */
+  [[nodiscard]] const_iterator findKey(const XmpKey& key) const;
+  //! Return true if there is no XMP metadata
+  [[nodiscard]] bool empty() const;
+  //! Get the number of metadata entries
+  [[nodiscard]] long count() const;
+
+  //! are we to use the packet?
+  [[nodiscard]] bool usePacket() const {
+    return usePacket_;
+  }
+
+  //! set usePacket_
+  bool usePacket(bool b) {
+    bool r = usePacket_;
+    usePacket_ = b;
+    return r;
+  }
+  //! setPacket
+  void setPacket(std::string xmpPacket) {
+    xmpPacket_ = std::move(xmpPacket);
+    usePacket(false);
+  }
+  // ! getPacket
+  [[nodiscard]] const std::string& xmpPacket() const {
+    return xmpPacket_;
+  }
+
+  //@}
+
+ private:
+  // DATA
+  XmpMetadata xmpMetadata_;
+  std::string xmpPacket_;
+  bool usePacket_{};
+  //! Per-instance prefix-to-URI namespace bindings, see nsBindings().
+  std::map<std::string, std::string> nsBindings_;
+
+  /*!
+    @brief Namespace prefix-to-URI bindings captured from this object's own
+           source packet at decode time.
+
+    XMP namespace prefixes are document-scoped: two images may legitimately
+    bind the same prefix to different URIs.  Exiv2 keys are prefix-based and
+    the URI is otherwise re-derived from a process-global registry at encode
+    time, which lets one image's binding (including a corrupted one) leak into
+    another.  These per-instance bindings let encode() resolve each property's
+    URI from the data it actually came from, falling back to the global
+    registry only for keys that were added without a source packet.
+
+    @note Internal: read by XmpParser::resolveNamespace() during encode().
+   */
+  [[nodiscard]] const std::map<std::string, std::string>& nsBindings() const {
+    return nsBindings_;
+  }
+
+  int addUnlocked(const XmpKey& key, const Value* value, const XmpProperties::XmpLock&);
+  int addUnlocked(const Xmpdatum& xmpDatum, const XmpProperties::XmpLock&);
+  bool emptyUnlocked(const XmpProperties::XmpLock&) const;
+  long countUnlocked(const XmpProperties::XmpLock&) const;
+  void sortByKeyUnlocked(const XmpProperties::XmpLock&);
+  void clearUnlocked(const XmpProperties::XmpLock&);
+  friend class XmpParser;
+};  // class XmpData
+
+/*!
+  @brief Stateless parser class for XMP packets. Images use this
+         class to parse and serialize XMP packets. The parser uses
+         the XMP toolkit to do the job.
+ */
+class EXIV2API XmpParser {
+ public:
+  //! Options to control the format of the serialized XMP packet.
+  enum XmpFormatFlags {
+    omitPacketWrapper = 0x0010UL,    //!< Omit the XML packet wrapper.
+    readOnlyPacket = 0x0020UL,       //!< Default is a writeable packet.
+    useCompactFormat = 0x0040UL,     //!< Use a compact form of RDF.
+    includeThumbnailPad = 0x0100UL,  //!< Include a padding allowance for a thumbnail image.
+    exactPacketLength = 0x0200UL,    //!< The padding parameter is the overall packet length.
+    writeAliasComments = 0x0400UL,   //!< Show aliases as XML comments.
+    omitAllFormatting = 0x0800UL     //!< Omit all formatting whitespace.
+  };
+  /*!
+    @brief Decode XMP metadata from an XMP packet \em xmpPacket into
+           \em xmpData. The format of the XMP packet must follow the
+           XMP specification. This method clears any previous contents
+           of \em xmpData.
+
+    @param xmpData   Container for the decoded XMP properties
+    @param xmpPacket The raw XMP packet to decode
+    @return 0 if successful;<BR>
+            1 if XMP support has not been compiled-in;<BR>
+            2 if the XMP toolkit failed to initialize;<BR>
+            3 if the XMP toolkit failed and raised an XMP_Error
+  */
+  static int decode(XmpData& xmpData, const std::string& xmpPacket);
+  /*!
+    @brief Encode (serialize) XMP metadata from \em xmpData into a
+           string xmpPacket. The XMP packet returned in the string
+           follows the XMP specification. This method only modifies
+           \em xmpPacket if the operations succeeds (return code 0).
+
+    @param xmpPacket   Reference to a string to hold the encoded XMP
+                       packet.
+    @param xmpData     XMP properties to encode.
+    @param formatFlags Flags that control the format of the XMP packet,
+                       see enum XmpFormatFlags.
+    @param padding     Padding length.
+    @return 0 if successful;<BR>
+            1 if XMP support has not been compiled-in;<BR>
+            2 if the XMP toolkit failed to initialize;<BR>
+            3 if the XMP toolkit failed and raised an XMP_Error
+  */
+  static int encode(std::string& xmpPacket, const XmpData& xmpData, uint16_t formatFlags = useCompactFormat,
+                    uint32_t padding = 0);
+
+  /*!
+    @deprecated This function is no longer needed and does absolutely nothing.
+                XMP Toolkit initialization is handled automatically.
+                Arguments are ignored.
+
+    @return Always returns true.
+   */
+  [[deprecated(
+      "XmpParser::initialize is deprecated and does nothing. The XMP Toolkit is initialized "
+      "automatically.")]] static bool
+  initialize(void (*)(void*, bool) = nullptr, void* = nullptr);
+
+  /*!
+    @deprecated This function is no longer needed and does absolutely nothing.
+                XMP Toolkit termination is handled automatically.
+   */
+  [[deprecated(
+      "XmpParser::terminate is deprecated and does nothing. The XMP Toolkit termination is handled "
+      "automatically.")]] static void
+  terminate();
+  /*!
+    @brief Clear all custom namespaces registered with the XMP Toolkit.
+           This is useful for resetting the registry state in tests.
+   */
+  static void clearCustomNamespaces();
+
+ private:
+  /*!
+    @brief Register a namespace with the XMP Toolkit.
+   */
+  static void registerNs(const std::string& ns, const std::string& prefix);
+  /*!
+    @brief Delete a namespace from the XMP Toolkit.
+
+    XmpProperties::unregisterNs calls this to synchronize namespaces.
+  */
+  static void unregisterNs(const std::string& ns);
+
+  /*!
+    @brief Register a namespace with the XMP Toolkit without locking.
+           Assumes the lock obtained via XmpProperties::XmpLock is already held by caller.
+   */
+  static void registerNsImpl(const std::string& ns, const std::string& prefix);
+
+  static void registeredNamespacesUnlocked(Exiv2::Dictionary&, const XmpProperties::XmpLock&);
+
+  /*!
+    @brief Get namespaces registered with XMPsdk
+   */
+  static void registeredNamespaces(Exiv2::Dictionary&);
+
+  friend class XmpProperties;  // permit XmpProperties -> registerNs() and registeredNamespaces()
+
+  static std::unique_ptr<XmpKey> makeXmpKey(const std::string& schemaNs, const std::string& propPath,
+                                            const XmpProperties::XmpLock&);
+
+  /*!
+    @brief Resolve a namespace prefix to its URI for serialization, preferring the
+           binding declared by \em xmpData's own source packet and falling back to
+           the process-global registry for keys added without one.
+           Assumes the lock obtained via XmpProperties::XmpLock is held by caller.
+   */
+  static std::string resolveNamespace(const XmpData& xmpData, const std::string& prefix, const XmpProperties::XmpLock&);
+
+};  // class XmpParser
+
+// *****************************************************************************
+// free functions, template and inline definitions
+
+#if __cpp_if_constexpr
+template <typename T>
+Xmpdatum& Xmpdatum::operator=(const T& value) {
+  if constexpr (std::is_same_v<T, bool>)
+    setValue(value ? "True" : "False");
+  else if constexpr (std::is_convertible_v<T, std::string>)
+    setValue(value);
+  else if constexpr (std::is_base_of_v<Value, T>)
+    setValue(&value);
+  else
+    setValue(Exiv2::toString(value));
+  return *this;
+}
+#else
+template <typename T>
+std::enable_if_t<std::is_convertible<T, std::string>::value> operatorHelper(Xmpdatum* xmp, const T& value) {
+  xmp->setValue(value);
+}
+
+template <typename T>
+std::enable_if_t<std::is_base_of<Value, T>::value> operatorHelper(Xmpdatum* xmp, const T& value) {
+  xmp->setValue(&value);
+}
+
+template <typename T>
+std::enable_if_t<std::is_same<T, bool>::value> operatorHelper(Xmpdatum* xmp, const T& value) {
+  xmp->setValue(value ? "True" : "False");
+}
+
+template <typename T>
+std::enable_if_t<!(std::is_convertible<T, std::string>::value || std::is_base_of<Value, T>::value ||
+                   std::is_same<T, bool>::value)>
+operatorHelper(Xmpdatum* xmp, const T& value) {
+  xmp->setValue(Exiv2::toString(value));
+}
+
+template <typename T>
+Xmpdatum& Xmpdatum::operator=(const T& value) {
+  operatorHelper(this, value);
+  return *this;
+}
+#endif
+}  // namespace Exiv2
+
+#endif  // EXIV2_XMP_EXIV2_HPP

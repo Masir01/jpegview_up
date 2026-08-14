@@ -1,5 +1,8 @@
 #pragma once
 
+#include "ImageProcessingTypes.h"
+#include <windows.h>
+
 // Signed rational number: numerator/denominator
 class SignedRational {
 public:
@@ -40,7 +43,7 @@ private:
 	CString m_sReference;
 };
 
-// Reads and parses the EXIF data of JPEG images
+// Reads and parses the EXIF data of JPEG images (parsing is done by the exiv2 library)
 class CEXIFReader {
 public:
 	// The pApp1Block must point to the APP1 block of the EXIF data, including the APP1 block marker
@@ -111,6 +114,12 @@ public:
 	// Delete the thumbnail image
 	// Writes to the APP1 block passed in constructor.
 	void DeleteThumbnail();
+
+	// Returns the current total length of the EXIF APP1 block (including marker and length bytes).
+	// After a write operation (WriteImageOrientation/UpdateJPEGThumbnail/DeleteThumbnail) this
+	// reflects the re-encoded block length and triggers the re-encode if it is still pending.
+	int GetEXIFSize();
+
 public:
 	// unknown double value
 	static double UNKNOWN_DOUBLE_VALUE;
@@ -138,13 +147,18 @@ private:
 	GPSCoordinate* m_pLongitude;
 	double m_dAltitude;
 
-	bool m_bLittleEndian;
-	uint8* m_pApp1;
-	uint8* m_pTagOrientation;
-	uint8* m_pLastIFD0;
-	uint8* m_pIFD1;
-	uint8* m_pLastIFD1;
+	// exiv2 driven state
+	void* m_pExifData;   // Points to Exiv2::ExifData instance (NULL if not parsed / exiv2 unavailable)
+	uint8* m_pApp1;      // Points to the APP1 block passed to the constructor
+	int m_nApp1Size;     // Original total length of the APP1 block (including marker and length bytes)
+	int m_nEXIFSize;     // Current total length of the APP1 block (may differ from m_nApp1Size after re-encode)
+	int m_nThumbOffset;  // Offset of the compressed thumbnail SOI relative to the TIFF data start (Exif.Thumbnail.JPEGInterchangeFormat)
+	int m_nByteOrder;    // Original TIFF byte order: 1 = little endian, 2 = big endian (Exiv2::ByteOrder), 0 = unknown
+	bool m_bParsed;      // true if exiv2 successfully parsed the block
+	bool m_bDirty;       // true if the parsed metadata was modified and needs a re-encode
 
-	void ReadGPSData(uint8* pTIFFHeader, uint8* pTagGPSIFD, int nApp1Size, bool bLittleEndian);
-	GPSCoordinate* ReadGPSCoordinate(uint8* pTIFFHeader, uint8* pTagLatOrLong, LPCTSTR reference, bool bLittleEndian);
+	EImageFormat m_eImageFormat;
+
+	void ParseWithExiv2();
+	void Reencode();     // Serializes the modified metadata back to the APP1 block
 };

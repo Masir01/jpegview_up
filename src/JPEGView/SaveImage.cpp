@@ -157,10 +157,10 @@ static void* CompressAndSave(LPCTSTR sFileName, CJPEGImage * pImage,
 	// If EXIF data is present, replace any JFIF block by this EXIF block to preserve the EXIF information
 	if (pImage->GetEXIFData() != NULL && bCopyEXIF) {
 		const int cnAdditionalThumbBytes = 32000;
-		int nEXIFBlockLenCorrection = 0;
-		unsigned char* pNewStream = new unsigned char[nJPEGStreamLen + pImage->GetEXIFDataLength() + cnAdditionalThumbBytes];
+		int nEXIFBlockLen = pImage->GetEXIFDataLength();
+		unsigned char* pNewStream = new unsigned char[nJPEGStreamLen + nEXIFBlockLen + cnAdditionalThumbBytes];
 		memcpy(pNewStream, pTargetStream, 2); // copy SOI block
-		memcpy(pNewStream + 2, pImage->GetEXIFData(), pImage->GetEXIFDataLength()); // copy EXIF block
+		memcpy(pNewStream + 2, pImage->GetEXIFData(), nEXIFBlockLen); // copy EXIF block
 		
 		// Set image orientation back to normal orientation, we save the pixels as displayed
 		CEXIFReader exifReader(pNewStream + 2, IF_JPEG);
@@ -175,12 +175,10 @@ static void* CompressAndSave(LPCTSTR sFileName, CJPEGImage * pImage,
 				int nJPEGThumbStreamLen;
 				unsigned char* pJPEGThumb = (unsigned char*) TurboJpeg::Compress(pDIBThumb, sizeThumb.cx, sizeThumb.cy, nJPEGThumbStreamLen, bOutOfMemory, 70);
 				if (pJPEGThumb != NULL) {
-					int nThumbJFIFLen = GetJFIFBlockLength(pJPEGThumb);
-					nEXIFBlockLenCorrection = nJPEGThumbStreamLen - nThumbJFIFLen - exifReader.GetJPEGThumbStreamLen();
-					if (nEXIFBlockLenCorrection <= cnAdditionalThumbBytes && pImage->GetEXIFDataLength() + nEXIFBlockLenCorrection < 65536) {
-						exifReader.UpdateJPEGThumbnail(pJPEGThumb + 2 + nThumbJFIFLen, nJPEGThumbStreamLen - 2 - nThumbJFIFLen, nEXIFBlockLenCorrection, sizeThumb);
-					} else {
-						nEXIFBlockLenCorrection = 0;
+					// Only replace the thumbnail if it is estimated to fit within the reserved growth buffer
+					int nThumbGrowth = nJPEGThumbStreamLen - exifReader.GetJPEGThumbStreamLen();
+					if (nThumbGrowth <= cnAdditionalThumbBytes && nEXIFBlockLen + nThumbGrowth < 65536) {
+						exifReader.UpdateJPEGThumbnail(pJPEGThumb, nJPEGThumbStreamLen, 0, sizeThumb);
 					}
 					delete[] pJPEGThumb;
 				}
@@ -188,12 +186,15 @@ static void* CompressAndSave(LPCTSTR sFileName, CJPEGImage * pImage,
 			}
 		}
 
+		// Re-encode on demand and use the actual (possibly changed) EXIF block length
+		int nNewEXIFLen = exifReader.GetEXIFSize();
+
 		int nJFIFLength = GetJFIFBlockLength(pTargetStream);
-		memcpy(pNewStream + 2 + pImage->GetEXIFDataLength() + nEXIFBlockLenCorrection, pTargetStream + 2 + nJFIFLength, nJPEGStreamLen - 2 - nJFIFLength);
+		memcpy(pNewStream + 2 + nNewEXIFLen, pTargetStream + 2 + nJFIFLength, nJPEGStreamLen - 2 - nJFIFLength);
 		tj3Free(pTargetStream);
 		pTargetStream = pNewStream;
 		tj3FreeNeeded = false;
-		nJPEGStreamLen = nJPEGStreamLen - nJFIFLength + pImage->GetEXIFDataLength() + nEXIFBlockLenCorrection;
+		nJPEGStreamLen = nJPEGStreamLen - nJFIFLength + nNewEXIFLen;
 	}
 
 	// Take over existing JPEG comment from the old image
