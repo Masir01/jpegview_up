@@ -175,6 +175,8 @@ CSettingsProvider::CSettingsProvider(void) {
 	m_nSlideShowEffectTimeMs = GetInt(_T("SlideShowEffectTime"), 200, 100, 5000);
 	m_bFastJPEGDecode = GetBool(_T("FastJPEGDecode"), false);
 	m_bFastRAWDecode = GetBool(_T("FastRAWDecode"), false);
+	m_bOversizedDownscaleDecode = GetBool(_T("OversizedDownscaleDecode"), true);
+	m_nOversizedDownscaleMaxFactor = GetInt(_T("OversizedDownscaleMaxFactor"), 8, 2, 8);
 	m_bWICPriority = GetBool(_T("WICPriority"), false);
 	m_bHEIFIgnoreTransformations = GetBool(_T("HEIFIgnoreTransformations"), false);
 	m_bHEIFConvertHDRTo8bit = GetBool(_T("HEIFConvertHDRTo8bit"), true);

@@ -3291,6 +3291,12 @@ void CMainDlg::UpdateWindowTitle() {
 	} else {
 		CString sWindowText =  sCurrentFileName;
 		sWindowText += Helpers::GetMultiframeIndex(m_pCurrentImage);
+		int nDownsampleFactor = m_pCurrentImage->GetDownsampleFactor();
+		if (nDownsampleFactor > 1) {
+			CString sDownsampleNote;
+			sDownsampleNote.Format(_T(" [1/%d]"), nDownsampleFactor);
+			sWindowText += sDownsampleNote;
+		}
 		if (CSettingsProvider::This().ShowEXIFDateInTitle()) {
 			CEXIFReader* pEXIF = m_pCurrentImage->GetEXIFReader();
 			CRawMetadata* pRawMetadata = m_pCurrentImage->GetRawMetadata();

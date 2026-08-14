@@ -102,6 +102,7 @@ CJPEGImage::CJPEGImage(int nWidth, int nHeight, void* pPixels, void* pEXIFData, 
 
 	m_nOrigWidth = m_nInitOrigWidth = nWidth;
 	m_nOrigHeight = m_nInitOrigHeight = nHeight;
+	m_nDownsampleFactor = 1;
 	m_pDIBPixels = NULL;
 	m_pDIBPixelsLUTProcessed = NULL;
 	m_pLastDIB = NULL;

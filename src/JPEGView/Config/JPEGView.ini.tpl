@@ -284,6 +284,17 @@ FastJPEGDecode=false
 ; Decodes at 1/2 dimensions (1/4 pixels) for a major speedup on large RAW files.
 ; Default: false.
 FastRAWDecode=false
+; When a JPEG is oversized (exceeds MAX_IMAGE_PIXELS pixels or MAX_IMAGE_DIMENSION per side),
+; decode it downscaled instead of refusing to open with an out-of-memory error.
+; true  = downscale-decode oversized JPEGs (much lower memory, reduced detail)
+; false = strictly refuse oversized JPEGs (original behavior)
+; Default: true.
+OversizedDownscaleDecode=true
+; Maximum downsampling factor allowed when downscale-decoding an oversized JPEG.
+; 2 = at most 1/2 dimensions (4x fewer pixels), 4 = at most 1/4, 8 = at most 1/8.
+; The smallest factor that fits within the memory limits is always chosen.
+; Default: 8.
+OversizedDownscaleMaxFactor=8
 ; When enabled, file extensions listed in FilesProcessedByWIC will be decoded by WIC
 ; even if a native decoder exists (e.g., JPEG, PNG, etc.). Useful for troubleshooting
 ; or when WIC handles certain files better. Default: false.

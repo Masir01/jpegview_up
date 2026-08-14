@@ -160,6 +160,11 @@ public:
 	int InitOrigWidth() const { return m_nInitOrigWidth; }
 	int InitOrigHeight() const { return m_nInitOrigHeight; }
 
+	// Downsampling factor used when decoding an oversized image (2, 4 or 8).
+	// 1 means the image was decoded at full resolution.
+	int GetDownsampleFactor() const { return m_nDownsampleFactor; }
+	void SetDownsampleFactor(int nFactor) { m_nDownsampleFactor = nFactor; }
+
 	// Size of DIB - size of resampled section of the original image. If zero, no DIB is currently available.
 	int DIBWidth() const { return m_ClippingSize.cx; }
 	int DIBHeight() const { return m_ClippingSize.cy; }
@@ -360,6 +365,9 @@ private:
 	__int64 m_nPixelHash;
 	EImageFormat m_eImageFormat;
 	TJSAMP m_eJPEGChromoSampling;
+
+	// Downsampling factor used when decoding an oversized image (1 = full resolution)
+	int m_nDownsampleFactor;
 
 	// multiframe and GIF animation related data
 	bool m_bIsAnimation;

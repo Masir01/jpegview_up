@@ -4,18 +4,40 @@
 #include "MaxImageDef.h"
 #include "SettingsProvider.h"
 
+// Finds the smallest downsampling factor (1/2, 1/4, 1/8) that brings the image within
+// MAX_IMAGE_PIXELS / MAX_IMAGE_DIMENSION limits. Returns TJUNSCALED if no downsampling is needed.
+// nMaxDenom limits the largest allowed denominator (e.g. 2 = never downscale more than 1/2).
+static tjscalingfactor FindDownscaleFactor(int nWidth, int nHeight, int nMaxDenom) {
+	tjscalingfactor sf = TJUNSCALED;
+	for (int nDenom = 2; nDenom <= nMaxDenom; nDenom *= 2) {
+		tjscalingfactor candidate = { 1, nDenom };
+		int nScaledW = TJSCALED(nWidth, candidate);
+		int nScaledH = TJSCALED(nHeight, candidate);
+		if (nScaledW <= MAX_IMAGE_DIMENSION && nScaledH <= MAX_IMAGE_DIMENSION &&
+			(double)nScaledW * nScaledH <= MAX_IMAGE_PIXELS) {
+			sf = candidate;
+			break;
+		}
+	}
+	return sf;
+}
+
 void * TurboJpeg::ReadImage(int &width,
 					   int &height,
 					   int &nchannels,
 					   TJSAMP &chromoSubsampling,
 					   bool &outOfMemory,
 					   const void *buffer,
-					   int sizebytes)
+					   int sizebytes,
+					   int *pScaleDenom)
 {
 	outOfMemory = false;
 	width = height = 0;
 	nchannels = 3;
 	chromoSubsampling = TJSAMP_420;
+	if (pScaleDenom != NULL) {
+		*pScaleDenom = 1;
+	}
 
 	tjhandle hDecoder = tj3Init(TJINIT_DECOMPRESS);
 	if (hDecoder == NULL) {
@@ -39,20 +61,45 @@ void * TurboJpeg::ReadImage(int &width,
 			chromoSubsampling = TJSAMP_420;
 		}
 
-		if (abs((double)width * height) > MAX_IMAGE_PIXELS) {
-			outOfMemory = true;
-		} else if (width <= MAX_IMAGE_DIMENSION && height <= MAX_IMAGE_DIMENSION) {
-			pPixelData = new(std::nothrow) unsigned char[TJPAD(width * 3) * height];
+		int nScaledWidth = width;
+		int nScaledHeight = height;
+		tjscalingfactor scalingFactor = TJUNSCALED;
+		if (abs((double)width * height) > MAX_IMAGE_PIXELS ||
+			width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
+			// Oversized image. Either downscale-decode it (when enabled) or refuse to load.
+			if (CSettingsProvider::This().OversizedDownscaleDecode()) {
+				int nMaxDenom = CSettingsProvider::This().OversizedDownscaleMaxFactor();
+				scalingFactor = FindDownscaleFactor(width, height, nMaxDenom);
+				if (scalingFactor.num != scalingFactor.denom) {
+					nScaledWidth = TJSCALED(width, scalingFactor);
+					nScaledHeight = TJSCALED(height, scalingFactor);
+					tj3SetScalingFactor(hDecoder, scalingFactor);
+					if (pScaleDenom != NULL) {
+						*pScaleDenom = scalingFactor.denom;
+					}
+				}
+			}
+		}
+
+		if (abs((double)nScaledWidth * nScaledHeight) <= MAX_IMAGE_PIXELS &&
+			nScaledWidth <= MAX_IMAGE_DIMENSION && nScaledHeight <= MAX_IMAGE_DIMENSION) {
+			pPixelData = new(std::nothrow) unsigned char[TJPAD(nScaledWidth * 3) * nScaledHeight];
 			if (pPixelData != NULL) {
 				nResult = tj3Decompress8(hDecoder, (unsigned char*)buffer, sizebytes,
-					pPixelData, TJPAD(width * 3), TJPF_BGR);
+					pPixelData, TJPAD(nScaledWidth * 3), TJPF_BGR);
 				if (nResult != 0) {
 					delete[] pPixelData;
 					pPixelData = NULL;
+				} else {
+					width = nScaledWidth;
+					height = nScaledHeight;
 				}
 			} else {
 				outOfMemory = true;
 			}
+		} else {
+			// Could not downscale enough (practically never happens: 1/8 is always within limits).
+			outOfMemory = true;
 		}
 	}
 

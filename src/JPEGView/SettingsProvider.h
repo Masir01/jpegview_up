@@ -73,6 +73,12 @@ public:
 	int SlideShowEffectTimeMs() { return m_nSlideShowEffectTimeMs; }
 	bool FastJPEGDecode() { return m_bFastJPEGDecode; }
 	bool FastRAWDecode() { return m_bFastRAWDecode; }
+	// Whether oversized JPEGs (exceeding MAX_IMAGE_PIXELS / MAX_IMAGE_DIMENSION) are automatically
+	// decoded downscaled instead of being refused with an out-of-memory error. Default: true.
+	bool OversizedDownscaleDecode() { return m_bOversizedDownscaleDecode; }
+	// Maximum downsampling denominator (2, 4 or 8) allowed when decoding an oversized JPEG.
+	// A larger denominator reduces memory further but also reduces detail. Default: 8.
+	int OversizedDownscaleMaxFactor() { return m_nOversizedDownscaleMaxFactor; }
 	bool WICPriority() { return m_bWICPriority; }
 	bool HEIFIgnoreTransformations() { return m_bHEIFIgnoreTransformations; }
 	bool HEIFConvertHDRTo8bit() { return m_bHEIFConvertHDRTo8bit; }
@@ -250,6 +256,8 @@ private:
 	int m_nSlideShowEffectTimeMs;
 	bool m_bFastJPEGDecode;
 	bool m_bFastRAWDecode;
+	bool m_bOversizedDownscaleDecode;
+	int m_nOversizedDownscaleMaxFactor;
 	bool m_bWICPriority;
 	bool m_bHEIFIgnoreTransformations;
 	bool m_bHEIFConvertHDRTo8bit;
