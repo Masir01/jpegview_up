@@ -59,7 +59,12 @@ namespace {
 		pVal->copy(&buf[0], Exiv2::invalidByteOrder);
 		const Exiv2::byte* pData = &buf[0];
 		if (memcmp(pData, "ASCII\0\0\0", 8) == 0) {
-			sOut = CString((LPCSTR)(pData + 8));
+			// The ASCII payload is not guaranteed to be NUL-terminated: bound the read to the value size.
+			const char* pASCII = (const char*)(pData + 8);
+			int nChars = (int)(nSize - 8);
+			size_t nLen = 0;
+			while (nLen < (size_t)nChars && pASCII[nLen] != 0) ++nLen;
+			sOut = CString(pASCII, (int)nLen);
 		} else if (memcmp(pData, "UNICODE\0\0", 8) == 0 || memcmp(pData, "Unicode\0\0", 8) == 0) {
 			int nChars = (int)((nSize - 8) / 2);
 			sOut = CString((LPCWSTR)(pData + 8), nChars);
@@ -109,14 +114,14 @@ void CEXIFReader::ParseWithExiv2() {
 	uint8* pTIFF = m_pApp1 + 10;
 	size_t nTIFFSize = (size_t)(m_nApp1Size - 10);
 
+	// RAII: releases the partially filled ExifData when decode() throws.
+	std::unique_ptr<Exiv2::ExifData> pNewData(new Exiv2::ExifData());
 	try {
-		Exiv2::ExifData* pData = new Exiv2::ExifData();
-		Exiv2::ByteOrder byteOrder = Exiv2::ExifParser::decode(*pData, pTIFF, nTIFFSize);
+		Exiv2::ByteOrder byteOrder = Exiv2::ExifParser::decode(*pNewData, pTIFF, nTIFFSize);
 		if (byteOrder == Exiv2::invalidByteOrder) {
-			delete pData;
 			return;
 		}
-		m_pExifData = pData;
+		m_pExifData = pNewData.release();
 		m_nByteOrder = (int)byteOrder;
 	} catch (...) {
 		return;
