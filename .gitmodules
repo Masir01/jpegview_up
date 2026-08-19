@@ -38,3 +38,6 @@
 [submodule "extras/third_party/LibRaw"]
 	path = extras/third_party/LibRaw
 	url = https://github.com/LibRaw/LibRaw/
+[submodule "extras/third_party/libpng-apng.src-patch"]
+	path = extras/third_party/libpng-apng.src-patch
+	url = ./extras/third_party/libpng-apng.src-patch
