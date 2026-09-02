@@ -538,12 +538,13 @@ void CImageLoadThread::ProcessReadJPEGRequest(CRequest * request) {
 				TJSAMP eChromoSubSampling;
 				bool bOutOfMemory;
 				int nScaleDenom = 1;
+				int nScaleType = 0; // 0 = none, 1 = oversized, 2 = fast fit-to-screen
 				// int nTicks = ::GetTickCount();
 
 				// Pass the monitor size so the fast fit-to-screen (extreme speed) mode can
 				// downscale-decode oversized images to a resolution that fits the screen.
 				CSize monitorSize = request->ProcessParams.MonitorSize;
-				void* pPixelData = TurboJpeg::ReadImage(nWidth, nHeight, nBPP, eChromoSubSampling, bOutOfMemory, pBuffer, nFileSize, &nScaleDenom, monitorSize.cx, monitorSize.cy);
+				void* pPixelData = TurboJpeg::ReadImage(nWidth, nHeight, nBPP, eChromoSubSampling, bOutOfMemory, pBuffer, nFileSize, &nScaleDenom, &nScaleType, monitorSize.cx, monitorSize.cy);
 				
 				/*
 				TCHAR buffer[20];
@@ -557,6 +558,8 @@ void CImageLoadThread::ProcessReadJPEGRequest(CRequest * request) {
 						Helpers::FindEXIFBlock(pBuffer, nFileSize), nBPP, 
 						Helpers::CalculateJPEGFileHash(pBuffer, nFileSize), IF_JPEG, false, 0, 1, 0);
 					request->Image->SetDownsampleFactor(nScaleDenom);
+					request->Image->SetDownscaleReason(nScaleDenom > 1 ? (nScaleType == 2 ? EDSR_FastFit : EDSR_Oversized) : EDSR_None);
+					request->Image->SetFastDecoded(CSettingsProvider::This().FastJPEGDecode());
 					request->Image->SetJPEGComment(Helpers::GetJPEGComment(pBuffer, nFileSize));
 					request->Image->SetJPEGChromoSampling(eChromoSubSampling);
 				} else if (bOutOfMemory) {
@@ -656,6 +659,7 @@ void CImageLoadThread::ProcessReadWEBPRequest(CRequest * request) {
 					IF_WEBP, bHasAnimation, request->FrameIndex, nFrameCount, nFrameTimeMs);
 				if (request->Image != NULL) {
 					request->Image->SetDownsampleFactor(nScaleDenom);
+					request->Image->SetDownscaleReason(nScaleDenom > 1 ? EDSR_FastFit : EDSR_None);
 				}
 			}
 			else {

@@ -14,6 +14,8 @@ public:
 	// "FastFitScreenDecode" (extreme speed mode) setting is enabled, images larger than the
 	// screen are decoded at the largest 1/2^n size that still fits within the screen bounds,
 	// preserving the aspect ratio. Pass 0, 0 to disable (default, backward compatible).
+	// pDownscaleType: optional output when pScaleDenom > 1: 1 = oversized (MAX_IMAGE_* limits),
+	// 2 = fast fit-to-screen. 0 when no downscaling occurred. Pass NULL to ignore.
 	static void * ReadImage(int &width,   // width of the image loaded (scaled down if downsampled).
 						 int &height,  // height of the image loaded (scaled down if downsampled).
 						 int &bpp,     // BYTES (not bits) PER PIXEL.
@@ -22,6 +24,7 @@ public:
 						 const void *buffer, // memory address containing jpeg compressed data.
 						 int sizebytes, // size of jpeg compressed data.
 						 int *pScaleDenom = NULL, // optional output: downsampling denominator used (1 = none).
+						 int *pDownscaleType = NULL, // optional output: downscale reason (1 = oversized, 2 = fast fit).
 						 int nScreenWidth = 0,   // optional monitor width for fast fit-to-screen decode.
 						 int nScreenHeight = 0); // optional monitor height for fast fit-to-screen decode.
 

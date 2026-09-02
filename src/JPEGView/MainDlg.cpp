@@ -3314,10 +3314,27 @@ void CMainDlg::UpdateWindowTitle() {
 	} else {
 		CString sWindowText =  sCurrentFileName;
 		sWindowText += Helpers::GetMultiframeIndex(m_pCurrentImage);
+		// Show the decode mode indicators right after the file path:
+		// [fast] - lossy fast DCT/upsampling was used (FastJPEGDecode)
+		// [1/N fit] - downscaled to fit the screen (extreme speed mode / FastFitScreenDecode)
+		// [1/N oversized] - downscaled to fit memory limits (OversizedDownscaleDecode)
+		if (m_pCurrentImage->FastDecoded()) {
+			sWindowText += _T(" [fast]");
+		}
 		int nDownsampleFactor = m_pCurrentImage->GetDownsampleFactor();
 		if (nDownsampleFactor > 1) {
+			LPCTSTR sReason = NULL;
+			switch (m_pCurrentImage->GetDownscaleReason()) {
+				case EDSR_FastFit: sReason = _T("fit"); break;
+				case EDSR_Oversized: sReason = _T("oversized"); break;
+				default: break;
+			}
 			CString sDownsampleNote;
-			sDownsampleNote.Format(_T(" [1/%d]"), nDownsampleFactor);
+			if (sReason != NULL) {
+				sDownsampleNote.Format(_T(" [1/%d %s]"), nDownsampleFactor, sReason);
+			} else {
+				sDownsampleNote.Format(_T(" [1/%d]"), nDownsampleFactor);
+			}
 			sWindowText += sDownsampleNote;
 		}
 		if (CSettingsProvider::This().ShowEXIFDateInTitle()) {

@@ -92,6 +92,7 @@ void * TurboJpeg::ReadImage(int &width,
 					   const void *buffer,
 					   int sizebytes,
 					   int *pScaleDenom,
+					   int *pDownscaleType,
 					   int nScreenWidth,
 					   int nScreenHeight)
 {
@@ -101,6 +102,9 @@ void * TurboJpeg::ReadImage(int &width,
 	chromoSubsampling = TJSAMP_420;
 	if (pScaleDenom != NULL) {
 		*pScaleDenom = 1;
+	}
+	if (pDownscaleType != NULL) {
+		*pDownscaleType = 0;
 	}
 
 	tjhandle hDecoder = tj3Init(TJINIT_DECOMPRESS);
@@ -152,6 +156,9 @@ void * TurboJpeg::ReadImage(int &width,
 			tj3SetScalingFactor(hDecoder, scalingFactor);
 			if (pScaleDenom != NULL) {
 				*pScaleDenom = scalingFactor.denom;
+			}
+			if (pDownscaleType != NULL) {
+				*pDownscaleType = bFastFit ? 2 : 1;
 			}
 		}
 

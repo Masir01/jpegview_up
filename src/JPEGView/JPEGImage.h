@@ -16,6 +16,13 @@ struct CDimRect {
 	CRect Rect;
 };
 
+// Why an image was downscale-decoded (only relevant when GetDownsampleFactor() > 1).
+enum EDownscaleReason {
+	EDSR_None = 0,     // decoded at full resolution
+	EDSR_Oversized,    // downscaled to fit MAX_IMAGE_* limits (OversizedDownscaleDecode)
+	EDSR_FastFit       // downscaled to fit the screen (FastFitScreenDecode / extreme speed mode)
+};
+
 // Class holding a decoded image (not just JPEG - any supported format) and its meta data (if available).
 class CJPEGImage {
 public:
@@ -164,6 +171,15 @@ public:
 	// 1 means the image was decoded at full resolution.
 	int GetDownsampleFactor() const { return m_nDownsampleFactor; }
 	void SetDownsampleFactor(int nFactor) { m_nDownsampleFactor = nFactor; }
+
+	// Why the image was downscale-decoded (see EDownscaleReason).
+	EDownscaleReason GetDownscaleReason() const { return m_eDownscaleReason; }
+	void SetDownscaleReason(EDownscaleReason eReason) { m_eDownscaleReason = eReason; }
+
+	// True when this image was decoded with the lossy "fast DCT/upsampling" path
+	// (FastJPEGDecode setting), which slightly reduces decoding quality.
+	bool FastDecoded() const { return m_bFastDecoded; }
+	void SetFastDecoded(bool bFastDecoded) { m_bFastDecoded = bFastDecoded; }
 
 	// Size of DIB - size of resampled section of the original image. If zero, no DIB is currently available.
 	int DIBWidth() const { return m_ClippingSize.cx; }
@@ -368,6 +384,8 @@ private:
 
 	// Downsampling factor used when decoding an oversized image (1 = full resolution)
 	int m_nDownsampleFactor;
+	EDownscaleReason m_eDownscaleReason;
+	bool m_bFastDecoded;
 
 	// multiframe and GIF animation related data
 	bool m_bIsAnimation;
