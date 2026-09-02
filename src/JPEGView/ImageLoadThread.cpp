@@ -540,7 +540,10 @@ void CImageLoadThread::ProcessReadJPEGRequest(CRequest * request) {
 				int nScaleDenom = 1;
 				// int nTicks = ::GetTickCount();
 
-				void* pPixelData = TurboJpeg::ReadImage(nWidth, nHeight, nBPP, eChromoSubSampling, bOutOfMemory, pBuffer, nFileSize, &nScaleDenom);
+				// Pass the monitor size so the fast fit-to-screen (extreme speed) mode can
+				// downscale-decode oversized images to a resolution that fits the screen.
+				CSize monitorSize = request->ProcessParams.MonitorSize;
+				void* pPixelData = TurboJpeg::ReadImage(nWidth, nHeight, nBPP, eChromoSubSampling, bOutOfMemory, pBuffer, nFileSize, &nScaleDenom, monitorSize.cx, monitorSize.cy);
 				
 				/*
 				TCHAR buffer[20];
@@ -640,13 +643,20 @@ void CImageLoadThread::ProcessReadWEBPRequest(CRequest * request) {
 			int nFrameTimeMs = 0;
 			int nBPP;
 			void* pEXIFData;
-			uint8* pPixelData = (uint8*)WebpReaderWriter::ReadImage(nWidth, nHeight, nBPP, bHasAnimation, nFrameCount, nFrameTimeMs, pEXIFData, request->OutOfMemory, pBuffer, nFileSize);
+			int nScaleDenom = 1;
+			// Pass the monitor size so the fast fit-to-screen (extreme speed) mode can
+			// downscale-decode oversized lossy stills to a resolution that fits the screen.
+			CSize monitorSize = request->ProcessParams.MonitorSize;
+			uint8* pPixelData = (uint8*)WebpReaderWriter::ReadImage(nWidth, nHeight, nBPP, bHasAnimation, nFrameCount, nFrameTimeMs, pEXIFData, request->OutOfMemory, pBuffer, nFileSize, &nScaleDenom, monitorSize.cx, monitorSize.cy);
 			if (pPixelData && nBPP == 4) {
 				if (bHasAnimation) {
 					m_sLastWebpFileName = sFileName;
 				}
 				request->Image = WrapDecodedPixelsToImage(pPixelData, nWidth, nHeight, nBPP, pEXIFData,
 					IF_WEBP, bHasAnimation, request->FrameIndex, nFrameCount, nFrameTimeMs);
+				if (request->Image != NULL) {
+					request->Image->SetDownsampleFactor(nScaleDenom);
+				}
 			}
 			else {
 				delete[] pPixelData;

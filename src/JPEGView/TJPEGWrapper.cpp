@@ -22,6 +22,23 @@ static tjscalingfactor FindDownscaleFactor(int nWidth, int nHeight, int nMaxDeno
 	return sf;
 }
 
+// Fast fit-to-screen mode: finds the largest downsampling factor (1/2, 1/4, 1/8) whose
+// scaled dimensions both fit within the given screen bounds (aspect ratio preserved).
+// Returns TJUNSCALED when the image already fits (or cannot be reduced enough).
+static tjscalingfactor FindScreenFitFactor(int nWidth, int nHeight, int nScreenWidth, int nScreenHeight, int nMaxDenom) {
+	tjscalingfactor sf = TJUNSCALED;
+	for (int nDenom = 2; nDenom <= nMaxDenom; nDenom *= 2) {
+		tjscalingfactor candidate = { 1, nDenom };
+		int nScaledW = TJSCALED(nWidth, candidate);
+		int nScaledH = TJSCALED(nHeight, candidate);
+		if (nScaledW <= nScreenWidth && nScaledH <= nScreenHeight) {
+			sf = candidate;
+			break;
+		}
+	}
+	return sf;
+}
+
 // Detects lossless JPEG streams (SOF3/SOF7/SOF11/SOF15) by scanning the marker segments.
 // libjpeg-turbo ignores scaling factors for lossless JPEGs, so an oversized lossless image
 // cannot be downscale-decoded. It must be classified as "too large" up front instead of
@@ -74,7 +91,9 @@ void * TurboJpeg::ReadImage(int &width,
 					   bool &outOfMemory,
 					   const void *buffer,
 					   int sizebytes,
-					   int *pScaleDenom)
+					   int *pScaleDenom,
+					   int nScreenWidth,
+					   int nScreenHeight)
 {
 	outOfMemory = false;
 	width = height = 0;
@@ -109,23 +128,30 @@ void * TurboJpeg::ReadImage(int &width,
 		int nScaledWidth = width;
 		int nScaledHeight = height;
 		tjscalingfactor scalingFactor = TJUNSCALED;
-		if (abs((double)width * height) > MAX_IMAGE_PIXELS ||
-			width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
+		bool bLossless = IsLosslessJPEG((const unsigned char*)buffer, sizebytes);
+		bool bOversized = abs((double)width * height) > MAX_IMAGE_PIXELS ||
+			width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION;
+		// Lossless JPEGs ignore the scaling factor in libjpeg-turbo and would fail with a
+		// generic decode error if scaled, so they are never downscale-decoded.
+		// Fast fit-to-screen (extreme speed) mode: downscale images that exceed the screen
+		// to a 1/2^n size fitting within the screen bounds (aspect ratio preserved).
+		bool bFastFit = nScreenWidth > 0 && nScreenHeight > 0 &&
+			CSettingsProvider::This().FastFitScreenDecode() && !bLossless &&
+			(width > nScreenWidth || height > nScreenHeight);
+		if (bFastFit) {
+			int nMaxDenom = CSettingsProvider::This().OversizedDownscaleMaxFactor();
+			scalingFactor = FindScreenFitFactor(width, height, nScreenWidth, nScreenHeight, nMaxDenom);
+		} else if (bOversized && CSettingsProvider::This().OversizedDownscaleDecode() && !bLossless) {
 			// Oversized image. Either downscale-decode it (when enabled) or refuse to load.
-			// Lossless JPEGs ignore the scaling factor in libjpeg-turbo and would fail with a
-			// generic decode error; classify them as "too large" instead.
-			if (CSettingsProvider::This().OversizedDownscaleDecode() &&
-				!IsLosslessJPEG((const unsigned char*)buffer, sizebytes)) {
-				int nMaxDenom = CSettingsProvider::This().OversizedDownscaleMaxFactor();
-				scalingFactor = FindDownscaleFactor(width, height, nMaxDenom);
-				if (scalingFactor.num != scalingFactor.denom) {
-					nScaledWidth = TJSCALED(width, scalingFactor);
-					nScaledHeight = TJSCALED(height, scalingFactor);
-					tj3SetScalingFactor(hDecoder, scalingFactor);
-					if (pScaleDenom != NULL) {
-						*pScaleDenom = scalingFactor.denom;
-					}
-				}
+			int nMaxDenom = CSettingsProvider::This().OversizedDownscaleMaxFactor();
+			scalingFactor = FindDownscaleFactor(width, height, nMaxDenom);
+		}
+		if (scalingFactor.num != scalingFactor.denom) {
+			nScaledWidth = TJSCALED(width, scalingFactor);
+			nScaledHeight = TJSCALED(height, scalingFactor);
+			tj3SetScalingFactor(hDecoder, scalingFactor);
+			if (pScaleDenom != NULL) {
+				*pScaleDenom = scalingFactor.denom;
 			}
 		}
 

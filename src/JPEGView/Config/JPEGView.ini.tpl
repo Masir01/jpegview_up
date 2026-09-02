@@ -295,6 +295,16 @@ OversizedDownscaleDecode=true
 ; The smallest factor that fits within the memory limits is always chosen.
 ; Default: 8.
 OversizedDownscaleMaxFactor=8
+; 极速模式 (fast fit-to-screen decode): decode directly at screen resolution.
+; For formats whose decoder natively supports downscaling (JPEG, lossy WebP), images
+; larger than the monitor are decoded at a smaller size that fits the screen instead
+; of at full resolution. Aspect ratio is preserved; neither decoded side exceeds the
+; screen size. Greatly reduces decoding time and memory while browsing large images.
+; true  = downscale-decode such images to fit the screen (full resolution is lost,
+;         so saving such a preview is disabled)
+; false = always decode at full resolution (default)
+; Formats without decoder-level scaling (PNG/JXL/AVIF/HEIF) are always decoded fully.
+FastFitScreenDecode=false
 ; When enabled, file extensions listed in FilesProcessedByWIC will be decoded by WIC
 ; even if a native decoder exists (e.g., JPEG, PNG, etc.). Useful for troubleshooting
 ; or when WIC handles certain files better. Default: false.

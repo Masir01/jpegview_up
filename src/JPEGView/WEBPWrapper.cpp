@@ -7,6 +7,7 @@
 #include "MaxImageDef.h"
 #include "Helpers.h"
 #include "ICCProfileTransform.h"
+#include "SettingsProvider.h"
 
 struct WebpReaderWriter::webp_cache {
 	WebPAnimDecoder* decoder;
@@ -28,7 +29,10 @@ void* WebpReaderWriter::ReadImage(int& width,
 	void*& exif_chunk,
 	bool& outOfMemory,
 	const void* buffer,
-	int sizebytes)
+	int sizebytes,
+	int* pScaleDenom,
+	int nScreenWidth,
+	int nScreenHeight)
 {
 	uint8* pPixelData = NULL;
 	WebPBitstreamFeatures features;
@@ -36,6 +40,9 @@ void* WebpReaderWriter::ReadImage(int& width,
 	nchannels = 4;
 	outOfMemory = false;
 	exif_chunk = NULL;
+	if (pScaleDenom != NULL) {
+		*pScaleDenom = 1;
+	}
 
 	if (!cache.decoder || !cache.data.bytes) {
 		if (!WebPGetInfo((const uint8_t*)buffer, sizebytes, &width, &height))
@@ -76,14 +83,75 @@ void* WebpReaderWriter::ReadImage(int& width,
 
 		has_animation = features.has_animation;
 		if (!has_animation) {
-			int nStride = width * nchannels;
-			int size = height * nStride;
+			int nOrigWidth = width;
+			int nOrigHeight = height;
+			int nTargetWidth = width;
+			int nTargetHeight = height;
+			// Fast fit-to-screen (extreme speed) mode: only lossy (VP8) stills support decoder
+			// level scaling; lossless (VP8L) and animated images are always decoded fully.
+			if (nScreenWidth > 0 && nScreenHeight > 0 &&
+				CSettingsProvider::This().FastFitScreenDecode() &&
+				features.format == 1 /* 1 = lossy (VP8), scaling unsupported for lossless */ &&
+				(width > nScreenWidth || height > nScreenHeight)) {
+				double dScale = min((double)nScreenWidth / width, (double)nScreenHeight / height);
+				nTargetWidth = max(1, (int)floor(width * dScale));
+				nTargetHeight = max(1, (int)floor(height * dScale));
+			}
+
+			int nStride = nTargetWidth * nchannels;
+			int size = nTargetHeight * nStride;
 			pPixelData = new(std::nothrow) unsigned char[size];
 			if (pPixelData == NULL) {
 				outOfMemory = true;
 				return NULL;
 			}
-			WebPDecodeBGRAInto((const uint8_t*)buffer, sizebytes, pPixelData, size, nStride);
+			bool bDecoded = false;
+			if (nTargetWidth != nOrigWidth || nTargetHeight != nOrigHeight) {
+				WebPDecoderConfig config;
+				if (WebPInitDecoderConfig(&config)) {
+					config.output.colorspace = MODE_BGRA;
+					config.output.is_external_memory = 1;
+					config.output.u.RGBA.rgba = pPixelData;
+					config.output.u.RGBA.stride = nStride;
+					config.output.u.RGBA.size = size;
+					config.options.use_scaling = 1;
+					config.options.scaled_width = nTargetWidth;
+					config.options.scaled_height = nTargetHeight;
+					if (WebPDecode((const uint8_t*)buffer, sizebytes, &config) == VP8_STATUS_OK) {
+						bDecoded = true;
+						if (pScaleDenom != NULL) {
+							// Approximate the 1/N preview factor from the actual scale used.
+							*pScaleDenom = max(2, (int)(nOrigWidth / (double)nTargetWidth + 0.5));
+						}
+					}
+					WebPFreeDecBuffer(&config.output);
+				}
+				if (!bDecoded) {
+					// Scaling failed (e.g. unexpected stream), fall back to a full decode.
+					delete[] pPixelData;
+					pPixelData = NULL;
+					nTargetWidth = nOrigWidth;
+					nTargetHeight = nOrigHeight;
+					nStride = nTargetWidth * nchannels;
+					size = nTargetHeight * nStride;
+					pPixelData = new(std::nothrow) unsigned char[size];
+					if (pPixelData == NULL) {
+						outOfMemory = true;
+						return NULL;
+					}
+					WebPDecodeBGRAInto((const uint8_t*)buffer, sizebytes, pPixelData, size, nStride);
+					bDecoded = true;
+				}
+			} else {
+				WebPDecodeBGRAInto((const uint8_t*)buffer, sizebytes, pPixelData, size, nStride);
+				bDecoded = true;
+			}
+			if (!bDecoded) {
+				delete[] pPixelData;
+				return NULL;
+			}
+			width = nTargetWidth;
+			height = nTargetHeight;
 
 			// ICCP transform in place
 			ICCProfileTransform::DoTransform(transform, pPixelData, pPixelData, width, height);

@@ -177,6 +177,7 @@ CSettingsProvider::CSettingsProvider(void) {
 	m_bFastRAWDecode = GetBool(_T("FastRAWDecode"), false);
 	m_bOversizedDownscaleDecode = GetBool(_T("OversizedDownscaleDecode"), true);
 	m_nOversizedDownscaleMaxFactor = GetInt(_T("OversizedDownscaleMaxFactor"), 8, 2, 8);
+	m_bFastFitScreenDecode = GetBool(_T("FastFitScreenDecode"), false);
 	m_bWICPriority = GetBool(_T("WICPriority"), false);
 	m_bHEIFIgnoreTransformations = GetBool(_T("HEIFIgnoreTransformations"), false);
 	m_bHEIFConvertHDRTo8bit = GetBool(_T("HEIFConvertHDRTo8bit"), true);
