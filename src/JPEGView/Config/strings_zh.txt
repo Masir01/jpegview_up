@@ -183,6 +183,7 @@ JPEGView is a lean, fast and highly configurable viewer/editor for JPEG, BMP, PN
 JPEGView is registered as default viewer for the selected file formats.	注册JPEGView为选择的文件格式的默认图片查看器。
 Keep aspect ratio on crop	保持画面比例裁剪
 Keep parameters	保持参数
+Extreme speed mode (fit to screen)	极速模式（按屏幕尺寸解码）
 Keep processing parameters between images	保持相邻的两图片间的处理参数
 Known keys:	已知键：
 Lanczos/Bicubic	Lanczos/Bicubic

@@ -146,6 +146,7 @@
 #define IDM_HIDE_TITLE_BAR 12012             // 隐藏标题栏
 #define IDM_ALWAYS_ON_TOP 12013             // 窗口置顶
 #define IDM_TOGGLE_MONITOR 14900             // 切换到其他显示器
+#define IDM_FASTFIT_SCREEN_DECODE 14950       // 极速模式（按屏幕尺寸解码）
 
 // ----- 缩放级别 -----
 #define IDM_ZOOM_400 12020                   // 400%缩放

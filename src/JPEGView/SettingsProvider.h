@@ -83,7 +83,13 @@ public:
 	// downsampling (JPEG, lossy WebP), images larger than the monitor are decoded directly
 	// at a downscaled size that fits the screen instead of at full resolution.
 	// Aspect ratio is preserved and neither decoded dimension exceeds the screen size.
-	bool FastFitScreenDecode() { return m_bFastFitScreenDecode; }
+	// A session-only right-click override takes precedence over the configured value.
+	bool FastFitScreenDecode() { return m_bFastFitOverrideSet ? m_bFastFitOverride : m_bFastFitScreenDecode; }
+	// Session-only runtime override (right-click menu). Takes precedence over the ini value
+	// and is never written back to the config file. Written on the UI thread while the
+	// decode threads only read the getter (benign benign race, single bool).
+	void SetFastFitScreenDecodeOverride(bool bEnabled) { m_bFastFitOverrideSet = true; m_bFastFitOverride = bEnabled; }
+	void ClearFastFitScreenDecodeOverride() { m_bFastFitOverrideSet = false; }
 	bool WICPriority() { return m_bWICPriority; }
 	bool HEIFIgnoreTransformations() { return m_bHEIFIgnoreTransformations; }
 	bool HEIFConvertHDRTo8bit() { return m_bHEIFConvertHDRTo8bit; }
@@ -264,6 +270,8 @@ private:
 	bool m_bOversizedDownscaleDecode;
 	int m_nOversizedDownscaleMaxFactor;
 	bool m_bFastFitScreenDecode;
+	bool m_bFastFitOverrideSet;
+	bool m_bFastFitOverride;
 	bool m_bWICPriority;
 	bool m_bHEIFIgnoreTransformations;
 	bool m_bHEIFConvertHDRTo8bit;

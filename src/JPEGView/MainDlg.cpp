@@ -1174,6 +1174,7 @@ LRESULT CMainDlg::OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam,
 	if (m_state.m_bAutoContrast) ::CheckMenuItem(hMenuTrackPopup, IDM_AUTO_CORRECTION, MF_CHECKED);
 	if (m_state.m_bLDC) ::CheckMenuItem(hMenuTrackPopup, IDM_LDC, MF_CHECKED);
 	if (m_state.m_bKeepParams) ::CheckMenuItem(hMenuTrackPopup, IDM_KEEP_PARAMETERS, MF_CHECKED);
+	if (CSettingsProvider::This().FastFitScreenDecode()) ::CheckMenuItem(hMenuTrackPopup, IDM_FASTFIT_SCREEN_DECODE, MF_CHECKED);
 	HMENU hMenuNavigation = ::GetSubMenu(hMenuTrackPopup, SUBMENU_POS_NAVIGATION);
 	::CheckMenuItem(hMenuNavigation,  m_pFileList->GetNavigationMode()*10 + IDM_LOOP_FOLDER, MF_CHECKED);
 	HMENU hMenuOrdering = ::GetSubMenu(hMenuTrackPopup, SUBMENU_POS_DISPLAY_ORDER);
@@ -1726,6 +1727,18 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 			m_state.m_bLDC = !m_state.m_bLDC;
 			this->Invalidate(FALSE);
 			break;
+		case IDM_FASTFIT_SCREEN_DECODE: {
+			// Session-only toggle of the extreme speed mode - never written back to the config.
+			bool bNewValue = !CSettingsProvider::This().FastFitScreenDecode();
+			CSettingsProvider::This().SetFastFitScreenDecodeOverride(bNewValue);
+			// Turning it off while a fast-fit preview is shown: upgrade to full resolution now.
+			if (!bNewValue && m_pCurrentImage != NULL && m_pCurrentImage->GetImageFormat() == IF_JPEG &&
+				m_pCurrentImage->GetDownsampleFactor() > 1 && m_pCurrentImage->GetDownscaleReason() == EDSR_FastFit) {
+				m_bForceFullResolutionNextLoad = true;
+				GotoImage(POS_Current, KEEP_PARAMETERS | NO_REMOVE_KEY_MSG);
+			}
+			break;
+		}
 		case IDM_LANDSCAPE_MODE:
 			m_state.m_bLandscapeMode = !m_state.m_bLandscapeMode;
 			m_pNavPanelCtl->GetNavPanel()->GetBtnLandscapeMode()->SetActive(m_state.m_bLandscapeMode);
