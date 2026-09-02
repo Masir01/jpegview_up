@@ -51,10 +51,19 @@ bool JxlReader::DecodeJpegXlOneShot(const uint8_t* jxl, size_t size, std::vector
 			return false;
 		}
 
-		JxlDecoderSetInput(cache.decoder.get(), jxl, size);
-		JxlDecoderCloseInput(cache.decoder.get());
-		cache.data = (uint8_t*)jxl;
+		// The caller's input buffer is transient (freed right after ReadImage returns),
+		// so keep a private copy for animated rewinds and cache deletion.
+		// (Previously the external buffer was stored and then free()d by DeleteCache,
+		//  while ProcessReadJXLRequest deleted the same allocation -> double free.)
+		cache.data = (uint8_t*)malloc(size);
+		if (cache.data == NULL) {
+			DeleteCache();
+			return false;
+		}
+		memcpy(cache.data, jxl, size);
 		cache.data_size = size;
+		JxlDecoderSetInput(cache.decoder.get(), cache.data, size);
+		JxlDecoderCloseInput(cache.decoder.get());
 	}
 
 	JxlBasicInfo info;

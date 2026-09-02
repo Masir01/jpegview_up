@@ -270,7 +270,7 @@ cmake.exe -G Ninja ^
     -DCMAKE_BUILD_TYPE=Release ^
     -DCMAKE_C_FLAGS="/GL" ^
     -DCMAKE_CXX_FLAGS="/GL" ^
-    -DAVIF_CODEC_DAV1D=ON ^
+    -DAVIF_CODEC_DAV1D=SYSTEM ^
     -DAVIF_LIBYUV=OFF ^
     -DDAV1D_LIBRARY="%XDAV1D_DIST%\lib\dav1d.lib" ^
     -DDAV1D_INCLUDE_DIR="%XDAV1D_DIST%\include" ^
