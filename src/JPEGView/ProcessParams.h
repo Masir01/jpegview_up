@@ -165,11 +165,13 @@ public:
 		AutoZoomMode = eAutoZoomMode;
 		Offsets = offsets;
 		ProcFlags = eProcFlags;
+		DecodeFullResolution = false;
 	}
 
 	int TargetWidth;
 	int TargetHeight;
 	CSize MonitorSize;
+	bool DecodeFullResolution; // true = decode this file at full resolution (skip fast fit-to-screen downscaling)
 	CRotationParams RotationParams;
 	int UserRotation;
 	double Zoom;

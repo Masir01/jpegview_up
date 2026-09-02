@@ -215,6 +215,7 @@ private:
 	bool m_bOutOfMemoryLastImage; // true if the last image could not be requested because not enough memory
 	bool m_bExceptionErrorLastImage; // true if the last image could not be requested because of an unhandled exception
 	int m_nLastLoadError; // one of HelpersGUI::EFileLoadError
+	bool m_bForceFullResolutionNextLoad = false; // when set, the next GotoImage() re-decodes the current JPEG at full resolution (no screen-fit downscaling)
 	
 	// Application state (extracted from CMainDlg to reduce coupling; see AppState.h)
 	CAppState m_state;

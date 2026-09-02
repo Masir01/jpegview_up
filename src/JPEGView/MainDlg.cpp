@@ -885,6 +885,13 @@ LRESULT CMainDlg::OnLButtonDblClk(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lPara
 			ExecuteCommand(GetAutoZoomMode() * 10 + IDM_AUTO_ZOOM_FIT_NO_ZOOM);
 		} else {
 			ResetZoomTo100Percents(true);
+			// Double-click zoomed to 100%. If the current JPEG is only a screen-fit
+			// downscaled preview, re-decode it at full resolution so real pixels are shown.
+			if (m_pCurrentImage != NULL && m_pCurrentImage->GetImageFormat() == IF_JPEG &&
+				m_pCurrentImage->GetDownsampleFactor() > 1 && m_state.m_bUserZoom) {
+				m_bForceFullResolutionNextLoad = true;
+				GotoImage(POS_Current, KEEP_PARAMETERS | NO_REMOVE_KEY_MSG);
+			}
 		}
 	}
 	return 0;
@@ -2586,6 +2593,12 @@ void CMainDlg::GotoImage(EImagePosition ePos, int nFlags) {
 	CProcessParams procParams = CreateProcessParams(false);
 	if (nFlags & KEEP_PARAMETERS) {
 		procParams.ProcFlags = SetProcessingFlag(procParams.ProcFlags, PFLAG_KeepParams, true);
+	}
+	// A full-resolution reload of the current image (double-click to 100% on a
+	// downscaled preview) is requested once for this call only.
+	if (ePos == POS_Current && m_bForceFullResolutionNextLoad) {
+		procParams.DecodeFullResolution = true;
+		m_bForceFullResolutionNextLoad = false;
 	}
 	if (ePos == POS_Clipboard) {
 		m_pCurrentImage = CClipboard::PasteImageFromClipboard(m_hWnd, procParams.ImageProcParams, procParams.ProcFlags);

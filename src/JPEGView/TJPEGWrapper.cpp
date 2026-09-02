@@ -22,9 +22,12 @@ static tjscalingfactor FindDownscaleFactor(int nWidth, int nHeight, int nMaxDeno
 	return sf;
 }
 
-// Fast fit-to-screen mode: finds the largest downsampling factor (1/2, 1/4, 1/8) whose
+// Fast fit-to-screen mode: finds the smallest downsampling factor (1/2, 1/4, 1/8) whose
 // scaled dimensions both fit within the given screen bounds (aspect ratio preserved).
-// Returns TJUNSCALED when the image already fits (or cannot be reduced enough).
+// libjpeg-turbo supports down to 1/8 only; if even 1/8 still exceeds the screen (very tall
+// or wide images, e.g. 9000px high on a 1080p monitor), the largest factor is returned
+// anyway so decoding stays fast - the display layer performs the final small resample.
+// Returns TJUNSCALED only when the image already fits the screen.
 static tjscalingfactor FindScreenFitFactor(int nWidth, int nHeight, int nScreenWidth, int nScreenHeight, int nMaxDenom) {
 	tjscalingfactor sf = TJUNSCALED;
 	for (int nDenom = 2; nDenom <= nMaxDenom; nDenom *= 2) {
@@ -32,9 +35,9 @@ static tjscalingfactor FindScreenFitFactor(int nWidth, int nHeight, int nScreenW
 		int nScaledW = TJSCALED(nWidth, candidate);
 		int nScaledH = TJSCALED(nHeight, candidate);
 		if (nScaledW <= nScreenWidth && nScaledH <= nScreenHeight) {
-			sf = candidate;
-			break;
+			return candidate;
 		}
+		sf = candidate; // remember the best (largest) factor tried so far
 	}
 	return sf;
 }

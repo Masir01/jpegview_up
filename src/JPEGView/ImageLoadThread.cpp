@@ -543,7 +543,9 @@ void CImageLoadThread::ProcessReadJPEGRequest(CRequest * request) {
 
 				// Pass the monitor size so the fast fit-to-screen (extreme speed) mode can
 				// downscale-decode oversized images to a resolution that fits the screen.
-				CSize monitorSize = request->ProcessParams.MonitorSize;
+				// A full-resolution request (double-click to 100%) skips the screen fit.
+				CSize monitorSize = request->ProcessParams.DecodeFullResolution ?
+					CSize(0, 0) : request->ProcessParams.MonitorSize;
 				void* pPixelData = TurboJpeg::ReadImage(nWidth, nHeight, nBPP, eChromoSubSampling, bOutOfMemory, pBuffer, nFileSize, &nScaleDenom, &nScaleType, monitorSize.cx, monitorSize.cy);
 				
 				/*
