@@ -400,7 +400,6 @@ BEGIN
         MENUITEM "Auto correction",             IDM_AUTO_CORRECTION
         MENUITEM "Local density correction",    IDM_LDC
         MENUITEM "Keep parameters",             IDM_KEEP_PARAMETERS
-        MENUITEM "Extreme speed mode (fit to screen)", IDM_FASTFIT_SCREEN_DECODE
         MENUITEM SEPARATOR
         MENUITEM "Save parameters to DB",       IDM_SAVE_PARAM_DB
         MENUITEM "Clear parameters from DB",    IDM_CLEAR_PARAM_DB
@@ -443,6 +442,8 @@ BEGIN
             MENUITEM SEPARATOR
             MENUITEM "Backup parameter DB...",      IDM_BACKUP_PARAMDB
             MENUITEM "Restore parameter DB...",     IDM_RESTORE_PARAMDB
+            MENUITEM SEPARATOR
+            MENUITEM "Extreme speed mode (fit to screen)", IDM_FASTFIT_SCREEN_DECODE
         END
         MENUITEM SEPARATOR
         POPUP "User commands"
