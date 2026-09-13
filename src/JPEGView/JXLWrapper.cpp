@@ -19,9 +19,37 @@ struct JxlReader::jxl_cache {
 	int height;
 	void* transform;
 	std::vector<uint8_t> exif;
+	int total_frames; // real frame count of an animation, 0 = not determined yet
 };
 
 JxlReader::jxl_cache JxlReader::cache = { 0 };
+
+// JPEG XL does not store the number of frames in the header, so an animation has to be
+// scanned once. Only the frame event is subscribed, i.e. no pixel data is decoded. The
+// result is cached for the lifetime of the animation (see cache.total_frames), so this
+// runs only on the first frame. Returns 0 when the frame count could not be determined.
+static int CountJxlFrames(const uint8_t* jxl_data, size_t size) {
+	JxlDecoderPtr decoder = JxlDecoderMake(nullptr);
+	if (decoder.get() == NULL) {
+		return 0;
+	}
+	if (JXL_DEC_SUCCESS != JxlDecoderSubscribeEvents(decoder.get(), JXL_DEC_FRAME)) {
+		return 0;
+	}
+	JxlDecoderSetInput(decoder.get(), jxl_data, size);
+	JxlDecoderCloseInput(decoder.get());
+
+	int nFrameCount = 0;
+	for (;;) {
+		JxlDecoderStatus status = JxlDecoderProcessInput(decoder.get());
+		if (status == JXL_DEC_FRAME) {
+			nFrameCount++;
+		} else if (status == JXL_DEC_SUCCESS || status == JXL_DEC_ERROR || status == JXL_DEC_NEED_MORE_INPUT) {
+			break;
+		}
+	}
+	return nFrameCount;
+}
 
 // based on https://github.com/libjxl/libjxl/blob/main/examples/decode_oneshot.cc
 // and https://github.com/libjxl/libjxl/blob/main/examples/decode_exif_metadata.cc
@@ -140,8 +168,16 @@ bool JxlReader::DecodeJpegXlOneShot(const uint8_t* jxl, size_t size, std::vector
 			ysize = cache.info.ysize;
 			have_animation = cache.info.have_animation;
 			if (have_animation) {
-				// TODO: Find a better way to indicate unknown frame count. JPEG XL images do not store number of frames.
-				frame_count = 2;
+				// JPEG XL does not store the frame count, so it is determined once by scanning
+				// the stream and then reused for every frame of this animation. The previous
+				// hardcoded value of 2 made the player wrap around after the first two frames.
+				if (cache.total_frames <= 0) {
+					int nCounted = CountJxlFrames(cache.data, cache.data_size);
+					// Fall back to the previous placeholder if the scan failed, so a broken
+					// animation still plays (as before) instead of being treated as a still.
+					cache.total_frames = (nCounted > 0) ? nCounted : 2;
+				}
+				frame_count = cache.total_frames;
 			} else {
 				frame_count = 1;
 			}
