@@ -279,6 +279,12 @@ MinimalDisplayTime=0
 ; Note that using GDI+ is slower than the Turbo JPEG library!
 ; (Setting to true automatically disables Animated PNG support)
 ForceGDIPlus=false
+; Resample images in linear light (gamma correct) color space using float32 SIMD kernels.
+; This is the mathematically correct way to scale (as used by image editors like Photoshop/GIMP):
+; it avoids dark fringes and moiree patterns when downscaling, e.g. for line art, screenshots or
+; photos displayed below 100%. It requires AVX2 and is slower than the default fixed point path.
+; Default: false.
+LinearLightResampling=false
 ; Use faster (less accurate) DCT algorithm for JPEG decoding.
 ; Gives ~5-15% speedup on modern CPUs, more on older ones.
 ; At quality >90 the accuracy difference is more visible. Default: false.

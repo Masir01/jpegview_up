@@ -94,6 +94,20 @@ public:
 	bool HEIFIgnoreTransformations() { return m_bHEIFIgnoreTransformations; }
 	bool HEIFConvertHDRTo8bit() { return m_bHEIFConvertHDRTo8bit; }
 	bool ForceGDIPlus() { return m_bForceGDIPlus; }
+	// Resample (down/upscale for display) in linear light (gamma correct) color space using
+	// float32 SIMD kernels. This is how image editors scale: it avoids dark fringes and moiree
+	// artifacts when downscaling (line art, screenshots, photos shown below 100%). It is slower
+	// than the default fixed point int16 path. Requires AVX2. Default: false.
+	// A session-only runtime override (key 'G') takes precedence over the configured value.
+	bool LinearLightResampling() {
+		return (m_bLinearLightOverrideSet ? m_bLinearLightOverride : m_bLinearLightResampling) && m_bLinearLightPossible;
+	}
+	// True when this build and CPU can actually do linear light resampling (x64 + AVX2)
+	bool LinearLightResamplingPossible() { return m_bLinearLightPossible; }
+	// Session-only runtime override (key 'G'). Takes precedence over the ini value and is
+	// never written back to the config file.
+	void SetLinearLightResamplingOverride(bool bEnabled) { m_bLinearLightOverrideSet = true; m_bLinearLightOverride = bEnabled; }
+	void ClearLinearLightResamplingOverride() { m_bLinearLightOverrideSet = false; }
 	// Single instance policy: "Always" (one window for everything), "PerFolder" (default, one
 	// window per folder) or "Never" (an own window for every opened image). See Helpers::ESingleInstanceMode.
 	Helpers::ESingleInstanceMode SingleInstanceMode() { return m_eSingleInstanceMode; }
@@ -280,6 +294,10 @@ private:
 	bool m_bHEIFIgnoreTransformations;
 	bool m_bHEIFConvertHDRTo8bit;
 	bool m_bForceGDIPlus;
+	bool m_bLinearLightResampling;
+	bool m_bLinearLightPossible; // x64 + AVX2 available (linear light can work at all)
+	bool m_bLinearLightOverrideSet; // session-only override active (key 'G')
+	bool m_bLinearLightOverride; // session-only override value
 	Helpers::ESingleInstanceMode m_eSingleInstanceMode;
 	bool m_bSingleFullScreenInstance;
 	int m_nJPEGSaveQuality;

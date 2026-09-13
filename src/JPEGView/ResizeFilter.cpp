@@ -1,6 +1,7 @@
 #include "StdAfx.h"
 #include "ResizeFilter.h"
 #include "Helpers.h"
+#include "SettingsProvider.h"
 #include <math.h>
 #include <stdlib.h>
 
@@ -189,6 +190,7 @@ CResizeFilter::CResizeFilter(int nSourceSize, int nTargetSize, double dSharpen, 
 	m_dSharpen = min(0.5, max(0.0, dSharpen));
 	m_eFilter = eFilter;
 	m_filterSIMDType = filterSIMDType;
+	m_bLinear = CSettingsProvider::This().LinearLightResampling();
 	m_nRefCnt = 0;
 	memset(&m_kernels, 0, sizeof(m_kernels));
 	memset(&m_kernelsXMM, 0, sizeof(m_kernelsXMM));
@@ -213,8 +215,10 @@ CResizeFilter::~CResizeFilter(void) {
 }
 
 bool CResizeFilter::ParametersMatch(int nSourceSize, int nTargetSize, double dSharpen, EFilterType eFilter, FilterSIMDType filterSIMDType) {
+	// The kernel values depend on the linear light mode, so it is part of the match
 	if (nSourceSize == m_nSourceSize && nTargetSize == m_nTargetSize && abs(dSharpen - m_dSharpen) < 1e-6 &&
-		eFilter == m_eFilter && m_filterSIMDType == filterSIMDType) {
+		eFilter == m_eFilter && m_filterSIMDType == filterSIMDType &&
+		m_bLinear == CSettingsProvider::This().LinearLightResampling()) {
 			return true;
 	} else {
 		return false;
@@ -339,6 +343,7 @@ void CResizeFilter::CalculateXMMFilterKernels() {
 
 	// create an array of the start address of the filter kernels
 	XMMFilterKernel** pKernelStartAddress = new XMMFilterKernel*[m_kernelsXMM.NumKernels];
+	const bool bLinear = CSettingsProvider::This().LinearLightResampling();
 	// create the XMM kernels, pack the kernels
 	XMMFilterKernel* pCurKernelXMM = m_kernelsXMM.Kernels;
 	for (int i = 0; i < m_kernelsXMM.NumKernels; i++) {
@@ -347,8 +352,16 @@ void CResizeFilter::CalculateXMMFilterKernels() {
 		pCurKernelXMM->FilterLen = nCurFilterLen;
 		pCurKernelXMM->FilterOffset = m_kernels.Kernels[i].FilterOffset;
 		for (int j = 0; j < nCurFilterLen; j++) {
-			for (int k = 0; k < 8; k++) {
-				pCurKernelXMM->Kernel[j].valueRepeated[k] = m_kernels.Kernels[i].Kernel[j];
+			if (bLinear) {
+				// One float32 per kernel element (4 floats fill an SSE register)
+				float* pRepeated = (float*)pCurKernelXMM->Kernel[j].valueRepeated;
+				for (int k = 0; k < 4; k++) {
+					pRepeated[k] = (float)m_kernels.Kernels[i].Kernel[j] / (float)FP_ONE;
+				}
+			} else {
+				for (int k = 0; k < 8; k++) {
+					pCurKernelXMM->Kernel[j].valueRepeated[k] = m_kernels.Kernels[i].Kernel[j];
+				}
 			}
 		}
 		pCurKernelXMM = (XMMFilterKernel*) ((PTR_INTEGRAL_TYPE)pCurKernelXMM + 16 + sizeof(XMMKernelElement)*nCurFilterLen);
@@ -384,6 +397,7 @@ void CResizeFilter::CalculateAVXFilterKernels() {
 
 	// create an array of the start address of the filter kernels
 	AVXFilterKernel** pKernelStartAddress = new AVXFilterKernel*[m_kernelsAVX.NumKernels];
+	const bool bLinear = CSettingsProvider::This().LinearLightResampling();
 	// create the AVX kernels, pack the kernels
 	AVXFilterKernel* pCurKernelAVX = m_kernelsAVX.Kernels;
 	for (int i = 0; i < m_kernelsAVX.NumKernels; i++) {
@@ -392,8 +406,16 @@ void CResizeFilter::CalculateAVXFilterKernels() {
 		pCurKernelAVX->FilterLen = nCurFilterLen;
 		pCurKernelAVX->FilterOffset = m_kernels.Kernels[i].FilterOffset;
 		for (int j = 0; j < nCurFilterLen; j++) {
-			for (int k = 0; k < 16; k++) {
-				pCurKernelAVX->Kernel[j].valueRepeated[k] = m_kernels.Kernels[i].Kernel[j];
+			if (bLinear) {
+				// One float32 per kernel element (8 floats fill an AVX register)
+				float* pRepeated = (float*)pCurKernelAVX->Kernel[j].valueRepeated;
+				for (int k = 0; k < 8; k++) {
+					pRepeated[k] = (float)m_kernels.Kernels[i].Kernel[j] / (float)FP_ONE;
+				}
+			} else {
+				for (int k = 0; k < 16; k++) {
+					pCurKernelAVX->Kernel[j].valueRepeated[k] = m_kernels.Kernels[i].Kernel[j];
+				}
 			}
 		}
 		pCurKernelAVX = (AVXFilterKernel*)((PTR_INTEGRAL_TYPE)pCurKernelAVX + 32 + sizeof(AVXKernelElement)*nCurFilterLen);

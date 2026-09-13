@@ -1210,6 +1210,7 @@ LRESULT CMainDlg::OnContextMenu(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam,
 	if (m_state.m_bLDC) ::CheckMenuItem(hMenuTrackPopup, IDM_LDC, MF_CHECKED);
 	if (m_state.m_bKeepParams) ::CheckMenuItem(hMenuTrackPopup, IDM_KEEP_PARAMETERS, MF_CHECKED);
 	if (CSettingsProvider::This().FastFitScreenDecode()) ::CheckMenuItem(hMenuTrackPopup, IDM_FASTFIT_SCREEN_DECODE, MF_CHECKED);
+	if (CSettingsProvider::This().LinearLightResampling()) ::CheckMenuItem(hMenuTrackPopup, IDM_LINEAR_LIGHT_RESAMPLING, MF_CHECKED);
 	HMENU hMenuNavigation = ::GetSubMenu(hMenuTrackPopup, SUBMENU_POS_NAVIGATION);
 	::CheckMenuItem(hMenuNavigation,  m_pFileList->GetNavigationMode()*10 + IDM_LOOP_FOLDER, MF_CHECKED);
 	HMENU hMenuOrdering = ::GetSubMenu(hMenuTrackPopup, SUBMENU_POS_DISPLAY_ORDER);
@@ -1772,6 +1773,22 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 				m_bForceFullResolutionNextLoad = true;
 				GotoImage(POS_Current, KEEP_PARAMETERS | NO_REMOVE_KEY_MSG);
 			}
+			break;
+		}
+		case IDM_LINEAR_LIGHT_RESAMPLING: {
+			// Session-only toggle of linear light (gamma correct) resampling - never written back
+			// to the config file. Has no effect on CPUs without AVX2 (the setting is unavailable).
+			if (!CSettingsProvider::This().LinearLightResamplingPossible()) {
+				break;
+			}
+			bool bNewValue = !CSettingsProvider::This().LinearLightResampling();
+			CSettingsProvider::This().SetLinearLightResamplingOverride(bNewValue);
+			// The resampled DIB is cached, so invalidate it to redo the scaling in the new mode now.
+			if (m_pCurrentImage != NULL) {
+				m_pCurrentImage->SetDIBInvalid();
+			}
+			UpdateWindowTitle();
+			this->Invalidate(FALSE);
 			break;
 		}
 		case IDM_LANDSCAPE_MODE:
@@ -3381,6 +3398,9 @@ void CMainDlg::UpdateWindowTitle() {
 		// [1/N oversized] - downscaled to fit memory limits (OversizedDownscaleDecode)
 		if (m_pCurrentImage->FastDecoded()) {
 			sWindowText += _T(" [fast]");
+		}
+		if (CSettingsProvider::This().LinearLightResampling()) {
+			sWindowText += _T(" [lin]");
 		}
 		int nDownsampleFactor = m_pCurrentImage->GetDownsampleFactor();
 		if (nDownsampleFactor > 1) {

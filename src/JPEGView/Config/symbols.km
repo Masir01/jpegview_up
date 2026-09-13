@@ -147,6 +147,7 @@
 #define IDM_ALWAYS_ON_TOP 12013             // 窗口置顶
 #define IDM_TOGGLE_MONITOR 14900             // 切换到其他显示器
 #define IDM_FASTFIT_SCREEN_DECODE 14950       // 极速模式（按屏幕尺寸解码）
+#define IDM_LINEAR_LIGHT_RESAMPLING 14960     // 线性光重采样（G 键会话级切换，需 AVX2）
 
 // ----- 缩放级别 -----
 #define IDM_ZOOM_400 12020                   // 400%缩放

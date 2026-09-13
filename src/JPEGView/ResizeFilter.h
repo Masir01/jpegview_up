@@ -115,6 +115,7 @@ private:
 	XMMFilterKernelBlock m_kernelsXMM;
 	AVXFilterKernelBlock m_kernelsAVX;
 	FilterSIMDType m_filterSIMDType;
+	bool m_bLinear; // kernels were generated for linear light (float32) processing
 	int m_nRefCnt;
 
 	void CalculateFilterKernels();

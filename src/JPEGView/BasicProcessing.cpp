@@ -3,6 +3,8 @@
 #include "ResizeFilter.h"
 #include "XMMImage.h"
 #include "Helpers.h"
+#include "SettingsProvider.h"
+#include "LookupTables.h"	// LinRGB12_sRGB8[] for linear light resampling output
 #include "WorkThread.h"
 #include "ProcessingThreadPool.h"
 #ifdef _WIN64
@@ -72,7 +74,9 @@ public:
 		Sharpen = dSharpen;
 		Filter = eFilter;
 		SIMD = simd;
-		StripPadding = (simd == CBasicProcessing::AVX2) ? 16 : 8; // important to set for AVX
+		// Linear light (float32) samples are twice as large, so a strip holds half as many rows
+		int nStripPadding = (simd == CBasicProcessing::AVX2) ? 16 : 8; // important to set for AVX
+		StripPadding = (CSettingsProvider::This().LinearLightResampling() && simd == CBasicProcessing::AVX2) ? nStripPadding / 2 : nStripPadding;
 	}
 
 	virtual bool ProcessStrip(int offsetY, int sizeY) {
@@ -1883,6 +1887,155 @@ static void* RotateToDIB(const CXMMImage* pSourceImg, int simdPixelsPerRegister,
 }
 
 /////////////////////////////////////////////////////////////////////////////////////////////
+// Linear light variants of the rotation helpers above. They work on float32 samples holding
+// 12 bit linear values, and convert back to 8 bit sRGB using LinRGB12_sRGB8[] on output.
+/////////////////////////////////////////////////////////////////////////////////////////////
+
+inline static const float* RotateLineLinear(const float* pSource, float* pTarget, int nIncTargetLine, int simdPixelsPerRegister) {
+	for (int i = 0; i < simdPixelsPerRegister - 1; i++)
+	{
+		*pTarget = *pSource++; pTarget += nIncTargetLine;
+	}
+	*pTarget = *pSource++;
+
+	return pSource;
+}
+
+inline static const float* RotateLineToDIB_1Linear(const float* pSource, uint8* pTarget, int nIncTargetLine, int simdPixelsPerRegister) {
+	for (int i = 0; i < simdPixelsPerRegister - 1; i++)
+	{
+		*((uint32*)pTarget) = ALPHA_OPAQUE | LinRGB12_sRGB8[(int)(*pSource)]; pSource++; pTarget += nIncTargetLine;
+	}
+	*((uint32*)pTarget) = ALPHA_OPAQUE | LinRGB12_sRGB8[(int)(*pSource)]; pSource++;
+
+	return pSource;
+}
+
+inline static const float* RotateLineToDIBLinear(const float* pSource, uint8* pTarget, int nIncTargetLine, int simdPixelsPerRegister) {
+	for (int i = 0; i < simdPixelsPerRegister - 1; i++)
+	{
+		*pTarget = LinRGB12_sRGB8[(int)(*pSource++)]; pTarget += nIncTargetLine;
+	}
+	*pTarget = LinRGB12_sRGB8[(int)(*pSource++)];
+
+	return pSource;
+}
+
+static void RotateBlockLinear(const float* pSrc, float* pTgt, int nWidth, int nHeight,
+						int nXStart, int nYStart, int nBlockWidth, int nBlockHeight,
+						int simdPixelsPerRegister) {
+	int nPaddedWidth = Helpers::DoPadding(nWidth, simdPixelsPerRegister);
+	int nPaddedHeight = Helpers::DoPadding(nHeight, simdPixelsPerRegister);
+	int nIncTargetChannel = nPaddedHeight;
+	int nIncTargetLine = nIncTargetChannel * 3;
+	int nIncSource = nPaddedWidth * 3 - nBlockWidth * 3;
+	const float* pSource = pSrc + nPaddedWidth * 3 * nYStart + nXStart * 3;
+	float* pTarget = pTgt + nPaddedHeight * 3 * nXStart + nYStart;
+	float* pStartYPtr = pTarget;
+	int nLoopX = Helpers::DoPadding(nBlockWidth, simdPixelsPerRegister) / simdPixelsPerRegister;
+	int nTargetIncrement = ((simdPixelsPerRegister - 1) * nIncTargetLine) + nIncTargetChannel;
+
+	for (int i = 0; i < nBlockHeight; i++) {
+		for (int j = 0; j < nLoopX; j++) {
+			pSource = RotateLineLinear(pSource, pTarget, nIncTargetLine, simdPixelsPerRegister);
+			pTarget += nIncTargetChannel;
+			pSource = RotateLineLinear(pSource, pTarget, nIncTargetLine, simdPixelsPerRegister);
+			pTarget += nIncTargetChannel;
+			pSource = RotateLineLinear(pSource, pTarget, nIncTargetLine, simdPixelsPerRegister);
+			pTarget += nTargetIncrement;
+		}
+		pStartYPtr++;
+		pTarget = pStartYPtr;
+		pSource += nIncSource;
+	}
+}
+
+// Same as above, directly rotates into a 32 bpp DIB
+static void RotateBlockToDIBLinear(const float* pSrc, uint8* pTgt, int nWidth, int nHeight,
+							 int nXStart, int nYStart, int nBlockWidth, int nBlockHeight,
+							 int simdPixelsPerRegister) {
+	int nPaddedWidth = Helpers::DoPadding(nWidth, simdPixelsPerRegister);
+	int nPaddedHeight = Helpers::DoPadding(nHeight, simdPixelsPerRegister);
+	int nIncTargetLine = nHeight * 4;
+	int nIncSource = nPaddedWidth * 3 - nBlockWidth * 3;
+	const float* pSource = pSrc + nPaddedWidth * 3 * nYStart + nXStart * 3;
+	uint8* pTarget = pTgt + nHeight * 4 * nXStart + nYStart * 4;
+	uint8* pStartYPtr = pTarget;
+	int nLoopX = Helpers::DoPadding(nBlockWidth, simdPixelsPerRegister) / simdPixelsPerRegister;
+	int nTargetIncrement = simdPixelsPerRegister * nIncTargetLine - 2;
+
+	for (int i = 0; i < nBlockHeight; i++) {
+		for (int j = 0; j < nLoopX; j++) {
+			pSource = RotateLineToDIB_1Linear(pSource, pTarget, nIncTargetLine, simdPixelsPerRegister);
+			pTarget++;
+			pSource = RotateLineToDIBLinear(pSource, pTarget, nIncTargetLine, simdPixelsPerRegister);
+			pTarget++;
+			pSource = RotateLineToDIBLinear(pSource, pTarget, nIncTargetLine, simdPixelsPerRegister);
+			pTarget += nTargetIncrement;
+		}
+		pStartYPtr += 4;
+		pTarget = pStartYPtr;
+		pSource += nIncSource;
+	}
+}
+
+// RotateFlip the source image by 90 deg and return rotated image (linear light variant)
+static CXMMImage* RotateLinear(const CXMMImage* pSourceImg, int simdPixelsPerRegister) {
+	CXMMImage* targetImage = new CXMMImage(pSourceImg->GetHeight(), pSourceImg->GetWidth(), true, simdPixelsPerRegister);
+	if (targetImage->AlignedPtr() == NULL) {
+		delete targetImage;
+		return NULL;
+	}
+	const float* pSource = (const float*) pSourceImg->AlignedPtr();
+	float* pTarget = (float*) targetImage->AlignedPtr();
+
+	const int cnBlockSize = 32;
+	int nX = 0, nY = 0;
+	while (nY < pSourceImg->GetHeight()) {
+		nX = 0;
+		while (nX < pSourceImg->GetWidth()) {
+			RotateBlockLinear(pSource, pTarget, pSourceImg->GetWidth(), pSourceImg->GetHeight(),
+				nX, nY,
+				min(cnBlockSize, pSourceImg->GetPaddedWidth() - nX), // !! here we need to use the padded width
+				min(cnBlockSize, pSourceImg->GetHeight() - nY),
+				simdPixelsPerRegister);
+			nX += cnBlockSize;
+		}
+		nY += cnBlockSize;
+	}
+
+	return targetImage;
+}
+
+// RotateFlip the source image by 90 deg and return rotated image as 32 bpp DIB (linear light variant)
+static void* RotateToDIBLinear(const CXMMImage* pSourceImg, int simdPixelsPerRegister, uint8* pTarget = NULL) {
+
+	const float* pSource = (const float*) pSourceImg->AlignedPtr();
+	if (pTarget == NULL) {
+		pTarget = new(std::nothrow) uint8[pSourceImg->GetHeight() * 4 * Helpers::DoPadding(pSourceImg->GetWidth(), simdPixelsPerRegister)];
+		if (pTarget == NULL) return NULL;
+	}
+
+	const int cnBlockSize = 32;
+	int nX = 0, nY = 0;
+	while (nY < pSourceImg->GetHeight()) {
+		nX = 0;
+		while (nX < pSourceImg->GetWidth()) {
+			RotateBlockToDIBLinear(pSource, pTarget, pSourceImg->GetWidth(), pSourceImg->GetHeight(),
+				nX, nY,
+				min(cnBlockSize, pSourceImg->GetPaddedWidth() - nX),  // !! here we need to use the padded width
+				min(cnBlockSize, pSourceImg->GetHeight() - nY),
+				simdPixelsPerRegister);
+
+			nX += cnBlockSize;
+		}
+		nY += cnBlockSize;
+	}
+
+	return pTarget;
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////
 // High quality filtering (SSE implementation)
 /////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2421,30 +2574,39 @@ void* SampleDown_HQ_AVX_Core(CSize fullTargetSize, CPoint fullTargetOffset, CSiz
 	int nStartX = nIncOffsetX + nIncrementX*fullTargetOffset.x - 65536 * nFirstX;
 	int nStartY = nIncOffsetY + nIncrementY*fullTargetOffset.y - 65536 * nFirstY;
 
+	// Linear light resampling stores one float per channel, so a SIMD register holds half as
+	// many pixels (8 instead of 16) and the image padding has to match.
+	const bool bLinear = CSettingsProvider::This().LinearLightResampling();
+	const int nSimdPixels = bLinear ? 8 : 16;
+
 	// Resize Y
 	double t1 = Helpers::GetExactTickCount();
-	CXMMImage* pImage1 = new CXMMImage(sourceSize.cx, sourceSize.cy, nFirstX, nLastX, nFirstY, nLastY, pPixels, nChannels, 16);
+	CXMMImage* pImage1 = new CXMMImage(sourceSize.cx, sourceSize.cy, nFirstX, nLastX, nFirstY, nLastY, pPixels, nChannels, nSimdPixels);
 	if (pImage1->AlignedPtr() == NULL) {
 		delete pImage1;
 		return NULL;
 	}
 	double t2 = Helpers::GetExactTickCount();
-	CXMMImage* pImage2 = ApplyFilter_AVX(pImage1->GetHeight(), clippedTargetSize.cy, pImage1->GetWidth(), nStartY, 0, nIncrementY, kernelsY, nFilterOffsetY, pImage1);
+	CXMMImage* pImage2 = bLinear ?
+		ApplyFilter_AVX_Linear(pImage1->GetHeight(), clippedTargetSize.cy, pImage1->GetWidth(), nStartY, 0, nIncrementY, kernelsY, nFilterOffsetY, pImage1, false) :
+		ApplyFilter_AVX(pImage1->GetHeight(), clippedTargetSize.cy, pImage1->GetWidth(), nStartY, 0, nIncrementY, kernelsY, nFilterOffsetY, pImage1);
 	delete pImage1;
 	if (pImage2 == NULL) return NULL;
 	double t3 = Helpers::GetExactTickCount();
 	// Rotate
-	CXMMImage* pImage3 = Rotate(pImage2, 16);
+	CXMMImage* pImage3 = bLinear ? RotateLinear(pImage2, nSimdPixels) : Rotate(pImage2, nSimdPixels);
 	delete pImage2;
 	if (pImage3 == NULL) return NULL;
 	double t4 = Helpers::GetExactTickCount();
 	// Resize Y again
-	CXMMImage* pImage4 = ApplyFilter_AVX(pImage3->GetHeight(), clippedTargetSize.cx, clippedTargetSize.cy, nStartX, 0, nIncrementX, kernelsX, nFilterOffsetX, pImage3);
+	CXMMImage* pImage4 = bLinear ?
+		ApplyFilter_AVX_Linear(pImage3->GetHeight(), clippedTargetSize.cx, clippedTargetSize.cy, nStartX, 0, nIncrementX, kernelsX, nFilterOffsetX, pImage3, true) :
+		ApplyFilter_AVX(pImage3->GetHeight(), clippedTargetSize.cx, clippedTargetSize.cy, nStartX, 0, nIncrementX, kernelsX, nFilterOffsetX, pImage3);
 	delete pImage3;
 	if (pImage4 == NULL) return NULL;
 	double t5 = Helpers::GetExactTickCount();
 	// Rotate back
-	void* pTargetDIB = RotateToDIB(pImage4, 16, pTarget);
+	void* pTargetDIB = bLinear ? RotateToDIBLinear(pImage4, nSimdPixels, pTarget) : RotateToDIB(pImage4, nSimdPixels, pTarget);
 	double t6 = Helpers::GetExactTickCount();
 
 	delete pImage4;
@@ -2532,22 +2694,31 @@ void* SampleUp_HQ_AVX_Core(CSize fullTargetSize, CPoint fullTargetOffset, CSize 
 	CAutoAVXFilter filterX(nSourceWidth, fullTargetSize.cx, 0.0, Filter_Upsampling_Bicubic);
 	const AVXFilterKernelBlock& kernelsX = filterX.Kernels();
 
+	// Linear light resampling stores one float per channel, so a SIMD register holds half as
+	// many pixels (8 instead of 16) and the image padding has to match.
+	const bool bLinear = CSettingsProvider::This().LinearLightResampling();
+	const int nSimdPixels = bLinear ? 8 : 16;
+
 	// Resize Y
-	CXMMImage* pImage1 = new CXMMImage(nSourceWidth, nSourceHeight, nFirstX, nLastX, nFirstY, nLastY, pPixels, nChannels, 16);
+	CXMMImage* pImage1 = new CXMMImage(nSourceWidth, nSourceHeight, nFirstX, nLastX, nFirstY, nLastY, pPixels, nChannels, nSimdPixels);
 	if (pImage1->AlignedPtr() == NULL) {
 		delete pImage1;
 		return NULL;
 	}
-	CXMMImage* pImage2 = ApplyFilter_AVX(pImage1->GetHeight(), nTargetHeight, pImage1->GetWidth(), nStartY, 0, nIncrementY, kernelsY, nFilterOffsetY, pImage1);
+	CXMMImage* pImage2 = bLinear ?
+		ApplyFilter_AVX_Linear(pImage1->GetHeight(), nTargetHeight, pImage1->GetWidth(), nStartY, 0, nIncrementY, kernelsY, nFilterOffsetY, pImage1, false) :
+		ApplyFilter_AVX(pImage1->GetHeight(), nTargetHeight, pImage1->GetWidth(), nStartY, 0, nIncrementY, kernelsY, nFilterOffsetY, pImage1);
 	delete pImage1;
 	if (pImage2 == NULL) return NULL;
-	CXMMImage* pImage3 = Rotate(pImage2, 16);
+	CXMMImage* pImage3 = bLinear ? RotateLinear(pImage2, nSimdPixels) : Rotate(pImage2, nSimdPixels);
 	delete pImage2;
 	if (pImage3 == NULL) return NULL;
-	CXMMImage* pImage4 = ApplyFilter_AVX(pImage3->GetHeight(), nTargetWidth, nTargetHeight, nStartX, 0, nIncrementX, kernelsX, nFilterOffsetX, pImage3);
+	CXMMImage* pImage4 = bLinear ?
+		ApplyFilter_AVX_Linear(pImage3->GetHeight(), nTargetWidth, nTargetHeight, nStartX, 0, nIncrementX, kernelsX, nFilterOffsetX, pImage3, true) :
+		ApplyFilter_AVX(pImage3->GetHeight(), nTargetWidth, nTargetHeight, nStartX, 0, nIncrementX, kernelsX, nFilterOffsetX, pImage3);
 	delete pImage3;
 	if (pImage4 == NULL) return NULL;
-	void* pTargetDIB = RotateToDIB(pImage4, 16, pTarget);
+	void* pTargetDIB = bLinear ? RotateToDIBLinear(pImage4, nSimdPixels, pTarget) : RotateToDIB(pImage4, nSimdPixels, pTarget);
 	delete pImage4;
 
 	return pTargetDIB;
@@ -2559,7 +2730,10 @@ void* CBasicProcessing::SampleDown_HQ_SIMD(CSize fullTargetSize, CPoint fullTarg
 	if (pPixels == NULL || clippedTargetSize.cx <= 0 || clippedTargetSize.cy <= 0) {
 		return NULL;
 	}
-	int padding = (simd == AVX2) ? 16 : 8;
+	// Linear light (float32) samples need twice the space per pixel, so a SIMD register holds
+	// half as many pixels and the strip padding is halved as well.
+	const bool bLinear = CSettingsProvider::This().LinearLightResampling();
+	int padding = (simd == AVX2) ? (bLinear ? 8 : 16) : 8;
 	uint8* pTarget = new(std::nothrow) uint8[clippedTargetSize.cx * 4 * Helpers::DoPadding(clippedTargetSize.cy, padding)];
 	if (pTarget == NULL) return NULL;
 	CProcessingThreadPool& threadPool = CProcessingThreadPool::This();
@@ -2576,7 +2750,10 @@ void* CBasicProcessing::SampleUp_HQ_SIMD(CSize fullTargetSize, CPoint fullTarget
 	if (pPixels == NULL || fullTargetSize.cx < 2 || fullTargetSize.cy < 2 || clippedTargetSize.cx <= 0 || clippedTargetSize.cy <= 0) {
 		return NULL;
 	}
-	int padding = (simd == AVX2) ? 16 : 8;
+	// Linear light (float32) samples need twice the space per pixel, so a SIMD register holds
+	// half as many pixels and the strip padding is halved as well.
+	const bool bLinear = CSettingsProvider::This().LinearLightResampling();
+	int padding = (simd == AVX2) ? (bLinear ? 8 : 16) : 8;
 	uint8* pTarget = new(std::nothrow) uint8[clippedTargetSize.cx * 4 * Helpers::DoPadding(clippedTargetSize.cy, padding)];
 	if (pTarget == NULL) return NULL;
 	CProcessingThreadPool& threadPool = CProcessingThreadPool::This();

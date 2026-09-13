@@ -35,7 +35,9 @@ public:
 	void* ConvertToDIBRGBA() const;
 
 private:
-	int GetLineSize() const { return m_nPaddedWidth*2; }
+	// Linear light mode stores one float per channel (4 bytes), the default fixed point mode
+	// one int16 (2 bytes). Other than the element size the memory layout is identical.
+	int GetLineSize() const { return m_nPaddedWidth * (m_bLinear ? 4 : 2); }
 	int GetMemSize() const { return GetLineSize()*3*m_nPaddedHeight; }
 	void Init(int nWidth, int nHeight, bool bPadHeight, int padding);
 
@@ -43,4 +45,5 @@ private:
 	int m_nWidth, m_nHeight;
 	int m_nPaddedWidth; // in pixels
 	int m_nPaddedHeight; // in pixels
+	bool m_bLinear; // true: float32 linear light samples, false: int16 fixed point
 };

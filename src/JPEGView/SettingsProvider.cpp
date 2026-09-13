@@ -182,6 +182,17 @@ CSettingsProvider::CSettingsProvider(void) {
 	m_bHEIFIgnoreTransformations = GetBool(_T("HEIFIgnoreTransformations"), false);
 	m_bHEIFConvertHDRTo8bit = GetBool(_T("HEIFConvertHDRTo8bit"), true);
 	m_bForceGDIPlus = GetBool(_T("ForceGDIPlus"), false);
+	// Linear light resampling is implemented with float32 AVX2 kernels only. Without AVX2
+	// (or when the CPU algorithm is forced below AVX2) the fixed point path is used, so the
+	// setting silently has no effect there instead of producing wrong output.
+#ifdef _WIN64
+	m_bLinearLightPossible = (m_eCPUAlgorithm == Helpers::CPU_AVX2);
+#else
+	m_bLinearLightPossible = false;
+#endif
+	m_bLinearLightResampling = GetBool(_T("LinearLightResampling"), false) && m_bLinearLightPossible;
+	m_bLinearLightOverrideSet = false;
+	m_bLinearLightOverride = false;
 	// SingleInstance: "Always" (single instance), "PerFolder" (one instance per folder, default)
 	// or "Never" (multiple instances). The legacy boolean values true/false are still accepted.
 	CString sSingleInstanceMode = GetString(_T("SingleInstance"), _T("PerFolder"));

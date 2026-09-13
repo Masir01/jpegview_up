@@ -263,6 +263,7 @@
 #define IDM_KEEP_PARAMETERS	11000		// :KeyMap: toogle keep parameters between images
 #define IDM_SAVE_PARAMETERS 11010		// :KeyMap: save to parameter DB
 #define IDM_FASTFIT_SCREEN_DECODE 14950	// :KeyMap: session-only toggle of the extreme speed mode (fast fit-to-screen decode)
+#define IDM_LINEAR_LIGHT_RESAMPLING 14960	// :KeyMap: session-only toggle of linear light (gamma correct) resampling
 #define IDM_SAVE_PARAM_DB   11500		// :KeyMap: delete from parameter DB
 #define IDM_CLEAR_PARAM_DB  11510
 #define IDM_FIT_TO_SCREEN	12000		// :KeyMap: fit image to screen

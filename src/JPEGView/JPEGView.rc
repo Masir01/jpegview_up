@@ -444,6 +444,7 @@ BEGIN
             MENUITEM "Restore parameter DB...",     IDM_RESTORE_PARAMDB
             MENUITEM SEPARATOR
             MENUITEM "Extreme speed mode (fit to screen)", IDM_FASTFIT_SCREEN_DECODE
+            MENUITEM "Linear light resampling",      IDM_LINEAR_LIGHT_RESAMPLING
         END
         MENUITEM SEPARATOR
         POPUP "User commands"
