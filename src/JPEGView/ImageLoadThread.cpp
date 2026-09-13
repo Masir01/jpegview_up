@@ -2,6 +2,7 @@
 #include "StdAfx.h"
 #include "ImageLoadThread.h"
 #include <gdiplus.h>
+#include <vector>
 #include "JPEGImage.h"
 #include "MessageDef.h"
 #include "Helpers.h"
@@ -9,6 +10,7 @@
 #include "ReaderBMP.h"
 #include "ReaderTGA.h"
 #include "BasicProcessing.h"
+#include "ICCProfileTransform.h"
 #include "dcraw_mod.h"
 #include "TJPEGWrapper.h"
 #include "PNGWrapper.h"
@@ -466,6 +468,80 @@ void CImageLoadThread::InvalidateDecoderCaches(bool bKeepGdiCache, EImageFormat 
 	}
 }
 
+// Extracts an embedded ICC profile from a JPEG stream by collecting the APP2 "ICC_PROFILE"
+// chunks (profiles larger than 64 KB are split over several chunks). Returns true when a
+// complete profile was assembled. lcms2 applies it later, so decoding itself can stay on the
+// fast TurboJPEG path even when UseEmbeddedColorProfiles is enabled.
+static bool ExtractJPEGICCProfile(const void* pJPEGStream, int nStreamLength, std::vector<uint8_t>& iccProfile) {
+	iccProfile.clear();
+	const uint8* pStream = (const uint8*)pJPEGStream;
+	if (pStream == NULL || nStreamLength < 4 || pStream[0] != 0xFF || pStream[1] != 0xD8) {
+		return false; // not a JPEG stream
+	}
+
+	std::vector<std::vector<uint8_t>> chunks;
+	int nChunkCount = 0;
+	int nIndex = 2;
+	while (nIndex + 3 < nStreamLength) {
+		if (pStream[nIndex] != 0xFF) {
+			break; // corrupt marker or entropy coded data reached
+		}
+		while (nIndex < nStreamLength && pStream[nIndex] == 0xFF) {
+			nIndex++; // skip fill bytes
+		}
+		if (nIndex >= nStreamLength) {
+			break;
+		}
+		uint8 nMarker = pStream[nIndex++];
+		if (nMarker == 0x00) {
+			continue; // stuffed byte, not a marker
+		}
+		if (nMarker == 0xD8 || nMarker == 0x01 || (nMarker >= 0xD0 && nMarker <= 0xD7)) {
+			continue; // markers without a length field
+		}
+		if (nMarker == 0xDA || nMarker == 0xD9) {
+			break; // start of scan resp. end of image: no more metadata segments
+		}
+		if (nIndex + 1 >= nStreamLength) {
+			break;
+		}
+		int nBlockLen = (pStream[nIndex] << 8) | pStream[nIndex + 1];
+		if (nBlockLen < 2 || nIndex + nBlockLen > nStreamLength) {
+			break; // corrupt block length
+		}
+		const uint8* pBlockData = pStream + nIndex + 2;
+		int nDataLen = nBlockLen - 2;
+		if (nMarker == 0xE2 && nDataLen > 14 && memcmp(pBlockData, "ICC_PROFILE\0", 12) == 0) {
+			int nChunkNumber = pBlockData[12];
+			int nTotalChunks = pBlockData[13];
+			if (nChunkNumber >= 1 && nTotalChunks >= 1 && nChunkNumber <= nTotalChunks && nTotalChunks <= 255) {
+				if ((int)chunks.size() < nTotalChunks) {
+					chunks.resize(nTotalChunks);
+				}
+				chunks[nChunkNumber - 1].assign(pBlockData + 14, pBlockData + nDataLen);
+				nChunkCount = max(nChunkCount, nTotalChunks);
+			}
+		}
+		nIndex += nBlockLen;
+	}
+
+	if (nChunkCount <= 0 || (int)chunks.size() < nChunkCount) {
+		return false;
+	}
+	size_t nTotalSize = 0;
+	for (int i = 0; i < nChunkCount; i++) {
+		if (chunks[i].empty()) {
+			return false; // incomplete profile, do not use a partial one
+		}
+		nTotalSize += chunks[i].size();
+	}
+	iccProfile.reserve(nTotalSize);
+	for (int i = 0; i < nChunkCount; i++) {
+		iccProfile.insert(iccProfile.end(), chunks[i].begin(), chunks[i].end());
+	}
+	return iccProfile.size() >= 128; // an ICC profile header alone is 128 bytes
+}
+
 // Common post-processing: AlphaBlend BGRA pixels, construct CJPEGImage, free EXIF.
 // pEXIFData is consumed (freed and set to NULL). The caller still owns pPixelData
 // (which CJPEGImage takes over via its constructor).
@@ -515,7 +591,10 @@ void CImageLoadThread::ProcessReadJPEGRequest(CRequest * request) {
 		}
 		unsigned int nNumBytesRead;
 		if (::ReadFile(hFile, pBuffer, nFileSize, (LPDWORD) &nNumBytesRead, NULL) && nNumBytesRead == nFileSize) {
-			bool bUseGDIPlus = CSettingsProvider::This().ForceGDIPlus() || CSettingsProvider::This().UseEmbeddedColorProfiles();
+			// Only an explicit "ForceGDIPlus" setting routes JPEG decoding through GDI+.
+			// Embedded ICC profiles are applied by lcms2 after the TurboJPEG decode (see below),
+			// which keeps the fast path (including downscale decoding) for color managed images.
+			bool bUseGDIPlus = CSettingsProvider::This().ForceGDIPlus();
 			if (bUseGDIPlus) {
 				IStream* pStream = NULL;
 				if (::CreateStreamOnHGlobal(hFileBuffer, FALSE, &pStream) == S_OK) {
@@ -556,6 +635,21 @@ void CImageLoadThread::ProcessReadJPEGRequest(CRequest * request) {
 
 				// Color and b/w JPEG is supported
 				if (pPixelData != NULL && (nBPP == 3 || nBPP == 1)) {
+					// Apply the embedded ICC profile with lcms2 (same engine as the other formats)
+					// instead of decoding via GDI+. TurboJPEG returns padded BGR rows, which matches
+					// FORMAT_BGR plus the padded stride.
+					if (nBPP == 3 && CSettingsProvider::This().UseEmbeddedColorProfiles()) {
+						std::vector<uint8_t> iccProfile;
+						if (ExtractJPEGICCProfile(pBuffer, (int)nFileSize, iccProfile)) {
+							void* transform = ICCProfileTransform::CreateTransform(iccProfile.data(),
+								(unsigned int)iccProfile.size(), ICCProfileTransform::FORMAT_BGR);
+							if (transform != NULL) {
+								ICCProfileTransform::DoTransform(transform, pPixelData, pPixelData,
+									nWidth, nHeight, Helpers::DoPadding(nWidth * 3, 4));
+								ICCProfileTransform::DeleteTransform(transform);
+							}
+						}
+					}
 					request->Image = new CJPEGImage(nWidth, nHeight, pPixelData, 
 						Helpers::FindEXIFBlock(pBuffer, nFileSize), nBPP, 
 						Helpers::CalculateJPEGFileHash(pBuffer, nFileSize), IF_JPEG, false, 0, 1, 0);
