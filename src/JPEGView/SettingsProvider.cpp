@@ -182,7 +182,16 @@ CSettingsProvider::CSettingsProvider(void) {
 	m_bHEIFIgnoreTransformations = GetBool(_T("HEIFIgnoreTransformations"), false);
 	m_bHEIFConvertHDRTo8bit = GetBool(_T("HEIFConvertHDRTo8bit"), true);
 	m_bForceGDIPlus = GetBool(_T("ForceGDIPlus"), false);
-	m_bSingleInstance = GetBool(_T("SingleInstance"), false);
+	// SingleInstance: "Always" (single instance), "PerFolder" (one instance per folder, default)
+	// or "Never" (multiple instances). The legacy boolean values true/false are still accepted.
+	CString sSingleInstanceMode = GetString(_T("SingleInstance"), _T("PerFolder"));
+	if (sSingleInstanceMode.CompareNoCase(_T("Always")) == 0 || sSingleInstanceMode.CompareNoCase(_T("true")) == 0) {
+		m_eSingleInstanceMode = Helpers::SI_Always;
+	} else if (sSingleInstanceMode.CompareNoCase(_T("Never")) == 0 || sSingleInstanceMode.CompareNoCase(_T("false")) == 0) {
+		m_eSingleInstanceMode = Helpers::SI_Never;
+	} else {
+		m_eSingleInstanceMode = Helpers::SI_PerFolder;
+	}
 	m_bSingleFullScreenInstance = GetBool(_T("SingleFullScreenInstance"), true);
 	m_nJPEGSaveQuality = GetInt(_T("JPEGSaveQuality"), 85, 0, 100);
 	m_nWEBPSaveQuality = GetInt(_T("WEBPSaveQuality"), 85, 0, 100);

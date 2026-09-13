@@ -94,7 +94,11 @@ public:
 	bool HEIFIgnoreTransformations() { return m_bHEIFIgnoreTransformations; }
 	bool HEIFConvertHDRTo8bit() { return m_bHEIFConvertHDRTo8bit; }
 	bool ForceGDIPlus() { return m_bForceGDIPlus; }
-	bool SingleInstance() { return m_bSingleInstance; }
+	// Single instance policy: "Always" (one window for everything), "PerFolder" (default, one
+	// window per folder) or "Never" (an own window for every opened image). See Helpers::ESingleInstanceMode.
+	Helpers::ESingleInstanceMode SingleInstanceMode() { return m_eSingleInstanceMode; }
+	// Backward compatible boolean view: true only for the "Always" mode.
+	bool SingleInstance() { return m_eSingleInstanceMode == Helpers::SI_Always; }
 	bool SingleFullScreenInstance() { return m_bSingleFullScreenInstance; }
 	int JPEGSaveQuality() { return m_nJPEGSaveQuality; }
 	int WEBPSaveQuality() { return m_nWEBPSaveQuality; }
@@ -276,7 +280,7 @@ private:
 	bool m_bHEIFIgnoreTransformations;
 	bool m_bHEIFConvertHDRTo8bit;
 	bool m_bForceGDIPlus;
-	bool m_bSingleInstance;
+	Helpers::ESingleInstanceMode m_eSingleInstanceMode;
 	bool m_bSingleFullScreenInstance;
 	int m_nJPEGSaveQuality;
 	int m_nWEBPSaveQuality;

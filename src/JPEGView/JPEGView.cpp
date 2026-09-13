@@ -23,10 +23,24 @@ static BOOL CALLBACK EnumWindowsProc(HWND hwnd, LPARAM lParam) {
 	buff[BUF_LEN] = 0;
 	::GetWindowText(hwnd, (LPTSTR)&buff, BUF_LEN);
 	if (_tcsstr(buff, _T(" - JPEGView")) != NULL) {
-		_HWNDOtherInstance = hwnd;
-		return FALSE;
+		// Ask the existing instance whether it wants to handle our startup file.
+		// It answers with KEY_MAGIC when it takes the file over (single instance mode
+		// "Always" or "PerFolder" with the same image folder). Otherwise we keep looking
+		// for another instance and finally open the file in a window of our own.
+		COPYDATASTRUCT copyData;
+		memset(&copyData, 0, sizeof(COPYDATASTRUCT));
+		copyData.dwData = KEY_MAGIC;
+		copyData.cbData = (lstrlen((LPCTSTR)lParam) + 1) * sizeof(TCHAR);
+		copyData.lpData = (LPVOID)(LPCTSTR)lParam;
+		ULONG_PTR result = 0;
+		PDWORD_PTR resultPtr = &result;
+		::SendMessageTimeout(hwnd, WM_COPYDATA, 0, (LPARAM)&copyData, 0, 250, resultPtr);
+		if (*resultPtr == (ULONG_PTR)KEY_MAGIC) {
+			_HWNDOtherInstance = hwnd;
+			return FALSE; // handled, stop enumerating windows
+		}
 	}
-	return TRUE;
+	return TRUE; // keep enumerating other instances
 }
 
 static CString ParseCommandLineForStartupFile(LPCTSTR sCommandLine) { 
@@ -211,23 +225,17 @@ int WINAPI _tWinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, LPTSTR lp
 	int nTransitionTime = ParseCommandLineForTransitionTime(lpstrCmdLine);
 	int nDisplayMonitor = ParseCommandLineForDisplayMonitor(lpstrCmdLine);
 
-	// Searches for other instances and terminates them
+	// Searches for other instances and asks them if they want to display our startup file instead.
+	// An instance accepts it depending on the SingleInstance setting (Always / PerFolder / Never).
 	bool bFileLoadedByExistingInstance = false;
 	HANDLE hMutex = ::CreateMutex(NULL, FALSE, _T("JPVMtX2869"));
-	if (::GetLastError() == ERROR_ALREADY_EXISTS) {
-		::EnumWindows((WNDENUMPROC)EnumWindowsProc, 0);
-		if (_HWNDOtherInstance != NULL) {
-			// Other instance found, send the filename to be loaded to this instance
-			COPYDATASTRUCT copyData;
-			memset(&copyData, 0, sizeof(COPYDATASTRUCT));
-			copyData.dwData = KEY_MAGIC;
-			copyData.cbData = (sStartupFile.GetLength() + 1) * sizeof(TCHAR);
-			copyData.lpData = (LPVOID)(LPCTSTR)sStartupFile;
-			ULONG_PTR result = 0;
-			PDWORD_PTR resultPtr = &result;
-			LRESULT res = ::SendMessageTimeout(_HWNDOtherInstance, WM_COPYDATA, 0, (LPARAM)&copyData, 0, 250, resultPtr);
-			bFileLoadedByExistingInstance = *resultPtr == (ULONG_PTR)KEY_MAGIC;
-		}
+	// Read LastError immediately - any other Win32 call in between would overwrite it.
+	bool bOtherInstanceRunning = (::GetLastError() == ERROR_ALREADY_EXISTS);
+	// In "Never" mode every opened image gets its own window, so there is no point in asking
+	// the running instances - skip the whole negotiation and start up directly.
+	if (bOtherInstanceRunning && CSettingsProvider::This().SingleInstanceMode() != Helpers::SI_Never) {
+		::EnumWindows((WNDENUMPROC)EnumWindowsProc, (LPARAM)(LPCTSTR)sStartupFile);
+		bFileLoadedByExistingInstance = (_HWNDOtherInstance != NULL);
 	}
 
 	int nRet = 0;

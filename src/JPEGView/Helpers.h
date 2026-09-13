@@ -35,6 +35,13 @@ namespace Helpers {
 		NM_LoopSameDirectoryLevel
 	};
 
+	// Single instance modes (see the SingleInstance setting)
+	enum ESingleInstanceMode {
+		SI_Never,      // multiple instances allowed (each opened image gets its own window)
+		SI_PerFolder,  // one instance per folder (default)
+		SI_Always      // single instance: all images open in the same window
+	};
+
 	// Auto zoom modes
 	enum EAutoZoomMode {
 		ZM_FitToScreenNoZoom,

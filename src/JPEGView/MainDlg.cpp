@@ -714,11 +714,46 @@ LRESULT CMainDlg::OnGetMinMaxInfo(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lPara
 LRESULT CMainDlg::OnAnotherInstanceStarted(UINT /*uMsg*/, WPARAM /*wParam*/, LPARAM lParam, BOOL& bHandled) {
 	bHandled = FALSE;
 	COPYDATASTRUCT* pData = (COPYDATASTRUCT*)lParam;
-	if (pData != NULL && pData->dwData == KEY_MAGIC && pData->cbData > 0 && 
-		((m_state.m_bFullScreenMode && CSettingsProvider::This().SingleFullScreenInstance()) || CSettingsProvider::This().SingleInstance())) {
-		m_sStartupFile = CString((LPCTSTR)pData->lpData, pData->cbData / sizeof(TCHAR) - 1);
+	if (pData == NULL || pData->dwData != KEY_MAGIC || pData->cbData == 0) {
+		return 0;
+	}
+
+	// Another instance asks us whether we want to display its startup file.
+	// We accept it depending on the SingleInstance mode:
+	//   Always    - always take it (single instance)
+	//   PerFolder - only if it comes from the folder we are currently browsing (default)
+	//   Never     - only if we do not display anything yet
+	// Returning KEY_MAGIC tells the other instance that we handle the file, 0 lets it open itself.
+	CString sCopyDataFile((LPCTSTR)pData->lpData, pData->cbData / sizeof(TCHAR) - 1);
+	LPCTSTR sCurrentFile = CurrentFileName(false);
+	Helpers::ESingleInstanceMode eMode = CSettingsProvider::This().SingleInstanceMode();
+
+	bool bSameFolder = false;
+	if (sCurrentFile != NULL) {
+		CString sCopyDataPath(sCopyDataFile);
+		int nSeparator = sCopyDataPath.ReverseFind(_T('\\'));
+		if (nSeparator >= 0) {
+			sCopyDataPath = sCopyDataPath.Left(nSeparator);
+		}
+		CString sCurrentPath(sCurrentFile);
+		nSeparator = sCurrentPath.ReverseFind(_T('\\'));
+		if (nSeparator >= 0) {
+			sCurrentPath = sCurrentPath.Left(nSeparator);
+		}
+		bSameFolder = (sCopyDataPath.CompareNoCase(sCurrentPath) == 0);
+	}
+
+	bool bTakeOverFile = (sCurrentFile == NULL)
+		|| (m_state.m_bFullScreenMode && CSettingsProvider::This().SingleFullScreenInstance())
+		|| (eMode == Helpers::SI_Always)
+		|| (eMode == Helpers::SI_PerFolder && bSameFolder);
+
+	if (bTakeOverFile) {
+		m_sStartupFile = sCopyDataFile;
 		::PostMessage(m_hWnd, WM_LOAD_FILE_ASYNCH, 0, KEY_MAGIC);
 		bHandled = TRUE;
+		this->ShowWindow(SW_RESTORE);
+		SetForegroundWindow(m_hWnd);
 		return KEY_MAGIC;
 	}
 	return 0;
