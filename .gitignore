@@ -40,3 +40,4 @@ ipch/
 extras/scripts/build-libwebp.bat
 extras/scripts/build-libheif_libavif.bat
 .codebuddy/memory
+.github/context-mode
