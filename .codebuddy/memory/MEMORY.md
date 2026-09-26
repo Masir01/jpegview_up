@@ -169,7 +169,7 @@
 
 ## 上游 JPEGView_L 修复跟踪（核对至 v1.4.0.6，2026-09-26）
 上游最新 **v1.4.0.6**（2026-09-24，`9096d96`）。v1.4.0.5→v1.4.0.6 实质只动 4 个源文件，逐项适用性：
-- **已实施（2026-09-26）Fix #21 文件大小加小数**：上游改用 `FormatFileSize()`（KiB/MiB 单位）。**我们按用户要求保留 MB/KB 单位**，在 `Helpers.cpp:912-924` 新增 static `FormatFileSize()`（<10/<100 用 `%.1f`，否则 `%.0f`，`%d b` 不变），`<l>` 占位符改调用它（`Helpers.cpp:963-966`）。注意：与上游实现**单位不同**，日后同步上游时不要直接覆盖。
+- **已实施（2026-09-26）Fix #21 文件大小加小数**：上游改用 `FormatFileSize()`（KiB/MiB 单位）。**我们按用户要求保留 MB/KB 单位、统一两位小数**（`%.2f MB` / `%.2f KB`，<1 KiB 仍为 `%d b`）：`Helpers.cpp` 中 `GetFileInfoString` 之前新增 static `FormatFileSize()`，其 `<l>` 分支改调用它。注意：与上游实现的**单位与精度都不同**，日后同步上游时不要直接覆盖。
 - **未采用（2026-09-26 实施后回退）Fix #8**：`TJPEGWrapper.cpp:170` 保持原 int 表达式 `TJPAD(nScaledWidth * 3) * nScaledHeight`。曾改为 `static_cast<size_t>` 并编译通过，随后按用户"最小 diff"原则回退（守卫 `MAX_IMAGE_PIXELS` 下溢出不可达，属纯防御性）。判断依据：溢出阈值 715.8 Mpx vs 守卫 524.3 Mpx，余量 26.7%。
 - [最小 diff 原则（用户偏好）](feedback_minimal_diff.md) — 当前不可达的防御性改动不进代码库
 - **不适用**：Fix #14 滚轮失效（我们 `OnMouseWheel` 实现不同，无条件 GotoImage）、Fix #3 全屏误弹缩放因子（我们不设 `m_bInZooming`）、Fix #9 面板定时器嵌套、zip 归档加载（我们无归档功能）。

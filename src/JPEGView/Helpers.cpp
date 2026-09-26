@@ -908,15 +908,13 @@ CString GetMultiframeIndex(CJPEGImage* pImage) {
 
 // Formats a file size for the "<l>" placeholder of the file info string. Binary units
 // (KB/MB) are kept, but the value is no longer truncated to whole units, so that e.g.
-// 1.9 MB is not displayed as "1 MB" anymore.
+// 1.85 MB is not displayed as "1 MB" anymore.
 static CString FormatFileSize(__int64 nFileSize) {
 	CString sFileSize;
 	if (nFileSize >= 1024 * 1024) {
-		double dValue = (double)nFileSize / (1024.0 * 1024.0);
-		sFileSize.Format((dValue < 100.0) ? _T("%.1f MB") : _T("%.0f MB"), dValue);
+		sFileSize.Format(_T("%.2f MB"), (double)nFileSize / (1024.0 * 1024.0));
 	} else if (nFileSize >= 1024) {
-		double dValue = (double)nFileSize / 1024.0;
-		sFileSize.Format((dValue < 100.0) ? _T("%.1f KB") : _T("%.0f KB"), dValue);
+		sFileSize.Format(_T("%.2f KB"), (double)nFileSize / 1024.0);
 	} else if (nFileSize > 0) {
 		sFileSize.Format(_T("%d b"), (int)nFileSize);
 	}
