@@ -906,6 +906,23 @@ CString GetMultiframeIndex(CJPEGImage* pImage) {
 	return CString(_T(""));
 }
 
+// Formats a file size for the "<l>" placeholder of the file info string. Binary units
+// (KB/MB) are kept, but the value is no longer truncated to whole units, so that e.g.
+// 1.9 MB is not displayed as "1 MB" anymore.
+static CString FormatFileSize(__int64 nFileSize) {
+	CString sFileSize;
+	if (nFileSize >= 1024 * 1024) {
+		double dValue = (double)nFileSize / (1024.0 * 1024.0);
+		sFileSize.Format((dValue < 100.0) ? _T("%.1f MB") : _T("%.0f MB"), dValue);
+	} else if (nFileSize >= 1024) {
+		double dValue = (double)nFileSize / 1024.0;
+		sFileSize.Format((dValue < 100.0) ? _T("%.1f KB") : _T("%.0f KB"), dValue);
+	} else if (nFileSize > 0) {
+		sFileSize.Format(_T("%d b"), (int)nFileSize);
+	}
+	return sFileSize;
+}
+
 CString GetFileInfoString(LPCTSTR sFormat, CJPEGImage* pImage, CFileList* pFilelist, double dZoom) {
 	if (pImage == NULL) {
 		return CString(_T(""));
@@ -945,15 +962,7 @@ CString GetFileInfoString(LPCTSTR sFormat, CJPEGImage* pImage, CFileList* pFilel
 	}
 	if (_tcsstr(sFormat, _T("<l>")) != NULL) {
 		__int64 fileSize = isClipboardImage ? 0 : GetFileSize(pFilelist->Current());
-		CString sFileSize;
-		if (fileSize >= 1024 * 1024) {
-			sFileSize.Format(_T("%d MB"), (int)(fileSize >> 20));
-		} else if (fileSize >= 1024) {
-			sFileSize.Format(_T("%d KB"), (int)(fileSize >> 10));
-		} else if (fileSize > 0) {
-			sFileSize.Format(_T("%d b"), (int)fileSize);
-		}
-		sFileInfo.Replace(_T("<l>"), sFileSize);
+		sFileInfo.Replace(_T("<l>"), FormatFileSize(fileSize));
 	}
 	sFileInfo.TrimLeft();
 	sFileInfo.TrimRight();
