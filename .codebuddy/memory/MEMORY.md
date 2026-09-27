@@ -167,6 +167,12 @@
 
 **新增一个格式的真实工作量**（不止解码器）：解码 wrapper + magic 检测 + 扩展名三处（FileList / Helpers / FileExtensionsDlg）+ ICC 色彩管理接入 + **多帧则必须给真实帧数**（否则重演 JXL"只播 2 帧"）+ EXIF（可选）+ 降采样解码（可选）+ 安装脚本 SupportedTypes + NLS 文案 + 回归测试。
 
+## CI / 工作流现状（2026-09-27）
+- **GitHub 侧**：`.github/workflows/*`（8 个，源自上游 sylikc/JPEGView）**从未运行过**（API `total_count=0`）。按用户要求**保留不动**。已知失效点：依赖不存在的 `src/JPEGView.Setup`、`workflow-build-wtl-cache`/`workflow-rebuild-all-deps` 引用已删的 `setup-wix`、`bin-cache` 会 `del /s *.lib *.dll` 删掉我们的预编译库、runner/action 版本老旧（windows-2019 / @v3）。
+- **Gitea 侧**：实例 `git.naspg.cn` = Gitea **1.27.2**；新增 `.gitea/workflows/build.yml`（自包含：仅 `runs-on: windows-latest` 单标签 + matrix + 内联脚本，不用 reusable workflow / 本地 action / cache / artifact）。旧版 GitHub workflow 一行未动。
+- **构建适配事实**：`src/JPEGView.sln` 存在（JPEGView + WICLoader）；`JPEGView.vcxproj` 已内置 `deps/WTL-sf\Include` → CI 只需 `git submodule update --init deps/WTL-sf`；**32 位预编译库缺失（只有 lib64）→ 只构建 Release|x64**；本机无 vswhere，VS 18 在 `D:\Program Files\Microsoft Visual Studio\18\Community`。
+- **Gitea 兼容边界**：工作流目录 `.gitea/workflows/`；`runs-on` 仅支持 `xyz`/`[xyz]`；表达式仅保证 `always()`；`workflow_call`/本地 composite action/cache/artifact 文档均未确认 → 兼容写法须用共同子集。
+
 ## 上游 JPEGView_L 修复跟踪（核对至 v1.4.0.6，2026-09-26）
 上游最新 **v1.4.0.6**（2026-09-24，`9096d96`）。v1.4.0.5→v1.4.0.6 实质只动 4 个源文件，逐项适用性：
 - **已实施（2026-09-26）Fix #21 文件大小加小数**：上游改用 `FormatFileSize()`（KiB/MiB 单位）。**我们按用户要求保留 MB/KB 单位、统一两位小数**（`%.2f MB` / `%.2f KB`，<1 KiB 仍为 `%d b`）：`Helpers.cpp` 中 `GetFileInfoString` 之前新增 static `FormatFileSize()`，其 `<l>` 分支改调用它。注意：与上游实现的**单位与精度都不同**，日后同步上游时不要直接覆盖。

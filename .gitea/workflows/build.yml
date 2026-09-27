@@ -1,0 +1,94 @@
+# Gitea Actions build workflow (Gitea 1.27.x + act_runner on Windows).
+#
+# Written deliberately inside the *common subset* of Gitea Actions and GitHub
+# Actions syntax, so the file also runs on GitHub if copied there:
+#   * no reusable workflow (workflow_call) and no local composite actions
+#     - everything is inlined into run: steps
+#   * no actions/cache and no actions/upload-artifact (availability on Gitea
+#     is version dependent); the artifacts are zipped into the workspace
+#   * no if: expressions (Gitea only guarantees always()) and no github.*
+#     context variables
+#   * complex runs-on forms are not supported by Gitea: use a single label
+#
+# Requirements on the Gitea side:
+#   1. Repository Actions enabled: <instance>/<owner>/<repo>/settings
+#      -> "Enable Repository Actions"
+#   2. An act_runner registered with the label "windows-latest" running on a
+#      Windows host that has Visual Studio incl. the C++ toolset (MSBuild).
+#      Register it from a Windows shell:
+#        act_runner register --no-interactive --instance <url> --token <token> \
+#          --labels windows-latest:host
+#      (use "host" so jobs run directly on the machine instead of in a
+#       Linux container - this is an MSVC/MFC project)
+#   3. actions/checkout is fetched from github.com by default
+#      (DEFAULT_ACTIONS_URL=github). On an offline instance either mirror it
+#      locally (DEFAULT_ACTIONS_URL=self) or replace the uses: line with the
+#      absolute URL of your own mirror, e.g.
+#        uses: https://<your-gitea>/mirror/checkout@v4
+#
+# Only Release|x64 is built on purpose: the 32-bit prebuilt libraries
+# (src/JPEGView/*/lib) are not part of this repository, only lib64 exists.
+
+name: Build JPEGView (Gitea)
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [x64]
+        config: [Release]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Init WTL submodule
+        # The project files reference $(ProjectDir)..\..\deps\WTL-sf\Include,
+        # so the submodule must be present before building.
+        # NOTE: the submodule URL points to SourceForge; on a slow/offline
+        # runner consider mirroring it or vendoring WTL into the repository.
+        shell: cmd
+        run: git submodule update --init --depth 1 deps/WTL-sf
+
+      - name: Locate MSBuild
+        shell: cmd
+        run: |
+          set "MSB="
+          if exist "%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" (
+            for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\amd64\MSBuild.exe"`) do set "MSB=%%i"
+          )
+          if not defined MSB for /d %%a in ("%ProgramFiles%\Microsoft Visual Studio\*") do for /d %%b in ("%%a\*") do if exist "%%b\MSBuild\Current\Bin\amd64\MSBuild.exe" set "MSB=%%b\MSBuild\Current\Bin\amd64\MSBuild.exe"
+          if not defined MSB for /d %%a in ("D:\Program Files\Microsoft Visual Studio\*") do for /d %%b in ("%%a\*") do if exist "%%b\MSBuild\Current\Bin\amd64\MSBuild.exe" set "MSB=%%b\MSBuild\Current\Bin\amd64\MSBuild.exe"
+          if not defined MSB (
+            echo MSBuild not found - the runner needs Visual Studio with the C++ toolset
+            exit /b 1
+          )
+          echo %MSB%> msbuild_path.txt
+          echo Found MSBuild: %MSB%
+
+      - name: Build
+        shell: cmd
+        run: |
+          set /p MSB=<msbuild_path.txt
+          "%MSB%" src\JPEGView.sln /p:Configuration=${{ matrix.config }} /p:Platform=${{ matrix.platform }} /m /v:m /nologo
+
+      - name: Show outputs
+        shell: cmd
+        run: dir /s /b src\JPEGView\bin\${{ matrix.platform }}\${{ matrix.config }}\*.exe
+
+      - name: Pack outputs
+        # No upload-artifact step on purpose: the zip stays in the workspace
+        # (the runner host can pick it up, or a later step can publish it).
+        shell: powershell
+        run: |
+          $out = "src/JPEGView/bin/${{ matrix.platform }}/${{ matrix.config }}"
+          if (Test-Path $out) {
+            Compress-Archive -Path "$out/*" -DestinationPath "JPEGView-${{ matrix.platform }}-${{ matrix.config }}.zip" -Force
+            Get-Item "JPEGView-${{ matrix.platform }}-${{ matrix.config }}.zip" | Select-Object FullName, Length
+          } else {
+            Write-Error "Build output not found: $out"
+            exit 1
+          }
