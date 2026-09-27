@@ -35,7 +35,7 @@ on: [push, workflow_dispatch]
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-workpc
     strategy:
       fail-fast: false
       matrix:
