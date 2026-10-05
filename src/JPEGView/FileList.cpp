@@ -381,7 +381,10 @@ void CFileList::RemoveFile(LPCTSTR fileName) {
 	}
 
 	if (sCurrentFile.IsEmpty()) {
-		m_iter = m_fileList.end();
+		// The iterator was already out of range, e.g. after deleting the image we were on.
+		// Store a usable position instead of end(): an out-of-range iterator makes every
+		// navigation a no-op and the player then reports "no new image" forever.
+		m_iter = m_fileList.begin();
 	} else {
 		m_iter = FindFile(sCurrentFile);
 	}
@@ -417,9 +420,14 @@ void CFileList::ModificationTimeChanged() {
 CFileList* CFileList::Next() {
 	m_nMarkedIndexShow = -1;
 	if (m_fileList.size() > 0) {
-		std::vector<CFileDesc>::iterator iterTemp = m_iter;
-		if (iterTemp == m_fileList.end())
+		if (m_iter == m_fileList.end()) {
+			// Recover from an out-of-range iterator instead of silently doing nothing. That state
+			// (left behind by a delete operation) used to make every navigation a no-op, so the
+			// player could only be unstuck by restarting it.
+			m_iter = m_fileList.begin();
 			return this;
+		}
+		std::vector<CFileDesc>::iterator iterTemp = m_iter;
 		iterTemp++;
 		if (iterTemp == m_fileList.end()) {
 			iterTemp = m_fileList.begin();
@@ -456,6 +464,12 @@ CFileList* CFileList::Next() {
 
 CFileList* CFileList::Prev() {
 	m_nMarkedIndexShow = -1;
+	if (m_fileList.size() > 0 && m_iter == m_fileList.end()) {
+		// Recover from an out-of-range iterator: land on the last file, same as wrapping around.
+		m_iter = m_fileList.end();
+		m_iter--;
+		return this;
+	}
 	if (m_iter == m_iterStart) {
 		if (sm_eMode == Helpers::NM_LoopDirectory) {
 			if (!m_bWrapAroundFolder) {
@@ -489,6 +503,11 @@ void CFileList::First() {
 
 void CFileList::Last() {
 	m_nMarkedIndexShow = -1;
+	if (m_iter == m_fileList.end()) {
+		// MoveIterToLast() cannot recover from an out-of-range iterator, so start from the
+		// first file and let it walk to the end of the list.
+		m_iter = m_fileList.begin();
+	}
 	MoveIterToLast();
 	m_iterStart = m_fileList.begin();
 }
@@ -1148,25 +1167,35 @@ void CFileList::OnScanCompleted() {
 	if (!m_bLoading) return;
 	
 	CString sCurrentFile = (m_iter != m_fileList.end()) ? m_iter->GetName() : m_sInitialFile;
-	
-	m_fileList.swap(m_scanResult);
 
-	// A directory-watcher scan may have captured a stale snapshot taken before the deletions
-	// completed, re-introducing just-deleted files as phantom entries. Drop them now so
-	// navigation never lands on a file that no longer exists on disk.
-	if (!m_deletedFiles.empty()) {
-		for (std::vector<CFileDesc>::iterator iter = m_fileList.begin(); iter != m_fileList.end(); ) {
-			if (m_deletedFiles.find(iter->GetName()) != m_deletedFiles.end()) {
-				iter = m_fileList.erase(iter);
-			} else {
-				++iter;
+	// A scan can come back empty when the drive was temporarily unavailable (network or
+	// removable drive). That is not the same as "the directory no longer contains images":
+	// accepting such a result wipes a perfectly usable list and leaves nothing to navigate,
+	// so the player cannot even page to the next image (it just flashes the window forever).
+	// Only accept an empty result when the current file really is gone from disk.
+	if (m_scanResult.empty() && !m_fileList.empty() &&
+		::GetFileAttributes(sCurrentFile.IsEmpty() ? m_fileList.front().GetName() : (LPCTSTR)sCurrentFile) != INVALID_FILE_ATTRIBUTES) {
+		m_scanResult.clear();
+	} else {
+		m_fileList.swap(m_scanResult);
+
+		// A directory-watcher scan may have captured a stale snapshot taken before the deletions
+		// completed, re-introducing just-deleted files as phantom entries. Drop them now so
+		// navigation never lands on a file that no longer exists on disk.
+		if (!m_deletedFiles.empty()) {
+			for (std::vector<CFileDesc>::iterator iter = m_fileList.begin(); iter != m_fileList.end(); ) {
+				if (m_deletedFiles.find(iter->GetName()) != m_deletedFiles.end()) {
+					iter = m_fileList.erase(iter);
+				} else {
+					++iter;
+				}
 			}
+			m_deletedFiles.clear();
 		}
-		m_deletedFiles.clear();
-	}
 
-	m_iter = FindFile(sCurrentFile);
-	m_iterStart = m_bWrapAroundFolder ? m_iter : m_fileList.begin();
+		m_iter = FindFile(sCurrentFile);
+		m_iterStart = m_bWrapAroundFolder ? m_iter : m_fileList.begin();
+	}
 	
 	m_bLoading = false;
 	m_hCallbackWnd = NULL;

@@ -91,6 +91,29 @@ static const CSize HUGE_SIZE = CSize(99999999, 99999999);
 // Helpers
 //////////////////////////////////////////////////////////////////////////////////////////////
 
+// Navigation diagnostics for the "cannot page past the current image" issue: appends GotoImage
+// decisions to %TEMP%\JPEGView_nav.log. Set NAV_DIAGNOSTICS to 1 and recompile to enable it;
+// 0 keeps the diagnostics out of the binary completely.
+#define NAV_DIAGNOSTICS 0
+
+#if NAV_DIAGNOSTICS
+static void LogNav(LPCTSTR sText) {
+	TCHAR szPath[MAX_PATH];
+	if (::GetTempPath(MAX_PATH, szPath) == 0) {
+		return;
+	}
+	_tcscat_s(szPath, MAX_PATH, _T("JPEGView_nav.log"));
+	FILE* f = NULL;
+	if (_tfopen_s(&f, szPath, _T("a, ccs=UTF-8")) != 0 || f == NULL) {
+		return;
+	}
+	SYSTEMTIME st;
+	::GetLocalTime(&st);
+	_ftprintf(f, _T("%02d:%02d:%02d.%03d  %s\n"), st.wHour, st.wMinute, st.wSecond, st.wMilliseconds, sText);
+	fclose(f);
+}
+#endif
+
 // Gets default image processing parameters as set in INI file
 static CImageProcessingParams GetDefaultProcessingParams() {
 	CSettingsProvider& sp = CSettingsProvider::This();
@@ -2613,12 +2636,32 @@ void CMainDlg::GotoImage(EImagePosition ePos, int nFlags) {
 		case POS_AwayFromCurrent:
 			m_pFileList = m_pFileList->AwayFromCurrent();
 			break;
-	}
+		}
 
-	if (bCheckIfSameImage && (m_pFileList == pOldFileList && (nOldFrameIndex == nFrameIndex || bNoWrapAroundEdgeFrame) && !m_pFileList->ChangedSinceCheckpoint())) {
+		#if NAV_DIAGNOSTICS
+			{
+				CString sLog;
+				sLog.Format(_T("GotoImage pos=%d flags=%d size=%d idx=%d moved=%d cur=%s img=%d"),
+					(int)ePos, nFlags, m_pFileList->Size(), m_pFileList->CurrentIndex(),
+					m_pFileList->ChangedSinceCheckpoint() ? 1 : 0,
+					(m_pFileList->Current() != NULL) ? m_pFileList->Current() : _T("<null>"),
+					(m_pCurrentImage != NULL) ? 1 : 0);
+				LogNav(sLog);
+			}
+		#endif
+
+
+		if (bCheckIfSameImage && (m_pFileList == pOldFileList && (nOldFrameIndex == nFrameIndex || bNoWrapAroundEdgeFrame) && !m_pFileList->ChangedSinceCheckpoint())) {
 		if (m_state.m_bMovieMode && m_bAutoExit) {
 			CleanupAndTerminate();
 		} else {
+			// An empty file list cannot be navigated at all: ask for a rescan so the player can
+			// recover (e.g. after the drive was temporarily unavailable). Reload() is asynchronous
+			// and does not restart a scan that is already running, so this cannot block the UI.
+			if (m_pFileList->Size() == 0 && !m_pFileList->IsLoading()) {
+				m_pFileList->Reload(NULL, false, m_hWnd);
+			}
+
 			if (CSettingsProvider::This().FlashWindowAlert()) {
 				// Flash window to notify user
 				FlashWindow(TRUE);  // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-flashwindow
@@ -2628,6 +2671,17 @@ void CMainDlg::GotoImage(EImagePosition ePos, int nFlags) {
 				// Use the system's default beep sound
 				MessageBeep(0xFFFFFFFF);  // https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-messagebeep
 			}
+
+#if NAV_DIAGNOSTICS
+			{
+				CString sLog;
+				sLog.Format(_T("  -> SAME IMAGE, return (size=%d idx=%d frameOld=%d frameNew=%d noWrapEdge=%d sameList=%d cur=%s)"),
+					m_pFileList->Size(), m_pFileList->CurrentIndex(), nOldFrameIndex, nFrameIndex,
+					bNoWrapAroundEdgeFrame ? 1 : 0, (m_pFileList == pOldFileList) ? 1 : 0,
+					(m_pFileList->Current() != NULL) ? m_pFileList->Current() : _T("<null>"));
+				LogNav(sLog);
+			}
+#endif
 
 			return; // not placed on a new image, don't do anything
 		}
@@ -2679,6 +2733,19 @@ void CMainDlg::GotoImage(EImagePosition ePos, int nFlags) {
 			m_bOutOfMemoryLastImage, m_bExceptionErrorLastImage);
 		m_nLastLoadError = (m_pCurrentImage == NULL) ? ((m_pFileList->Current() == NULL) ? HelpersGUI::FileLoad_NoFilesInDirectory : HelpersGUI::FileLoad_LoadError) : HelpersGUI::FileLoad_Ok;
 	}
+
+#if NAV_DIAGNOSTICS
+	{
+		CString sLog;
+		sLog.Format(_T("  -> load done img=%d err=%d oom=%d exc=%d idx=%d cur=%s"),
+			(m_pCurrentImage != NULL) ? 1 : 0, m_nLastLoadError,
+			m_bOutOfMemoryLastImage ? 1 : 0, m_bExceptionErrorLastImage ? 1 : 0,
+			m_pFileList->CurrentIndex(),
+			(m_pFileList->Current() != NULL) ? m_pFileList->Current() : _T("<null>"));
+		LogNav(sLog);
+	}
+#endif
+
 	double minimalDisplayTime = CSettingsProvider::This().MinimalDisplayTime();
 	bool bSynchronize = (nFlags & KEEP_PARAMETERS) == 0;
 	AfterNewImageLoaded(bSynchronize, false, minimalDisplayTime > 0);

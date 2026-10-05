@@ -94,6 +94,12 @@
 
 **结论：不要为"性能"整体照搬 L**——其 float 路线是为线性光画质（改变输出明暗），热路径吞吐不如本 fork 的 int16 定点路线；L 的多数差异属新功能或画质改变。可借鉴的纯优化已取用：AVIF `avifDecoderCreate` 判空、JPEG ICC 由 lcms2 处理（避免 `UseEmbeddedColorProfiles` 时全量走 GDI+）、JXL 动画真实帧数（`CountJxlFrames`，修掉"只播前 2 帧"的缺陷）。
 
+**异步扫描约定（重要）**：`CFileList::OnScanCompleted()` **不得把非空列表替换成空扫描结果**——网络/可移动盘瞬时不可用会返回空结果，直接 `swap` 会清空列表；空列表下 `Next()` 无法移动迭代器（`begin()==end()`），`GotoImage` 会永久判定"没换图"（闪窗 + return），只能重启（2026-10-06 用 `%TEMP%\JPEGView_nav.log` 实证，目录为 `Z:\sdb\...` 网络盘）。现逻辑：扫描空 + 旧列表非空 + 探测文件仍存在 → 保留旧列表；另在 `GotoImage` 中列表为空且未扫描时触发一次异步 `Reload` 兜底。
+
+**导航诊断开关（排查卡住/翻不过去首选）**：`MainDlg.cpp` 顶部 `#define NAV_DIAGNOSTICS 0`，置 1 重编译后会把 `GotoImage` 的决策（`pos/size/idx/moved/cur/img`、`SAME IMAGE` 判定依据、加载结果 `img/err/oom/exc`）追加写入 `%TEMP%\JPEGView_nav.log`。=0 时不进二进制，零开销。
+
+**文件列表迭代器约定（重要）**：`CFileList::m_iter` / `m_iterStart` **绝不允许长期停留在 `end()`**。`GotoImage()`（MainDlg.cpp:2618）用 `m_pFileList == pOldFileList && nOldFrameIndex == nFrameIndex && !ChangedSinceCheckpoint()` 判定"没换到新图"，而 `ChangedSinceCheckpoint()` 只比较迭代器位置（FileList.h:128）——迭代器不动就会闪窗/蜂鸣后 return，表现为"能操作但图永远翻不过去、只能重启"（2026-10-06 修复的 bug）。因此 `Next()/Prev()/Last()` 各自带越界自愈兜底，`RemoveFile()` 也不再写入 `end()`；改动这些导航函数时**不要移除**这些兜底。
+
 **动画多帧约定（重要）**：`Helpers::GetFrameIndex()` 用 `CJPEGImage::NumberOfFrames()` 回绕，因此任何格式返回的 `frame_count` 若是占位/近似值，会直接导致动画只播前 N 帧。新格式接入时必须返回真实帧数。JXL 无帧数元数据 → 首次解码时扫描一次并缓存（`JxlReader::cache.total_frames`）。
 
 **尚未采纳的候选优化**（评估见 2026-09-13 记录）：线性光重采样（float，代价大、改变观感，建议做成默认关的 INI 开关）、更多下采样滤镜（成本低，中低优先级）、CacheRange（中）、SmoothPanning/漫画包/书签（低）。
