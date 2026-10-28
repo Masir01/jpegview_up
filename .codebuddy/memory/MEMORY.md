@@ -96,6 +96,8 @@
 
 **异步扫描约定（重要）**：`CFileList::OnScanCompleted()` **不得把非空列表替换成空扫描结果**——网络/可移动盘瞬时不可用会返回空结果，直接 `swap` 会清空列表；空列表下 `Next()` 无法移动迭代器（`begin()==end()`），`GotoImage` 会永久判定"没换图"（闪窗 + return），只能重启（2026-10-06 用 `%TEMP%\JPEGView_nav.log` 实证，目录为 `Z:\sdb\...` 网络盘）。现逻辑：扫描空 + 旧列表非空 + 探测文件仍存在 → 保留旧列表；另在 `GotoImage` 中列表为空且未扫描时触发一次异步 `Reload` 兜底。
 
+**异步扫描线程不变量（重要，2026-10-28）**：同一时刻只允许一个扫描线程——`CancelScan()` 返回 false（200 ms 内停不下线程）时 `FindFilesAsync()` 直接丢弃本次请求，绝不并发两次扫描（否则两个线程同时写 `m_scanResult`）。完成消息 `LPARAM = 代次 | (取消 ? 0x80000000 : 0)`，`OnScanCompleted` 只处理**代次匹配**的消息，代次不匹配必须立刻 return 且不碰任何扫描状态（包括 `m_bLoading` / `m_hCancelEvent` / `m_hScanThread`）；`m_hScanThread` 必须 CloseHandle 后置 NULL。改动这些函数时不要移除代次检查，否则删除/目录变化密集触发时"旧扫描完成消息覆盖新扫描状态"会清空列表。枚举逻辑已抽为 `ScanDirectoryForImages()`，`FindFiles()` 与 `ScanThreadProc` 共用，勿再各写一份。
+
 **导航诊断开关（排查卡住/翻不过去首选）**：`MainDlg.cpp` 顶部 `#define NAV_DIAGNOSTICS 0`，置 1 重编译后会把 `GotoImage` 的决策（`pos/size/idx/moved/cur/img`、`SAME IMAGE` 判定依据、加载结果 `img/err/oom/exc`）追加写入 `%TEMP%\JPEGView_nav.log`。=0 时不进二进制，零开销。
 
 **文件列表迭代器约定（重要）**：`CFileList::m_iter` / `m_iterStart` **绝不允许长期停留在 `end()`**。`GotoImage()`（MainDlg.cpp:2618）用 `m_pFileList == pOldFileList && nOldFrameIndex == nFrameIndex && !ChangedSinceCheckpoint()` 判定"没换到新图"，而 `ChangedSinceCheckpoint()` 只比较迭代器位置（FileList.h:128）——迭代器不动就会闪窗/蜂鸣后 return，表现为"能操作但图永远翻不过去、只能重启"（2026-10-06 修复的 bug）。因此 `Next()/Prev()/Last()` 各自带越界自愈兜底，`RemoveFile()` 也不再写入 `end()`；改动这些导航函数时**不要移除**这些兜底。

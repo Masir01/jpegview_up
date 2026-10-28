@@ -1121,10 +1121,12 @@ LRESULT CMainDlg::OnActiveDirectoryFilelistChanged(UINT /*uMsg*/, WPARAM /*wPara
 	return 0;
 }
 
-LRESULT CMainDlg::OnFileListScanCompleted(UINT /*uMsg*/, WPARAM wParam, LPARAM /*lParam*/, BOOL& /*bHandled*/) {
+LRESULT CMainDlg::OnFileListScanCompleted(UINT /*uMsg*/, WPARAM wParam, LPARAM lParam, BOOL& /*bHandled*/) {
 	CFileList* pFileList = (CFileList*)wParam;
 	if (pFileList != NULL && m_pFileList == pFileList) {
-		pFileList->OnScanCompleted();
+		// lParam carries the scan generation plus the cancelled flag; completions of superseded
+		// scans are ignored inside OnScanCompleted.
+		pFileList->OnScanCompleted((unsigned int)lParam);
 		if (pFileList->Current() != NULL) {
 			Invalidate(FALSE);
 		}
@@ -1533,8 +1535,8 @@ void CMainDlg::ExecuteCommand(int nCommand) {
 					GotoImage(POS_Current);                                // lands on next valid image immediately
 					// The directory watcher fires on the deletion (FILE_NOTIFY_CHANGE_FILE_NAME) and
 					// asynchronously rescans to pick up new files. Rely on it instead of starting a
-					// second async scan here: two overlapping scans collide in CancelScan(), which
-					// blocks the UI thread (WaitForSingleObject, up to 5 s) and freezes paging.
+					// second async scan here: FindFilesAsync() would cancel the pending scan again,
+					// throwing away work and stacking up redundant scans.
 					// Only rescan explicitly when auto-reload via the watcher is disabled.
 					if (!CSettingsProvider::This().ReloadWhenDisplayedImageChanged()) {
 						fileListOfDeletedImage->Reload(NULL, false, m_hWnd);

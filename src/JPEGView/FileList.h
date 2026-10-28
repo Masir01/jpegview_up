@@ -152,9 +152,17 @@ public:
 	void DeleteHistory(bool onlyForward = false);
 
 	bool IsLoading() const { return m_bLoading; }
-	void CancelScan();
+	// Stops a running directory scan. Returns false when the scan thread could not be stopped in
+	// time (blocking file system call); in that case no other scan may be started.
+	bool CancelScan(bool bWaitForCompletion = false);
 	void FindFilesAsync(HWND hCallbackWnd);
-	void OnScanCompleted();
+	// High bit of the scan completion message: marks a cancelled scan, whose incomplete result
+	// must not be applied to the file list.
+	static const unsigned int SCAN_CANCELLED_FLAG = 0x80000000u;
+
+	// Applies the result of a completed scan. nMessage is the value posted with
+	// WM_FILELIST_SCAN_COMPLETED: the scan generation, optionally with SCAN_CANCELLED_FLAG set.
+	void OnScanCompleted(unsigned int nMessage);
 	static UINT __stdcall ScanThreadProc(LPVOID pParam);
 
 private:
@@ -185,6 +193,9 @@ private:
 	std::vector<CFileDesc> m_scanResult;
 	HANDLE m_hCancelEvent;
 	HANDLE m_hScanThread;
+	// Incremented for every started scan, so a late completion message of an older scan can be
+	// recognized and discarded instead of being applied to the current list state.
+	unsigned int m_nScanGeneration;
 
 	// Files deleted in-place via RemoveFile() since the last directory scan completed.
 	// Used to strip phantom entries that an async (potentially stale) directory scan may
@@ -202,6 +213,7 @@ private:
 	CFileList* WrapToNextImage();
 	CFileList* WrapToPrevImage();
 	void FindFiles();
+	void EndScanState();
 	void VerifyFiles();
 	bool IsImageFile(const CString & sEnding);
 	bool TryReadingSlideShowList(const CString & sSlideShowFile);

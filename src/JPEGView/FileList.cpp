@@ -204,6 +204,7 @@ CFileList::CFileList(const CString & sInitialFile, CDirectoryWatcher & directory
 	m_hCallbackWnd = NULL;
 	m_hCancelEvent = NULL;
 	m_hScanThread = NULL;
+	m_nScanGeneration = 0;
 	int nPos = sInitialFile.ReverseFind(_T('\\'));
 	m_sDirectory = (nPos > 0) ? sInitialFile.Left(nPos) : _T(""); // the backslash is stripped away!
 	nPos = sInitialFile.ReverseFind(_T('.'));
@@ -258,7 +259,7 @@ CFileList::~CFileList() {
 	if (m_bDeleteHistory) {
 		DeleteHistory();
 	}
-	CancelScan();
+	CancelScan(true); // the object must not be destroyed while a scan thread still writes to it
 	m_fileList.clear();
 }
 
@@ -886,14 +887,13 @@ CFileList* CFileList::TryCreateFileList(const CString& directory, int nNewLevel)
 	}
 }
 
-void CFileList::FindFiles() {
-	m_fileList.clear();
-	if (m_sDirectory.IsEmpty())
-		return;
-
-	// Enumerate the directory only once and match the extension against the supported endings.
-	// Enumerating once per supported ending (the old approach) is very slow for folders that
-	// contain a huge number of files.
+// Scans the given directory for files with a supported image ending and appends them to fileList.
+// The directory is enumerated only once and each entry is matched against the set of supported
+// endings. Enumerating once per supported ending (the original approach) is very slow for folders
+// that contain a huge number of files.
+// Returns false when the scan was cancelled through hCancelEvent (pass NULL for a scan that cannot
+// be cancelled). In that case fileList contains an incomplete result.
+static bool ScanDirectoryForImages(const CString& sDirectory, std::vector<CFileDesc>& fileList, HANDLE hCancelEvent) {
 	LPCTSTR* allFileEndings = GetSupportedFileEndingList();
 	std::set<CString> validExtensions;
 	for (int i = 0; i < nNumEndings; i++) {
@@ -903,8 +903,11 @@ void CFileList::FindFiles() {
 	}
 
 	CFindFile fileFind;
-	BOOL bWorking = fileFind.FindFile(m_sDirectory + _T("\\*"));
+	BOOL bWorking = fileFind.FindFile(sDirectory + _T("\\*"));
 	while (bWorking) {
+		if (hCancelEvent != NULL && ::WaitForSingleObject(hCancelEvent, 0) == WAIT_OBJECT_0) {
+			return false;
+		}
 		if (!fileFind.IsDots() && !fileFind.IsDirectory()) {
 			CString sFileName = fileFind.GetFileName();
 			int nDotPos = sFileName.ReverseFind(_T('.'));
@@ -912,7 +915,7 @@ void CFileList::FindFiles() {
 				CString sEnding = sFileName.Mid(nDotPos + 1);
 				sEnding.MakeLower();
 				if (validExtensions.find(sEnding) != validExtensions.end()) {
-					AddToFileList(m_fileList, fileFind, sEnding);
+					AddToFileList(fileList, fileFind, sEnding);
 				}
 			}
 		}
@@ -920,7 +923,15 @@ void CFileList::FindFiles() {
 	}
 	fileFind.Close();
 
-	std::sort(m_fileList.begin(), m_fileList.end());
+	std::sort(fileList.begin(), fileList.end());
+	return true;
+}
+
+void CFileList::FindFiles() {
+	m_fileList.clear();
+	if (m_sDirectory.IsEmpty())
+		return;
+	ScanDirectoryForImages(m_sDirectory, m_fileList, NULL);
 }
 
 void CFileList::VerifyFiles() {
@@ -1097,95 +1108,112 @@ struct ScanParams {
 	CString sDirectory;
 	HANDLE hCancelEvent;
 	HWND hCallbackWnd;
+	unsigned int nGeneration;
 };
 }
 
 UINT __stdcall CFileList::ScanThreadProc(LPVOID pParam) {
 	ScanParams* params = (ScanParams*)pParam;
 	CFileList* pFileList = params->pFileList;
-	
+
 	pFileList->m_scanResult.clear();
-	
-	bool bCancelled = false;
-	
-	if (!params->sDirectory.IsEmpty()) {
-		CFindFile fileFind;
-		LPCTSTR* allFileEndings = GetSupportedFileEndingList();
-		for (int i = 0; i < nNumEndings; i++) {
-			if (WaitForSingleObject(params->hCancelEvent, 0) == WAIT_OBJECT_0) {
-				bCancelled = true;
-				break;
-			}
-			CString sPattern = params->sDirectory + _T("\\*.") + allFileEndings[i];
-			if (fileFind.FindFile(sPattern)) {
-				AddToFileList(pFileList->m_scanResult, fileFind, allFileEndings[i]);
-				while (fileFind.FindNextFile()) {
-					if (WaitForSingleObject(params->hCancelEvent, 0) == WAIT_OBJECT_0) {
-						bCancelled = true;
-						break;
-					}
-					AddToFileList(pFileList->m_scanResult, fileFind, allFileEndings[i]);
-				}
-			}
-			fileFind.Close();
-		}
-	}
-	
-	if (!bCancelled) {
-		if (WaitForSingleObject(params->hCancelEvent, 0) != WAIT_OBJECT_0) {
-			std::sort(pFileList->m_scanResult.begin(), pFileList->m_scanResult.end());
-		} else {
-			bCancelled = true;
-		}
-	}
-	
+
+	bool bCompleted = params->sDirectory.IsEmpty() ||
+		ScanDirectoryForImages(params->sDirectory, pFileList->m_scanResult, params->hCancelEvent);
+
 	HWND hWnd = params->hCallbackWnd;
+	unsigned int nGeneration = params->nGeneration;
 	delete params;
-	
-	if (!bCancelled && hWnd && IsWindow(hWnd)) {
-		PostMessage(hWnd, WM_FILELIST_SCAN_COMPLETED, (WPARAM)pFileList, 0);
+
+	if (hWnd != NULL && ::IsWindow(hWnd)) {
+		// The generation identifies the scan; the high bit marks a cancelled scan, whose
+		// incomplete result must not be applied to the list.
+		unsigned int nMessage = nGeneration | (bCompleted ? 0u : CFileList::SCAN_CANCELLED_FLAG);
+		::PostMessage(hWnd, WM_FILELIST_SCAN_COMPLETED, (WPARAM)pFileList, (LPARAM)nMessage);
 	}
-	
+
 	return 0;
 }
 
-void CFileList::CancelScan() {
-	if (m_bLoading && m_hCancelEvent) {
-		SetEvent(m_hCancelEvent);
-		if (m_hScanThread != NULL) {
-			WaitForSingleObject(m_hScanThread, 5000);
-			CloseHandle(m_hScanThread);
-			m_hScanThread = NULL;
-		}
-		CloseHandle(m_hCancelEvent);
-		m_hCancelEvent = NULL;
-		m_bLoading = false;
-		m_hCallbackWnd = NULL;
+bool CFileList::CancelScan(bool bWaitForCompletion) {
+	if (!m_bLoading) {
+		return true;
 	}
+
+	if (m_hCancelEvent != NULL) {
+		::SetEvent(m_hCancelEvent);
+	}
+	if (m_hScanThread != NULL) {
+		// The scan thread checks the cancel event after every directory entry, so it normally
+		// stops within microseconds. A short timeout keeps the UI responsive: when the thread is
+		// stuck in a blocking file system call (e.g. an unreachable network share) we give up,
+		// and the completion it posts later cleans up the scan state.
+		DWORD dwTimeout = bWaitForCompletion ? INFINITE : 200;
+		if (::WaitForSingleObject(m_hScanThread, dwTimeout) == WAIT_TIMEOUT) {
+			return false;
+		}
+		::CloseHandle(m_hScanThread);
+		m_hScanThread = NULL;
+	}
+	if (m_hCancelEvent != NULL) {
+		::CloseHandle(m_hCancelEvent);
+		m_hCancelEvent = NULL;
+	}
+	m_bLoading = false;
+	m_hCallbackWnd = NULL;
+	return true;
 }
 
 void CFileList::FindFilesAsync(HWND hCallbackWnd) {
-	CancelScan();
-	
+	if (!CancelScan()) {
+		// A previous scan is still running (stuck in a blocking call). Starting another one
+		// would race with it on the result buffer, so drop this request: the completion of the
+		// stuck scan cleans up the scan state, and the next directory change or user action asks
+		// for a rescan again.
+		return;
+	}
+
+	m_nScanGeneration++;
 	m_bLoading = true;
 	m_hCallbackWnd = hCallbackWnd;
 	m_hCancelEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-	
+
 	m_scanResult.clear();
-	
+
 	ScanParams* params = new ScanParams();
 	params->pFileList = this;
 	params->sDirectory = m_sDirectory;
 	params->hCancelEvent = m_hCancelEvent;
 	params->hCallbackWnd = hCallbackWnd;
-	
+	params->nGeneration = m_nScanGeneration;
+
 	UINT uThreadId;
 	m_hScanThread = (HANDLE)_beginthreadex(NULL, 0, ScanThreadProc, params, 0, &uThreadId);
+	if (m_hScanThread == NULL) {
+		// The scan could not even be started: keep the current list instead of staying in the
+		// "loading" state forever.
+		delete params;
+		EndScanState();
+	}
 }
 
-void CFileList::OnScanCompleted() {
+void CFileList::OnScanCompleted(unsigned int nMessage) {
 	if (!m_bLoading) return;
-	
+
+	bool bCancelled = (nMessage & SCAN_CANCELLED_FLAG) != 0;
+	unsigned int nGeneration = nMessage & ~SCAN_CANCELLED_FLAG;
+
+	// A completion of an already superseded scan must never touch the state of the current scan:
+	// its result belongs to an older snapshot of the directory and the scan state it would clean
+	// up belongs to the newer scan.
+	if (nGeneration == 0 || nGeneration != m_nScanGeneration) return;
+
+	if (bCancelled) {
+		// The scan was cancelled: keep the current list and only clean up the scan state.
+		EndScanState();
+		return;
+	}
+
 	CString sCurrentFile = (m_iter != m_fileList.end()) ? m_iter->GetName() : m_sInitialFile;
 
 	// A scan can come back empty when the drive was temporarily unavailable (network or
@@ -1217,11 +1245,19 @@ void CFileList::OnScanCompleted() {
 		m_iterStart = m_bWrapAroundFolder ? m_iter : m_fileList.begin();
 	}
 	
+	EndScanState();
+}
+
+void CFileList::EndScanState() {
 	m_bLoading = false;
 	m_hCallbackWnd = NULL;
-	if (m_hCancelEvent) {
-		CloseHandle(m_hCancelEvent);
+	if (m_hCancelEvent != NULL) {
+		::CloseHandle(m_hCancelEvent);
 		m_hCancelEvent = NULL;
 	}
-	m_hScanThread = NULL;
+	if (m_hScanThread != NULL) {
+		// The scan thread has already posted its completion, so it is about to exit.
+		::CloseHandle(m_hScanThread);
+		m_hScanThread = NULL;
+	}
 }
