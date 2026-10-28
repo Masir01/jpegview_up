@@ -327,8 +327,8 @@ HEIFIgnoreTransformations=false
 ; false = keep original bit depth (requires more memory)
 HEIFConvertHDRTo8bit=true
 
-; If true, embedded ICC color profiles are used for JPEG, PNG and TIFF. This forces using GDI+ and therefore
-; results in much slower loading of JPEGs! Only set to true if you really need this.
+; If true, embedded ICC color profiles are applied during decoding. JPEG and PNG are color managed by
+; lcms2 (no speed penalty), TIFF is decoded with GDI+ instead (slower). Animated PNG is not color managed.
 UseEmbeddedColorProfiles=false
 
 ; -----------------------------------------------

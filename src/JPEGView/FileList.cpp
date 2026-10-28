@@ -6,6 +6,7 @@
 #include "Shlwapi.h"
 #include "MessageDef.h"
 #include <algorithm>
+#include <set>
 
 ///////////////////////////////////////////////////////////////////////////////////
 // Helpers
@@ -887,18 +888,37 @@ CFileList* CFileList::TryCreateFileList(const CString& directory, int nNewLevel)
 
 void CFileList::FindFiles() {
 	m_fileList.clear();
-	if (!m_sDirectory.IsEmpty()) {
-		CFindFile fileFind;
-		LPCTSTR* allFileEndings = GetSupportedFileEndingList();
-		for (int i = 0; i < nNumEndings; i++) {
-			if (fileFind.FindFile(m_sDirectory + _T("\\*.") + allFileEndings[i])) {
-				AddToFileList(m_fileList, fileFind, allFileEndings[i]);
-				while (fileFind.FindNextFile()) {
-					AddToFileList(m_fileList, fileFind, allFileEndings[i]);
+	if (m_sDirectory.IsEmpty())
+		return;
+
+	// Enumerate the directory only once and match the extension against the supported endings.
+	// Enumerating once per supported ending (the old approach) is very slow for folders that
+	// contain a huge number of files.
+	LPCTSTR* allFileEndings = GetSupportedFileEndingList();
+	std::set<CString> validExtensions;
+	for (int i = 0; i < nNumEndings; i++) {
+		CString sEnding = allFileEndings[i];
+		sEnding.MakeLower();
+		validExtensions.insert(sEnding);
+	}
+
+	CFindFile fileFind;
+	BOOL bWorking = fileFind.FindFile(m_sDirectory + _T("\\*"));
+	while (bWorking) {
+		if (!fileFind.IsDots() && !fileFind.IsDirectory()) {
+			CString sFileName = fileFind.GetFileName();
+			int nDotPos = sFileName.ReverseFind(_T('.'));
+			if (nDotPos != -1) {
+				CString sEnding = sFileName.Mid(nDotPos + 1);
+				sEnding.MakeLower();
+				if (validExtensions.find(sEnding) != validExtensions.end()) {
+					AddToFileList(m_fileList, fileFind, sEnding);
 				}
 			}
 		}
+		bWorking = fileFind.FindNextFile();
 	}
+	fileFind.Close();
 
 	std::sort(m_fileList.begin(), m_fileList.end());
 }

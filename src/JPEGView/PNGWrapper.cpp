@@ -5,6 +5,8 @@
 #ifndef WINXP
 #include "png.h"
 #include "MaxImageDef.h"
+#include "SettingsProvider.h"
+#include "ICCProfileTransform.h"
 #include <stdexcept>
 
 // Uncomment to build without APNG support
@@ -69,6 +71,7 @@ struct PngReader::png_cache {
 	void* buffer;
 	size_t buffer_size;
 	size_t buffer_offset;
+	void* transform; // ICC transform from the embedded profile to sRGB, NULL if not used
 };
 
 PngReader::png_cache PngReader::cache = { 0 };
@@ -145,6 +148,10 @@ void* PngReader::ReadNextFrame(void** exif_chunk, png_uint_32* exif_size)
 		return NULL;
 	for (j = 0; j < cache.height; j++)
 		memcpy((char*)pixels + j * cache.width * cache.channels, cache.rows_image[j], cache.width * cache.channels);
+
+	if (cache.transform != NULL) {
+		ICCProfileTransform::DoTransform(cache.transform, pixels, pixels, cache.width, cache.height);
+	}
 
 #ifdef PNG_APNG_SUPPORTED
 	if (cache.dop == PNG_DISPOSE_OP_PREVIOUS)
@@ -278,6 +285,19 @@ bool PngReader::BeginReading(void* buffer, size_t sizebytes, bool& outOfMemory)
 			cache.x0 = x0;
 			cache.y0 = y0;
 			cache.frame_count = frames;
+			// Apply an embedded ICC profile with lcms2 (same engine as JPEG) instead of letting
+			// ImageLoadThread route PNG through the slower GDI+ decoder. Animated PNG is skipped:
+			// the transform would have to run for every frame of the animation.
+			if (CSettingsProvider::This().UseEmbeddedColorProfiles() &&
+				!png_get_valid(png_ptr, info_ptr, PNG_INFO_acTL)) {
+				png_charp pProfileName = NULL;
+				int nCompressionType = 0;
+				png_bytep pProfile = NULL;
+				png_uint_32 nProfileLen = 0;
+				if (png_get_iCCP(png_ptr, info_ptr, &pProfileName, &nCompressionType, &pProfile, &nProfileLen) == PNG_INFO_iCCP) {
+					cache.transform = ICCProfileTransform::CreateTransform(pProfile, nProfileLen, ICCProfileTransform::FORMAT_BGRA);
+				}
+			}
 			return frames > 0;
 		}
 		free(p_image);
@@ -358,6 +378,10 @@ void* PngReader::ReadImage(int& width,
 void PngReader::DeleteCacheInternal(bool free_buffer)
 {
 	// png_read_end(cache.png_ptr, cache.info_ptr);
+	if (cache.transform != NULL) {
+		ICCProfileTransform::DeleteTransform(cache.transform);
+		cache.transform = NULL;
+	}
 	free(cache.rows_frame);
 	free(cache.rows_image);
 	free(cache.p_temp);

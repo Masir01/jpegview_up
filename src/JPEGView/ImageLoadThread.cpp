@@ -823,8 +823,9 @@ void CImageLoadThread::ProcessReadPNGRequest(CRequest* request) {
 			void* pEXIFData = NULL;
 
 #ifndef WINXP
-			// If UseEmbeddedColorProfiles is true and the image isn't animated, we should use GDI+ for better color management
-			bool bUseGDIPlus = CSettingsProvider::This().ForceGDIPlus() || CSettingsProvider::This().UseEmbeddedColorProfiles();
+			// Only an explicit "ForceGDIPlus" setting routes PNG decoding through GDI+. Embedded ICC
+			// profiles are applied by lcms2 inside PngReader, which keeps the libpng fast path.
+			bool bUseGDIPlus = CSettingsProvider::This().ForceGDIPlus();
 			if (bUseCachedDecoder || !bUseGDIPlus || PngReader::MustUseLibpng(pBuffer, nFileSize))
 				pPixelData = (uint8*)PngReader::ReadImage(nWidth, nHeight, nBPP, bHasAnimation, nFrameCount, nFrameTimeMs, pEXIFData, request->OutOfMemory, pBuffer, nFileSize);
 #endif

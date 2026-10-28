@@ -179,7 +179,14 @@
 - **构建适配事实**：`src/JPEGView.sln` 存在（JPEGView + WICLoader）；`JPEGView.vcxproj` 已内置 `deps/WTL-sf\Include` → CI 只需 `git submodule update --init deps/WTL-sf`；**32 位预编译库缺失（只有 lib64）→ 只构建 Release|x64**；本机无 vswhere，VS 18 在 `D:\Program Files\Microsoft Visual Studio\18\Community`。
 - **Gitea 兼容边界**：工作流目录 `.gitea/workflows/`；`runs-on` 仅支持 `xyz`/`[xyz]`；表达式仅保证 `always()`；`workflow_call`/本地 composite action/cache/artifact 文档均未确认 → 兼容写法须用共同子集。
 
-## 上游 JPEGView_L 修复跟踪（核对至 v1.4.0.6，2026-09-26）
+## 上游 JPEGView_L 修复跟踪（核对至 v1.4.0.8，2026-10-28）
+
+### v1.4.0.8 核对结论（2026-10-28）
+- **已采纳**：`CFileList::FindFiles()` 改单次目录枚举（原按 18 个扩展名各扫一遍，大目录极慢）——落地时改成标准 `while(bWorking){处理; bWorking=FindNextFile();}`，上游原写法把 `FindNextFile` 放循环体首行、依赖 `.`/`..` 必先出现，脆弱勿照抄；PNG 内嵌 ICC 改由 lcms2 处理（`PNGWrapper` 建 transform、仅静态图跳过 APNG；`ImageLoadThread` 的 PNG 分支只由 `ForceGDIPlus` 触发 GDI+，`UseEmbeddedColorProfiles` 不再绕行 GDI+），ini 注释同步。
+- **未采纳及理由**：1 GiB 文件上限——上游同时把 `MAX_IMAGE_PIXELS` 提到 65535²≈4295 Mpx（4 GiB+ 像素缓冲，OOM 风险），真要提也只提文件大小、守卫不动；`UseEmbeddedColorProfiles` 默认改 true（我们有意为 false）；`SystemTimeToString` 的 LCID 映射 + 强制 24 小时制（100 行，中文场景收益小）；图标缓存 `SHGFI_USEFILEATTRIBUTES`（我们标题栏用资源图标，全项目无 `SHGetFileInfo`）；wine 路径显示、阿拉伯语本地化修正（不适用）。
+- **待评估**：ICC 配置与 sRGB 相同时短路转换（上游用 `strstr` 匹配描述判断，较糙）；过渡效果放开到非全屏（需实测窗口模式观感）。
+
+### v1.4.0.6 核对（2026-09-26）
 上游最新 **v1.4.0.6**（2026-09-24，`9096d96`）。v1.4.0.5→v1.4.0.6 实质只动 4 个源文件，逐项适用性：
 - **已实施（2026-09-26）Fix #21 文件大小加小数**：上游改用 `FormatFileSize()`（KiB/MiB 单位）。**我们按用户要求保留 MB/KB 单位、统一两位小数**（`%.2f MB` / `%.2f KB`，<1 KiB 仍为 `%d b`）：`Helpers.cpp` 中 `GetFileInfoString` 之前新增 static `FormatFileSize()`，其 `<l>` 分支改调用它。注意：与上游实现的**单位与精度都不同**，日后同步上游时不要直接覆盖。
 - **未采用（2026-09-26 实施后回退）Fix #8**：`TJPEGWrapper.cpp:170` 保持原 int 表达式 `TJPAD(nScaledWidth * 3) * nScaledHeight`。曾改为 `static_cast<size_t>` 并编译通过，随后按用户"最小 diff"原则回退（守卫 `MAX_IMAGE_PIXELS` 下溢出不可达，属纯防御性）。判断依据：溢出阈值 715.8 Mpx vs 守卫 524.3 Mpx，余量 26.7%。
